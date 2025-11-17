@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Music, BookOpen, Tv, Play, ListPlus } from "lucide-react";
 import Image from "next/image";
 import fallbackAudio from "@/assets/fallback-audio.jpg";
-import { api, Work } from "@/services/api";
+import { api, Work, Track } from "@/services/api";
+import ContentCard from "@/components/ContentCard";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -33,6 +34,33 @@ const DashboardPage = () => {
     if (typeof window !== 'undefined') window.addEventListener('profile-change', onProfileChange as EventListener);
     return () => { if (typeof window !== 'undefined') window.removeEventListener('profile-change', onProfileChange as EventListener); };
   }, []);
+
+  const handleFavoriteToggle = async (workId: string) => {
+    try {
+      const res = await api.toggleFavorite(workId);
+      const isFav = (res as any)?.isFavorite ?? false;
+      setFavorites(prev => prev.map(w => w.id === workId ? { ...w, isFavorite: isFav } : w));
+      setSuggested(prev => prev.map(w => w.id === workId ? { ...w, isFavorite: isFav } : w));
+    } catch {}
+  };
+
+  const handlePlay = (track: Track, work: Work) => {
+    const fn = (window as any).__player_playTrack;
+    if (typeof fn === 'function') {
+      fn({ id: track.id, title: track.title || work.title, duration: track.duration, coverUrl: work.coverUrl });
+    } else {
+      toast.error("Player não inicializado");
+    }
+  };
+
+  const handleAddToPlaylist = (track: Track, work: Work) => {
+    const fn = (window as any).__player_addTrack;
+    if (typeof fn === 'function') {
+      fn({ id: track.id, title: track.title || work.title, duration: track.duration, coverUrl: work.coverUrl });
+    } else {
+      toast.error("Player não inicializado");
+    }
+  };
 
   const getIcon = (type: Work["type"]) => {
     switch (type) {
@@ -76,64 +104,14 @@ const DashboardPage = () => {
         ) : favorites.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {favorites.map((item) => (
-              <Card key={item.id} className="overflow-hidden flex flex-col">
-                <Image
-                  src={(item.coverUrl || '').trim() || fallbackAudio}
-                  alt={item.title}
-                  width={640}
-                  height={160}
-                  className="w-full h-40 object-cover bg-muted"
-                />
-                <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                    {getIcon(item.type)}
-                    <span className="capitalize">{item.type}</span>
-                  </div>
-                  <h3 className="font-semibold text-lg flex-grow">{item.title}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(item.tags || []).map((tag) => (
-                      <Badge key={tag.id} variant="secondary">
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-xs text-muted-foreground">
-                      {item.recommendedAgeLabel || " "}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button size="icon" onClick={() => {
-                      const track = (item.tracks || [])[0];
-                      if (!track) return;
-                      const fn = (window as any).__player_playTrack;
-                      if (typeof fn === 'function') {
-                          fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                      } else {
-                          toast.error("Player não inicializado");
-                      }
-                    }}>
-                      <Play className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Button className="w-full" size="sm" variant="outline" onClick={() => {
-                    const track = (item.tracks || [])[0];
-                    if (!track) return;
-                    const fn = (window as any).__player_addTrack;
-                    if (typeof fn === 'function') {
-                        fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                    } else {
-                        toast.error("Player não inicializado");
-                    }
-                  }}>
-                    <ListPlus className="w-4 h-4" />
-                    Adicionar à playlist
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+              <ContentCard
+                key={item.id}
+                work={item}
+                onToggleFavorite={handleFavoriteToggle}
+                onPlay={handlePlay}
+                onAddToPlaylist={handleAddToPlaylist}
+              />
+            ))}
         </div>
         ) : (
           <p className="text-muted-foreground">
@@ -164,64 +142,14 @@ const DashboardPage = () => {
         ) : suggested.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {suggested.map((item) => (
-              <Card key={`s-${item.id}`} className="overflow-hidden flex flex-col">
-                <Image
-                  src={(item.coverUrl || '').trim() || fallbackAudio}
-                  alt={item.title}
-                  width={640}
-                  height={160}
-                  className="w-full h-40 object-cover bg-muted"
-                />
-                <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                    {getIcon(item.type)}
-                    <span className="capitalize">{item.type}</span>
-                  </div>
-                  <h3 className="font-semibold text-lg flex-grow">{item.title}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(item.tags || []).map((tag) => (
-                      <Badge key={tag.id} variant="secondary">
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-xs text-muted-foreground">
-                      {item.recommendedAgeLabel || " "}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button size="icon" onClick={() => {
-                      const track = (item.tracks || [])[0];
-                      if (!track) return;
-                      const fn = (window as any).__player_playTrack;
-                      if (typeof fn === 'function') {
-                          fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                      } else {
-                          toast.error("Player não inicializado");
-                      }
-                    }}>
-                      <Play className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Button className="w-full" size="sm" variant="outline" onClick={() => {
-                    const track = (item.tracks || [])[0];
-                    if (!track) return;
-                    const fn = (window as any).__player_addTrack;
-                    if (typeof fn === 'function') {
-                        fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                    } else {
-                        toast.error("Player não inicializado");
-                    }
-                  }}>
-                    <ListPlus className="w-4 h-4" />
-                    Adicionar à playlist
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+              <ContentCard
+                key={`s-${item.id}`}
+                work={item}
+                onToggleFavorite={handleFavoriteToggle}
+                onPlay={handlePlay}
+                onAddToPlaylist={handleAddToPlaylist}
+              />
+            ))}
         </div>
         ) : (
           <p className="text-muted-foreground">

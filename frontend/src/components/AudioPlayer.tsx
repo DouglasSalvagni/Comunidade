@@ -30,6 +30,7 @@ const AudioPlayer = () => {
   const [nowTrack, setNowTrack] = useState<PlayerTrack | null>(null);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
   const [playlistMap, setPlaylistMap] = useState<Record<string, string>>({});
+  const [pulsePlaylistBtn, setPulsePlaylistBtn] = useState(false);
 
   const currentTrack = nowTrack || null;
 
@@ -243,6 +244,8 @@ const AudioPlayer = () => {
         if (prev.find(p => p.id === t.id)) return prev;
         return [...prev, t];
       });
+      setPulsePlaylistBtn(true);
+      setTimeout(() => setPulsePlaylistBtn(false), 700);
       const ensureAndAdd = async () => {
         try {
           let plId = playlistId;
@@ -342,7 +345,12 @@ const AudioPlayer = () => {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Playlist">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Playlist"
+                className={`${pulsePlaylistBtn ? 'bg-yellow-50 text-yellow-600 ring-2 ring-yellow-400 shadow-[0_0_16px_2px_rgba(250,204,21,0.6)] scale-110' : ''} transition-all duration-300 transform`}
+              >
                 <List className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -485,7 +493,12 @@ const AudioPlayer = () => {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Playlist">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Playlist"
+              className={`${pulsePlaylistBtn ? 'bg-yellow-50 text-yellow-600 ring-2 ring-yellow-400 shadow-[0_0_16px_2px_rgba(250,204,21,0.6)] scale-110' : ''} transition-all duration-300 transform`}
+            >
               <List className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>

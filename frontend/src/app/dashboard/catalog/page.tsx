@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Music, BookOpen, Tv, Filter, Star, Play, ListPlus } from "lucide-react";
 import fallbackAudio from "@/assets/fallback-audio.jpg";
-import { api, Work, Tag } from "@/services/api";
+import { api, Work, Tag, Track } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
@@ -93,6 +93,24 @@ const CatalogPage = () => {
       const isFav = (res as any)?.isFavorite ?? false;
       setWorks((prevWorks) => prevWorks.map((work) => work.id === workId ? { ...work, isFavorite: isFav } : work));
     } catch {}
+  };
+
+  const handlePlay = (track: Track, work: Work) => {
+    const fn = (window as any).__player_playTrack;
+    if (typeof fn === 'function') {
+      fn({ id: track.id, title: track.title || work.title, duration: track.duration, coverUrl: work.coverUrl });
+    } else {
+      toast.error("Player não inicializado");
+    }
+  };
+
+  const handleAddToPlaylist = (track: Track, work: Work) => {
+    const fn = (window as any).__player_addTrack;
+    if (typeof fn === 'function') {
+      fn({ id: track.id, title: track.title || work.title, duration: track.duration, coverUrl: work.coverUrl });
+    } else {
+      toast.error("Player não inicializado");
+    }
   };
 
   const filteredWorks = works;
@@ -234,72 +252,13 @@ const CatalogPage = () => {
               ))
             )}
             {!loading && filteredWorks.map((item) => (
-              <Card key={item.id} className="overflow-hidden flex flex-col">
-                <div className="relative">
-                  <img
-                    src={item.coverUrl || (fallbackAudio as unknown as string)}
-                    alt={item.title}
-                    className="w-full h-40 object-cover bg-muted"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 rounded-full"
-                    onClick={() => handleFavoriteToggle(item.id)}
-                  >
-                    <Star
-                      className={`w-5 h-5 ${item.isFavorite ? "text-yellow-400" : "text-white"}`}
-                      fill={item.isFavorite ? "currentColor" : "none"}
-                    />
-                  </Button>
-                </div>
-                <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                    {getIcon(item.type)}
-                    <span className="capitalize">{item.type}</span>
-                  </div>
-                  <h3 className="font-semibold text-lg flex-grow">{item.title}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(item.tags || []).map((tag) => (
-                      <Badge key={tag.id} variant="secondary">
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="text-xs text-muted-foreground">
-                      Idade: {item.recommendedAgeLabel || (typeof item.recommendedMinMonths === "number" && typeof item.recommendedMaxMonths === "number" ? `${item.recommendedMinMonths}-${item.recommendedMaxMonths}m` : "-")}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button size="icon" onClick={() => {
-                        const track = (item.tracks || [])[0];
-                        if (!track) return;
-                        const fn = (window as any).__player_playTrack;
-                        if (typeof fn === 'function') {
-                          fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                        } else {
-                          toast.error("Player não inicializado");
-                        }
-                      }}>
-                        <Play className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        const track = (item.tracks || [])[0];
-                        if (!track) return;
-                        const fn = (window as any).__player_addTrack;
-                        if (typeof fn === 'function') {
-                          fn({ id: track.id, title: track.title || item.title, duration: track.duration, coverUrl: item.coverUrl });
-                        } else {
-                          toast.error("Player não inicializado");
-                        }
-                      }}>
-                        Adicionar à playlist
-                      </Button>
-                    </div>
-                  </div>
-                  
-                </div>
-              </Card>
+              <ContentCard
+                key={item.id}
+                work={item}
+                onToggleFavorite={handleFavoriteToggle}
+                onPlay={handlePlay}
+                onAddToPlaylist={handleAddToPlaylist}
+              />
             ))}
           </div>
         </div>
@@ -309,3 +268,4 @@ const CatalogPage = () => {
 };
 
 export default CatalogPage;
+import ContentCard from "@/components/ContentCard";

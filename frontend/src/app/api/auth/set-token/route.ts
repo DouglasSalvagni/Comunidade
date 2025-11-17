@@ -1,0 +1,33 @@
+import { NextResponse } from 'next/server'
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}))
+    const token = body?.accessToken as string | undefined
+
+    const res = NextResponse.json({ ok: true })
+
+    if (token && token.length > 0) {
+      res.cookies.set('accessToken', token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60,
+      })
+    } else {
+      res.cookies.set('accessToken', '', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        path: '/',
+        maxAge: 0,
+      })
+    }
+
+    return res
+  } catch (e) {
+    return NextResponse.json({ ok: false }, { status: 400 })
+  }
+}
+

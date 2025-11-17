@@ -1,0 +1,133 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { SubscriptionsService } from './subscriptions.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('Subscriptions')
+@Controller('subscriptions')
+@UseGuards(JwtAuthGuard)
+export class SubscriptionsController {
+  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+
+  @Get('current')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current subscription' })
+  @ApiResponse({ status: 200, description: 'Subscription retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'No active subscription found.' })
+  async getCurrentSubscription(@Request() req) {
+    const subscription = await this.subscriptionsService.getCurrentSubscription(req.user.userId);
+    
+    if (!subscription) {
+      return { subscription: null };
+    }
+
+    return {
+      subscription: {
+        id: subscription.id,
+        plan: {
+          id: subscription.plan.id,
+          name: subscription.plan.name,
+          price: subscription.plan.priceCents,
+          billingPeriod: subscription.plan.billingPeriod,
+        },
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      },
+    };
+  }
+
+  @Get('plans')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all available plans' })
+  @ApiResponse({ status: 200, description: 'Plans retrieved successfully.' })
+  async getAllPlans() {
+    const plans = await this.subscriptionsService.getAllPlans();
+    return {
+      plans: plans.map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        price: plan.priceCents,
+        billingPeriod: plan.billingPeriod,
+        features: plan.features,
+      })),
+    };
+  }
+
+  @Post('change-plan')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change subscription plan' })
+  @ApiResponse({ status: 200, description: 'Plan changed successfully.' })
+  @ApiResponse({ status: 404, description: 'Plan not found.' })
+  @ApiResponse({ status: 409, description: 'Plan is not active.' })
+  async changePlan(@Request() req, @Body('planId') planId: string) {
+    const subscription = await this.subscriptionsService.changePlan(req.user.userId, planId);
+    return {
+      message: 'Plan changed successfully',
+      subscription: {
+        id: subscription.id,
+        planId: subscription.planId,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      },
+    };
+  }
+
+  @Post('cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel current subscription' })
+  @ApiResponse({ status: 200, description: 'Subscription canceled successfully.' })
+  @ApiResponse({ status: 404, description: 'No active subscription found.' })
+  async cancelSubscription(@Request() req) {
+    const subscription = await this.subscriptionsService.cancelSubscription(req.user.userId);
+    return {
+      message: 'Subscription canceled successfully',
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+      },
+    };
+  }
+
+  @Get('billing-history')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get billing history' })
+  @ApiResponse({ status: 200, description: 'Billing history retrieved successfully.' })
+  async getBillingHistory(@Request() req) {
+    const history = await this.subscriptionsService.getSubscriptionHistory(req.user.userId);
+    return {
+      history: history.map(subscription => ({
+        id: subscription.id,
+        plan: {
+          id: subscription.plan.id,
+          name: subscription.plan.name,
+          price: subscription.plan.priceCents,
+          billingPeriod: subscription.plan.billingPeriod,
+        },
+        status: subscription.status,
+        createdAt: subscription.createdAt,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      })),
+    };
+  }
+
+  @Get('limits')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get subscription limits and features' })
+  @ApiResponse({ status: 200, description: 'Limits retrieved successfully.' })
+  async getSubscriptionLimits(@Request() req) {
+    const limits = await this.subscriptionsService.getSubscriptionLimits(req.user.userId);
+    return { limits };
+  }
+}

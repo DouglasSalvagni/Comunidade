@@ -21,6 +21,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleOAuthDto } from './dto/google-oauth.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -161,5 +163,21 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized or invalid current password' })
   async changePassword(@Request() req, @Body() body: ChangePasswordDto) {
     return this.authService.changePassword(req.user.userId, body.currentPassword, body.newPassword);
+  }
+
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Enviar e-mail de recuperação de senha' })
+  @ApiResponse({ status: 200, description: 'E-mail enviado se usuário existir' })
+  async forgot(@Body() body: ForgotPasswordDto) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post('password/reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Redefinir senha via token' })
+  @ApiResponse({ status: 200, description: 'Senha redefinida com sucesso' })
+  async reset(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPassword(body.token, body.newPassword);
   }
 }

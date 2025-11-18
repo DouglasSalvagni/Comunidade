@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { MailService } from './mail.service';
 
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
@@ -13,6 +15,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -189,5 +192,39 @@ export class AuthService {
   private sanitizeUser(user: User) {
     const { passwordHash, ...sanitizedUser } = user;
     return sanitizedUser;
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    // Resposta sempre OK para evitar enumeração de usuários
+    if (!user || (user.authProvider && user.authProvider !== 'local')) {
+      return { ok: true };
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    user.passwordResetTokenHash = hash;
+    user.passwordResetExpiresAt = expires;
+    await this.usersService.update(user.id, { name: user.name } as any);
+    // garantir persistência dos novos campos
+    await (this as any).usersService['userRepository'].save(user);
+    await this.mailService.sendPasswordReset(user.email, token);
+    return { ok: true };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    // procurar por usuário que tenha este hash ativo e não expirado
+    const repo = (this as any).usersService['userRepository'] as any;
+    const user = await repo.findOne({ where: { passwordResetTokenHash: hash } });
+    if (!user || !user.passwordResetExpiresAt || user.passwordResetExpiresAt < new Date()) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+    const newHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = newHash;
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpiresAt = null;
+    await repo.save(user);
+    return { ok: true };
   }
 }

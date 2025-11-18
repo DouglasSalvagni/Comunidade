@@ -43,3 +43,5 @@ next-env.d.ts
 
 # ai editors
 .trae
+.github
+.vscode

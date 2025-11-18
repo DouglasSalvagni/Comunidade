@@ -66,7 +66,6 @@ services:
       - little-tales-network
     restart: unless-stopped
 
-  # Serviço opcional para processamento de mídia
   media-worker:
     build:
       context: ./backend
@@ -96,6 +95,16 @@ services:
     profiles:
       - with-worker
 
+  adminer:
+    image: adminer:latest
+    container_name: little-tales-adminer
+    restart: always
+    ports:
+      - "8084:8080"
+    depends_on:
+      - postgres
+    networks:
+      - little-tales-network
 
 volumes:
   postgres_data:

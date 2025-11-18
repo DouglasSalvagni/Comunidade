@@ -56,11 +56,15 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // Create user
-    const user = await this.usersService.create({
+    // Create user with password hash and local provider
+    const user = await this.usersService.createWithPasswordHash({
       name: registerDto.name,
       email: registerDto.email,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
+      role: 'user',
+      isActive: true,
+      emailVerified: false,
+      authProvider: 'local',
     });
 
     const payload: JwtPayload = {
@@ -108,6 +112,15 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
+  async updateProfile(userId: string, data: { name?: string }) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    const updated = await this.usersService.update(userId, { name: data?.name ?? user.name });
+    return this.sanitizeUser(updated);
+  }
+
   async loginWithGoogle(idToken: string) {
     const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
     if (!resp.ok) {
@@ -133,6 +146,7 @@ export class AuthService {
         role: 'user',
         isActive: true,
         emailVerified: true,
+        authProvider: 'google',
       });
     }
 
@@ -147,6 +161,23 @@ export class AuthService {
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
     };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+    if (user.authProvider && user.authProvider !== 'local') {
+      throw new UnauthorizedException('Alteração de senha não disponível para login social');
+    }
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash || '');
+    if (!isValid) {
+      throw new UnauthorizedException('Senha atual incorreta');
+    }
+    const newHash = await bcrypt.hash(newPassword, 10);
+    const updated = await this.usersService.updatePasswordHash(user.id, newHash);
+    return this.sanitizeUser(updated);
   }
 
   private generateRefreshToken(payload: JwtPayload): string {

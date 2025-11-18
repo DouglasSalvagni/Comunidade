@@ -5,6 +5,7 @@ import {
   UseGuards,
   Request,
   Get,
+  Patch,
   HttpCode,
   HttpStatus,
   Res,
@@ -18,6 +19,8 @@ import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleOAuthDto } from './dto/google-oauth.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -138,5 +141,25 @@ export class AuthController {
   })
   async getProfile(@Request() req) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile (name only)' })
+  @ApiResponse({ status: 200, description: 'User profile updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateProfile(@Request() req, @Body() body: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.userId, body);
+  }
+
+  @Patch('profile/password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change password for local login users' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized or invalid current password' })
+  async changePassword(@Request() req, @Body() body: ChangePasswordDto) {
+    return this.authService.changePassword(req.user.userId, body.currentPassword, body.newPassword);
   }
 }

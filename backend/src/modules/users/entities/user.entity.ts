@@ -21,6 +21,9 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash: string;
 
+  @Column({ name: 'auth_provider', default: 'local' })
+  authProvider: 'local' | 'google';
+
   @Column()
   name: string;
 

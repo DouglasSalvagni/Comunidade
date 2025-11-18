@@ -23,6 +23,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -41,13 +42,15 @@ export class AuthController {
   })
   async register(@Body() registerDto: RegisterDto, @Request() req, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.register(registerDto);
-    res.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
+    if (result.accessToken) {
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+    }
     return result;
   }
 
@@ -179,5 +182,31 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Senha redefinida com sucesso' })
   async reset(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  @Post('email/verify/request')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Enviar e-mail de verificação' })
+  @ApiResponse({ status: 200, description: 'E-mail enviado se elegível' })
+  async requestVerification(@Body('email') email: string) {
+    return this.authService.requestEmailVerification(email);
+  }
+
+  @Post('email/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirmar e-mail via token' })
+  @ApiResponse({ status: 200, description: 'E-mail verificado' })
+  async verify(@Body('token') token: string, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.verifyEmail(token);
+    if (result.accessToken) {
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+    }
+    return result;
   }
 }

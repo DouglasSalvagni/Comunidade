@@ -75,6 +75,46 @@ Depuração do envio de e-mails de recuperação.
 - Logs adicionados no `MailService` para acompanhar remetente e confirmação de envio.
 - Testes unitários adicionados: `mail.service.spec.ts` (transporter, remetente e envelope) e `auth.service.spec.ts` (fluxo forgot/reset).
 
+Verificação de e-mail (confirmar conta).
+
+- Adicionadas colunas `email_verification_token_hash` e `email_verification_expires_at` em `User` com migration `1732200000002-user-email-verification.ts`.
+- `MailService` agora envia e-mail de verificação (`sendEmailVerification`).
+- `AuthService`: gera token e envia verificação no `register`; adicionados métodos `requestEmailVerification(email)` e `verifyEmail(token)`.
+- `AuthController`: novos endpoints `POST /auth/email/verify/request` e `POST /auth/email/verify`.
+- `JwtStrategy`: bloqueia acesso para contas locais com `emailVerified=false` com mensagem "E-mail não verificado".
+- Frontend: métodos `requestEmailVerification` e `verifyEmail` na API e página `/auth/verify` para confirmar token.
+
+Ajustes no fluxo de registro/login para exigir verificação:
+
+- `AuthService.register`: não retorna tokens para contas locais não verificadas.
+- `AuthController.register`: só grava cookie de `accessToken` se houver token.
+- `AuthService.login`: bloqueia login de contas locais com e-mail não verificado.
+- Frontend `/auth/register`: após cadastro local não verificado, armazena `pendingEmail` e redireciona para `/auth/pending`.
+
+Automatização da verificação e experiência de pendência:
+
+- `MailService`: leitura de SMTP via `ConfigService` com fallback para `process.env`.
+- `AuthService.verifyEmail`: ao confirmar, retorna `AuthResponse` com tokens.
+- `AuthController.verify`: grava cookie de `accessToken` após verificação.
+- Frontend `/auth/verify`: verifica automaticamente o token da URL, autentica e redireciona para a dashboard; em caso de expiração, oferece reenvio de link.
+- Frontend `/auth/pending`: página informativa para aguardar confirmação e reenviar verificação.
+- Interceptor da API: para 401 em rotas de dashboard/admin, redireciona para `/auth/pending` (ou mensagem de e-mail não verificado).
+- Dashboard layout: remove autologin Google e redireciona para `/auth/pending` se não autorizado.
+- Dashboard layout: valida `emailVerified=false` e redireciona para `/auth/pending` mesmo com sessão existente.
+
 Envio de e-mail de teste via script.
 
 - Adicionado script `smtp:send-test` que envia um e-mail de teste usando o SMTP configurado. Executado com sucesso para `douglassalvagni@gmail.com`.
+ 
+Validações operacionais da verificação de e-mail.
+
+- Backend reiniciado em desenvolvimento e reconstruído; rotas atualizadas registradas.
+- Corrigido 404 anterior: `POST /api/v1/auth/email/verify/request` responde 200 OK após restart.
+- Registro local testado: persistência de `emailVerificationTokenHash`/`emailVerificationExpiresAt` e retorno sem tokens enquanto não verificado.
+- Login bloqueado para e-mail não verificado com 401 (mensagem "E-mail não verificado").
+- `POST /api/v1/auth/email/verify` retornando 401 para token inválido (fluxo de segurança ok).
+- Observação: em produção, build gerou `dist/src/main.js`; `start:prod` espera `dist/main`. Mantido `start:dev` para testes locais.
+
+Ajuste de login social (Google) para exibir consentimento.
+
+- Configurado `prompt=consent` no provider do Google do NextAuth para forçar a tela de consentimento quando necessário (`frontend/src/app/api/auth/[...nextauth]/route.ts:5-21`).

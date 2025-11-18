@@ -30,3 +30,19 @@ describe('AuthService password recovery', () => {
     expect(mailService.sendPasswordReset).not.toHaveBeenCalled();
   });
 });
+
+describe('AuthService email verification', () => {
+  const jwt = new JwtService({ secret: 'test' });
+  it('requestEmailVerification envia e-mail para local', async () => {
+    const user = { id: 'u1', email: 'a@b.com', name: 'A', authProvider: 'local' } as any;
+    const usersService = {
+      findByEmail: jest.fn().mockResolvedValue(user),
+      userRepository: { save: jest.fn() },
+    } as any as UsersService;
+    const mailService = { sendEmailVerification: jest.fn().mockResolvedValue(undefined) } as any as MailService;
+    const svc = new AuthService(usersService, jwt, mailService);
+    const res = await svc.requestEmailVerification('a@b.com');
+    expect(res).toEqual({ ok: true });
+    expect(mailService.sendEmailVerification).toHaveBeenCalled();
+  });
+});

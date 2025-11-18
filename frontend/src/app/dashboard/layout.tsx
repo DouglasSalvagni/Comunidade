@@ -23,19 +23,20 @@ export default function DashboardLayout({
   useEffect(() => {
     const verify = async () => {
       try {
-        const idToken = (session as any)?.idToken as string | undefined;
-        if (idToken) {
-          await api.loginWithGoogle(idToken);
+        const me = await api.getProfile();
+        if (me?.authProvider === 'local' && me?.emailVerified === false) {
+          router.replace('/auth/pending');
+          setAuthorized(false);
+        } else {
+          setAuthorized(true);
         }
-        await api.getProfile();
-        setAuthorized(true);
-      } catch {
-        router.replace("/auth/login");
+      } catch (e: any) {
+        router.replace("/auth/pending");
       }
       setVerifying(false);
     };
     verify();
-  }, [router, (session as any)?.idToken]);
+  }, [router]);
 
   return (
     <div className="flex min-h-screen">

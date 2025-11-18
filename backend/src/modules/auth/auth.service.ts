@@ -36,6 +36,10 @@ export class AuthService {
       throw new UnauthorizedException('Account is disabled');
     }
 
+    if (user.authProvider === 'local' && !user.emailVerified) {
+      throw new UnauthorizedException('E-mail não verificado');
+    }
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -44,8 +48,8 @@ export class AuthService {
 
     return {
       user: this.sanitizeUser(user),
-      accessToken: this.jwtService.sign(payload),
-      refreshToken: this.generateRefreshToken(payload),
+      accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
+      refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
   }
 
@@ -76,10 +80,21 @@ export class AuthService {
       role: user.role,
     };
 
+    // Gerar token de verificação e enviar e-mail
+    if (user.authProvider === 'local' && !user.emailVerified) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const hash = crypto.createHash('sha256').update(token).digest('hex');
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      user.emailVerificationTokenHash = hash;
+      user.emailVerificationExpiresAt = expires;
+      await (this as any).usersService['userRepository'].save(user);
+      await this.mailService.sendEmailVerification(user.email, token);
+    }
+
     return {
       user: this.sanitizeUser(user),
-      accessToken: this.jwtService.sign(payload),
-      refreshToken: this.generateRefreshToken(payload),
+      accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
+      refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
   }
 
@@ -210,6 +225,40 @@ export class AuthService {
     await (this as any).usersService['userRepository'].save(user);
     await this.mailService.sendPasswordReset(user.email, token);
     return { ok: true };
+  }
+
+  async requestEmailVerification(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user || user.authProvider !== 'local') {
+      return { ok: true };
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.emailVerificationTokenHash = hash;
+    user.emailVerificationExpiresAt = expires;
+    await (this as any).usersService['userRepository'].save(user);
+    await this.mailService.sendEmailVerification(user.email, token);
+    return { ok: true };
+  }
+
+  async verifyEmail(token: string) {
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const repo = (this as any).usersService['userRepository'] as any;
+    const user = await repo.findOne({ where: { emailVerificationTokenHash: hash } });
+    if (!user || !user.emailVerificationExpiresAt || user.emailVerificationExpiresAt < new Date()) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
+    user.emailVerified = true;
+    user.emailVerificationTokenHash = null;
+    user.emailVerificationExpiresAt = null;
+    await repo.save(user);
+    const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+    return {
+      user: this.sanitizeUser(user),
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.generateRefreshToken(payload),
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {

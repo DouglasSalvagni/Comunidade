@@ -22,8 +22,14 @@ const RegisterPage = () => {
     setError(null);
     setLoading(true);
     try {
-      await api.register(name, email, password);
-      router.push("/dashboard");
+      const auth = await api.register(name, email, password);
+      if (auth?.user?.authProvider === 'local' && auth?.user?.emailVerified === false) {
+        await api.clearToken();
+        if (typeof window !== 'undefined') window.localStorage.setItem('pendingEmail', email);
+        router.push('/auth/pending');
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err?.message || "Falha no cadastro");
     } finally {

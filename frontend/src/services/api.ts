@@ -162,12 +162,18 @@ class ApiService {
           const url: string = error?.response?.config?.url || '';
           const inAuth = path.startsWith('/auth/login') || path.startsWith('/auth/callback') || path.startsWith('/admin/login');
           const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
-          if (!inAuth && !isAccountPassword) {
+        if (!inAuth && !isAccountPassword) {
+          const msg = error?.response?.data?.message || '';
+          const pathIsDashboard = path.startsWith('/dashboard') || path.startsWith('/admin');
+          if (msg.includes('E-mail não verificado') || pathIsDashboard) {
+            window.location.href = '/auth/pending';
+          } else {
             window.location.href = '/auth/login';
           }
         }
-        return Promise.reject(this.handleError(error));
       }
+      return Promise.reject(this.handleError(error));
+    }
     );
   }
 
@@ -305,6 +311,25 @@ class ApiService {
 
   async resetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
     const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/password/reset', { token, newPassword });
+    return response.data.data;
+  }
+
+  async requestEmailVerification(email: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/email/verify/request', { email });
+    return response.data.data;
+  }
+
+  async verifyEmail(token: string): Promise<AuthResponse> {
+    const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/email/verify', { token });
+    if (response.data.data?.accessToken) {
+      try {
+        await fetch('/api/auth/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+        });
+      } catch {}
+    }
     return response.data.data;
   }
 

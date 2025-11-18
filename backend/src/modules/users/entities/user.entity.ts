@@ -56,4 +56,10 @@ export class User {
 
   @Column({ name: 'password_reset_expires_at', type: 'timestamp', nullable: true })
   passwordResetExpiresAt?: Date | null;
+
+  @Column({ name: 'email_verification_token_hash', type: 'varchar', nullable: true })
+  emailVerificationTokenHash?: string | null;
+
+  @Column({ name: 'email_verification_expires_at', type: 'timestamp', nullable: true })
+  emailVerificationExpiresAt?: Date | null;
 }

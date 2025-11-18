@@ -135,3 +135,10 @@ Melhorias UX: visualizar senha nos formulários.
   - Redefinição de senha (`frontend/src/app/auth/reset/page.tsx:49-65,58-66`)
   - Login admin (`frontend/src/app/admin/login/page.tsx:49-55`)
   - Alteração de senha na conta (`frontend/src/app/dashboard/account/page.tsx:92-108,99-108,103-112`)
+
+Perfis: criação com campos obrigatórios e atualização do seletor.
+
+- Frontend `/dashboard/profiles`: exigidos `Nome` e `Data de nascimento` ao criar perfil, com validação de formato `YYYY-MM-DD` e mensagem de erro quando incompleto (`frontend/src/app/dashboard/profiles/page.tsx:137-148`).
+- Ao criar perfil, disparado evento global `profiles-refresh` para recarregar a lista de perfis no seletor do cabeçalho (`frontend/src/app/dashboard/profiles/page.tsx:142-145`).
+- Seletor de perfis (`frontend/src/components/ProfileSwitcher.tsx`): agora escuta `profiles-refresh` e refaz o carregamento, mantendo o perfil ativo salvo em `localStorage` (`frontend/src/components/ProfileSwitcher.tsx:39-45,66-84`).
+- Backend DTO de criação de perfil: `birthDate` passou a ser obrigatório e validado como data (`backend/src/modules/profiles/dto/create-profile.dto.ts:14-21`).

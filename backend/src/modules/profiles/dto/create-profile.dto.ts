@@ -24,11 +24,10 @@ export class CreateProfileDto {
   @ApiProperty({
     description: 'Birth date (YYYY-MM-DD)',
     example: '2018-03-15',
-    required: false,
+    required: true,
   })
-  @IsOptional()
   @IsDateString()
-  birthDate?: string;
+  birthDate: string;
 
   @ApiProperty({
     description: 'Parental PIN (4 digits)',

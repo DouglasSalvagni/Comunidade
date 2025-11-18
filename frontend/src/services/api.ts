@@ -24,6 +24,7 @@ export interface User {
   role: 'user' | 'admin';
   isActive: boolean;
   emailVerified: boolean;
+  authProvider?: 'local' | 'google';
   createdAt: string;
   updatedAt: string;
 }
@@ -158,8 +159,10 @@ class ApiService {
       async (error) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const path = window.location.pathname || '';
+          const url: string = error?.response?.config?.url || '';
           const inAuth = path.startsWith('/auth/login') || path.startsWith('/auth/callback') || path.startsWith('/admin/login');
-          if (!inAuth) {
+          const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
+          if (!inAuth && !isAccountPassword) {
             window.location.href = '/auth/login';
           }
         }
@@ -264,6 +267,16 @@ class ApiService {
     return response.data.data;
   }
 
+  async updateMyProfile(data: { name?: string }): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>('/auth/profile', data);
+    return response.data.data;
+  }
+
+  async changeMyPassword(params: { currentPassword: string; newPassword: string }): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>('/auth/profile/password', params);
+    return response.data.data;
+  }
+
   async logout(): Promise<void> {
     await this.client.post('/auth/logout', {});
     try {
@@ -283,6 +296,16 @@ class ApiService {
         body: JSON.stringify({ accessToken: '' }),
       });
     } catch {}
+  }
+
+  async requestPasswordReset(email: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/password/forgot', { email });
+    return response.data.data;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/password/reset', { token, newPassword });
+    return response.data.data;
   }
 
   // ===== PERFIS =====

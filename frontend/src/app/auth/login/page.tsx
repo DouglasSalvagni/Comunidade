@@ -22,6 +22,16 @@ const LoginPage = () => {
   
 
   useEffect(() => {
+    const ensureNotLogged = async () => {
+      try {
+        const me = await api.getProfile();
+        if (me && me.id) {
+          router.replace('/dashboard');
+          return;
+        }
+      } catch {}
+    };
+    ensureNotLogged();
     const exchangeGoogle = async () => {
       const idToken = (session as any)?.idToken as string | undefined;
       if (!idToken) return;
@@ -82,7 +92,7 @@ const LoginPage = () => {
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Senha</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline">
+                <Link href="/auth/forgot" className="ml-auto inline-block text-sm underline">
                   Esqueceu sua senha?
                 </Link>
               </div>

@@ -19,7 +19,7 @@ const SubscriptionPage = () => {
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
             <p>Status</p>
-            <Badge variant="success">Ativo</Badge>
+            <Badge variant="default">Ativo</Badge>
           </div>
           <div className="flex justify-between items-center">
             <p>Próxima cobrança em 15 de Julho de 2025</p>

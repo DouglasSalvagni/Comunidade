@@ -37,11 +37,23 @@ const DashboardPage = () => {
 
   const handleFavoriteToggle = async (workId: string) => {
     try {
+      const pid = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') || undefined : undefined;
+      if (!pid) {
+        toast.error("Você precisa selecionar ou criar um perfil para favoritar.");
+        return;
+      }
       const res = await api.toggleFavorite(workId);
       const isFav = (res as any)?.isFavorite ?? false;
       setFavorites(prev => prev.map(w => w.id === workId ? { ...w, isFavorite: isFav } : w));
       setSuggested(prev => prev.map(w => w.id === workId ? { ...w, isFavorite: isFav } : w));
-    } catch {}
+    } catch (e: any) {
+      const msg = e?.message || "Falha ao marcar como favorito";
+      if (e?.statusCode === 403 || /Profile does not belong/i.test(String(msg))) {
+        toast.error("Você precisa usar um perfil que pertença à sua conta.");
+      } else {
+        toast.error(msg);
+      }
+    }
   };
 
   const handlePlay = (track: Track, work: Work) => {

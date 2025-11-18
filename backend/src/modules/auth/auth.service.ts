@@ -29,11 +29,11 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is disabled');
+      throw new UnauthorizedException('Conta desativada');
     }
 
     if (user.authProvider === 'local' && !user.emailVerified) {
@@ -57,7 +57,7 @@ export class AuthService {
     // Check if user already exists
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('Já existe usuário com este e-mail');
     }
 
     // Hash password
@@ -104,7 +104,7 @@ export class AuthService {
       const user = await this.usersService.findOne(payload.sub);
       
       if (!user || !user.isActive) {
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new UnauthorizedException('Refresh token inválido');
       }
 
       const newPayload: JwtPayload = {
@@ -118,14 +118,14 @@ export class AuthService {
         refreshToken: this.generateRefreshToken(newPayload),
       };
     } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Refresh token inválido');
     }
   }
 
   async getProfile(userId: string) {
     const user = await this.usersService.findOne(userId);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Usuário não encontrado');
     }
     return this.sanitizeUser(user);
   }
@@ -133,7 +133,7 @@ export class AuthService {
   async updateProfile(userId: string, data: { name?: string }) {
     const user = await this.usersService.findOne(userId);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Usuário não encontrado');
     }
     const updated = await this.usersService.update(userId, { name: data?.name ?? user.name });
     return this.sanitizeUser(updated);
@@ -142,16 +142,16 @@ export class AuthService {
   async loginWithGoogle(idToken: string) {
     const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
     if (!resp.ok) {
-      throw new UnauthorizedException('Invalid Google token');
+      throw new UnauthorizedException('Token do Google inválido');
     }
     const info: any = await resp.json();
     if (!(info && info.email && (info.email_verified === true || info.email_verified === 'true'))) {
-      throw new UnauthorizedException('Unverified Google account');
+      throw new UnauthorizedException('Conta Google não verificada');
     }
     const aud = info.aud;
     const expectedAud = process.env.GOOGLE_CLIENT_ID;
     if (expectedAud && aud !== expectedAud) {
-      throw new UnauthorizedException('Invalid token audience');
+      throw new UnauthorizedException('Audiência do token inválida');
     }
 
     let user = await this.usersService.findByEmail(info.email);

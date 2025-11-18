@@ -118,3 +118,20 @@ Validações operacionais da verificação de e-mail.
 Ajuste de login social (Google) para exibir consentimento.
 
 - Configurado `prompt=consent` no provider do Google do NextAuth para forçar a tela de consentimento quando necessário (`frontend/src/app/api/auth/[...nextauth]/route.ts:5-21`).
+
+Mensagens de validação (login e cadastro) traduzidas para PT-BR.
+
+- Login: `Credenciais inválidas` e `Conta desativada` em `backend/src/modules/auth/auth.service.ts:32-37`.
+- Cadastro: conflito `Já existe usuário com este e-mail` em `backend/src/modules/auth/auth.service.ts:60`.
+- Refresh: `Refresh token inválido` em `backend/src/modules/auth/auth.service.ts:107,121`.
+- Google OAuth: `Token do Google inválido`, `Conta Google não verificada`, `Audiência do token inválida` em `backend/src/modules/auth/auth.service.ts:145,149,154`.
+- Perfil: `Usuário não encontrado` em `backend/src/modules/auth/auth.service.ts:128,136`.
+
+Melhorias UX: visualizar senha nos formulários.
+
+- Adicionada opção de mostrar/ocultar senha em páginas com campos de senha:
+  - Login do usuário (`frontend/src/app/auth/login/page.tsx:93-99`)
+  - Cadastro (`frontend/src/app/auth/register/page.tsx:30-36`)
+  - Redefinição de senha (`frontend/src/app/auth/reset/page.tsx:49-65,58-66`)
+  - Login admin (`frontend/src/app/admin/login/page.tsx:49-55`)
+  - Alteração de senha na conta (`frontend/src/app/dashboard/account/page.tsx:92-108,99-108,103-112`)

@@ -142,3 +142,45 @@ Perfis: criação com campos obrigatórios e atualização do seletor.
 - Ao criar perfil, disparado evento global `profiles-refresh` para recarregar a lista de perfis no seletor do cabeçalho (`frontend/src/app/dashboard/profiles/page.tsx:142-145`).
 - Seletor de perfis (`frontend/src/components/ProfileSwitcher.tsx`): agora escuta `profiles-refresh` e refaz o carregamento, mantendo o perfil ativo salvo em `localStorage` (`frontend/src/components/ProfileSwitcher.tsx:39-45,66-84`).
 - Backend DTO de criação de perfil: `birthDate` passou a ser obrigatório e validado como data (`backend/src/modules/profiles/dto/create-profile.dto.ts:14-21`).
+
+Worker de mídia (HLS): correção de build e inicialização.
+
+- Docker do worker: caminho do script ajustado para `dist/src/workers/transcode.worker.js`, compatível com a saída atual de build (`backend/Dockerfile.worker`).
+- Docker do worker: inicialização com resolução de aliases adicionando `-r tsconfig-paths/register` ao comando (`backend/Dockerfile.worker`).
+
+Integração R2 (Cloudflare) no docker-compose.
+
+- Removidos serviços MinIO do `docker-compose.yml`.
+- Adicionado `env_file: ./backend/.env` aos serviços `backend` e `media-worker` para carregar `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_REGION` e `CDN_BASE_URL` já definidos.
+- `API_BASE_URL` do worker mantido como `http://backend:3001/api/v1` para uso na rede interna do Compose.
+Landing page do Inspira integrada ao frontend (Next.js).
+
+- Adicionadas cores `brand` ao Tailwind (`frontend/tailwind.config.ts`) para compatibilidade com classes da landing.
+- Criados componentes da landing em `frontend/src/components/inspira/`: `NavbarInspira.tsx`, `HeroInspira.tsx`, `FeaturesInspira.tsx`, `AudioPreviewInspira.tsx`, `PricingInspira.tsx`, `FooterInspira.tsx`.
+- Atualizada a home (`frontend/src/app/page.tsx`) para renderizar a nova landing exatamente na mesma ordem e estilos do projeto `inspira`, incluindo fundo `bg-brand-dark`, texto branco e cores de seleção.
+- Instalado `framer-motion` no frontend para suportar animações da landing.
+Correção de hydration mismatch na Hero da landing.
+
+- Ajustada a renderização dos “estrelas” para ocorrer somente no cliente, evitando uso de `Math.random()` no SSR e removendo divergências entre HTML do servidor e do cliente.
+- Implementado `mounted` e `suppressHydrationWarning` no wrapper das estrelas (`frontend/src/components/inspira/HeroInspira.tsx`).
+Ajuste visual: sorriso no dragão da hero.
+
+- Adicionado traço curvo simulando sorriso no `DragonSVG` da seção Hero (`frontend/src/components/inspira/HeroInspira.tsx`).
+Refino visual: boca e olhos do dragão.
+
+- Boca com cor verde escura compatível com a paleta do dragão (`#166534`).
+- Olhos mais amigáveis: aumento do tamanho da íris e esclerótica, traço do contorno mais suave e ponto de brilho para dar vida (`frontend/src/components/inspira/HeroInspira.tsx`).
+Orelhas do dragão ajustadas (remoção de chifres).
+
+- Substituídas as formas circulares por orelhas pontudas com `path` para um visual mais amigável, mantendo a paleta (`frontend/src/components/inspira/HeroInspira.tsx`).
+Ajuste fino: orelhas maiores e cauda saindo pela barriga.
+
+- Orelhas do dragão levemente aumentadas para melhor proporção.
+- Cauda reposicionada para emergir de trás na altura da barriga, com curva mais natural (`frontend/src/components/inspira/HeroInspira.tsx`).
+Detalhes dracônicos e cauda elevada.
+
+- Cauda elevada para sair um pouco mais alto pela barriga e curva ajustada (`M110 138 Q 160 185, 188 160`).
+- Adicionados espinhos dorsais ao longo das costas para reforçar a identidade de dragão.
+- Inseridos traços internos nas asas para sugerir membranas.
+- Pequeno espinho adicional na cauda para acabamento.
+- Arquivo: `frontend/src/components/inspira/HeroInspira.tsx`.

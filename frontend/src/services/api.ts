@@ -374,6 +374,14 @@ class ApiService {
     return response.data.data;
   }
 
+  async getLandingSamples(limit = 3): Promise<Array<{ id: string; title: string; coverUrl?: string; trackId?: string; hlsUrl?: string }>> {
+    const response = await this.client.get<ApiResponse<Array<{ id: string; title: string; coverUrl?: string; trackId?: string; hlsUrl?: string }>>>('/works/landing-samples', {
+      params: { limit },
+    });
+    const list = Array.isArray(response.data.data) ? response.data.data : [];
+    return list;
+  }
+
   async getSuggestedWorks(params?: { profileId?: string; page?: number; limit?: number }): Promise<{ data: Work[]; meta: any }> {
     const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/works/suggested', { params });
     return response.data.data;

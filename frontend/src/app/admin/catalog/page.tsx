@@ -371,6 +371,48 @@ const AdminCatalogPage = () => {
                   </div>
                 ))}
               </div>
+              <div className="pt-2">
+                <Button variant={tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'default' : 'outline'} size="sm" onClick={async () => {
+                  try {
+                    if (editingWork) {
+                      const hasHls = (editingWork.tracks || []).some(t => !!(t.hlsMasterKey || t.hlsManifestStorageKey));
+                      if (!hasHls) {
+                        toast.error('Esta obra ainda não está processada em HLS. Processe o áudio antes de ativar na Landing.');
+                        return;
+                      }
+                    }
+                    const all = await api.adminGetTags();
+                    let sampleTag = all.find(t => t.name === 'lp-sample');
+                    if (!sampleTag) {
+                      sampleTag = await api.adminCreateTag({ name: 'lp-sample', color: '#22c55e' });
+                      setTags((prev) => {
+                        const exists = prev.some(t => t.id === sampleTag!.id);
+                        return exists ? prev : [...prev, sampleTag!];
+                      });
+                    }
+                    const current = await api.adminGetWorks({ tags: 'lp-sample', limit: 50 });
+                    const alreadyCount = (current?.data || []).filter(w => w.id !== editingWork?.id).length;
+                    const hasTag = editSelectedTagIds.includes(sampleTag.id);
+                    if (!hasTag && alreadyCount >= 3) {
+                      toast.error('Limite de 3 amostras na landing atingido');
+                      return;
+                    }
+                    const nextIds = (prev => {
+                      const exists = prev.includes(sampleTag!.id);
+                      return exists ? prev.filter(id => id !== sampleTag!.id) : [...prev, sampleTag!.id];
+                    })(editSelectedTagIds);
+                    setEditSelectedTagIds(nextIds);
+                    if (editingWork) {
+                      const willActivate = nextIds.includes(sampleTag!.id);
+                      const updated = await api.adminUpdateWork(editingWork.id, { tagIds: nextIds, isActive: willActivate ? true : undefined });
+                      setWorks((prev) => prev.map(w => w.id === updated.id ? { ...w, ...updated } : w));
+                    }
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Falha ao alternar amostra da landing');
+                  }
+                }}>{tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'Remover da Landing' : 'Ativar na Landing'}</Button>
+                <span className="ml-3 text-xs px-2 py-1 rounded bg-green-100 text-green-700 align-middle">{tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'Na Landing' : 'Fora da Landing'}</span>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="editThumbnail">Imagem Thumbnail (opcional)</Label>

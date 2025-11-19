@@ -287,12 +287,16 @@ export class CatalogService {
   }
 
   async update(id: string, updateWorkDto: UpdateWorkDto): Promise<Work> {
-    const work = await this.workRepository.findOne({ where: { id } });
+    const work = await this.workRepository.findOne({ where: { id }, relations: ['tags'] });
     if (!work) {
       throw new NotFoundException(`Work with ID ${id} not found`);
     }
-    
-    Object.assign(work, updateWorkDto);
+    const { tagIds, ...rest } = updateWorkDto as any;
+    Object.assign(work, rest);
+    if (Array.isArray(tagIds)) {
+      const tags = await this.tagRepository.find({ where: { id: In(tagIds) } });
+      (work as any).tags = tags;
+    }
     return this.workRepository.save(work);
   }
 

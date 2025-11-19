@@ -39,6 +39,14 @@ const AdminCatalogPage = () => {
   const [editingWork, setEditingWork] = useState<Work | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editType, setEditType] = useState<string>("");
+  const [editMinMonths, setEditMinMonths] = useState<string>("");
+  const [editMaxMonths, setEditMaxMonths] = useState<string>("");
+  const [editAgeLabel, setEditAgeLabel] = useState<string>("");
+  const [editSelectedTagIds, setEditSelectedTagIds] = useState<string[]>([]);
+  const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
+  const [editThumbInputKey, setEditThumbInputKey] = useState(0);
+  const [removeId, setRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -271,13 +279,18 @@ const AdminCatalogPage = () => {
                       setEditingWork(work);
                       setEditTitle(work.title || "");
                       setEditDescription(work.description || "");
+                      setEditType(work.type || "");
+                      setEditMinMonths(String(work.recommendedMinMonths ?? ""));
+                      setEditMaxMonths(String(work.recommendedMaxMonths ?? ""));
+                      setEditAgeLabel(work.recommendedAgeLabel || "");
+                      setEditSelectedTagIds((work.tags || []).map(t => t.id));
                     }}>
                       Editar
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleRemoveWork(work.id)}
+                      onClick={() => setRemoveId(work.id)}
                     >
                       Remover
                     </Button>
@@ -315,13 +328,84 @@ const AdminCatalogPage = () => {
               <Label htmlFor="editDescription">Descrição</Label>
               <Textarea id="editDescription" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editType">Tipo</Label>
+                <Select value={editType} onValueChange={setEditType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="music">Música</SelectItem>
+                    <SelectItem value="audiobook">Audiobook</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Idade Recomendada</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="editMinMonths">Min (meses)</Label>
+                    <Input id="editMinMonths" type="number" min={0} value={editMinMonths} onChange={(e) => setEditMinMonths(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editMaxMonths">Max (meses)</Label>
+                    <Input id="editMaxMonths" type="number" min={0} value={editMaxMonths} onChange={(e) => setEditMaxMonths(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editAgeLabel">Rótulo (opcional)</Label>
+                    <Input id="editAgeLabel" placeholder="ex.: 3–5 anos" value={editAgeLabel} onChange={(e) => setEditAgeLabel(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {tags.map((tag) => (
+                  <div key={tag.id} className="flex items-center space-x-2">
+                    <Checkbox id={`edit-tag-${tag.id}`} checked={editSelectedTagIds.includes(tag.id)} onCheckedChange={(v) => {
+                      setEditSelectedTagIds((prev) => v ? [...prev, tag.id] : prev.filter(id => id !== tag.id));
+                    }} />
+                    <Label htmlFor={`edit-tag-${tag.id}`}>{tag.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editThumbnail">Imagem Thumbnail (opcional)</Label>
+              <Input key={editThumbInputKey} id="editThumbnail" type="file" accept="image/*" onChange={(e) => setEditThumbnailFile(e.target.files?.[0] || null)} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingWork(null)}>Cancelar</Button>
             <Button onClick={async () => {
               if (!editingWork) return;
               try {
-                const updated = await api.adminUpdateWork(editingWork.id, { title: editTitle, description: editDescription });
+                let coverUrl: string | undefined = undefined;
+                if (editThumbnailFile) {
+                  const { uploadUrl: thumbUrl, storageKey: thumbKey } = await api.getUploadUrl({
+                    fileName: editThumbnailFile.name,
+                    fileType: editThumbnailFile.type || "image/jpeg",
+                    fileSize: editThumbnailFile.size,
+                  });
+                  await axios.put(thumbUrl, editThumbnailFile, { headers: { "Content-Type": editThumbnailFile.type || "image/jpeg" }, withCredentials: false });
+                  const processed = await api.processMedia({ storageKey: thumbKey, type: "image" });
+                  coverUrl = processed.processedUrl;
+                  setEditThumbInputKey((k) => k + 1);
+                  setEditThumbnailFile(null);
+                }
+                const payload: any = {
+                  title: editTitle,
+                  description: editDescription,
+                  type: editType || undefined,
+                  recommendedMinMonths: editMinMonths ? Number(editMinMonths) : undefined,
+                  recommendedMaxMonths: editMaxMonths ? Number(editMaxMonths) : undefined,
+                  recommendedAgeLabel: editAgeLabel || undefined,
+                  tagIds: editSelectedTagIds,
+                };
+                if (coverUrl) payload.coverUrl = coverUrl;
+                const updated = await api.adminUpdateWork(editingWork.id, payload);
                 setWorks((prev) => prev.map(w => w.id === updated.id ? { ...w, ...updated } : w));
                 toast.success("Obra atualizada");
                 setEditingWork(null);
@@ -329,6 +413,22 @@ const AdminCatalogPage = () => {
                 toast.error(e?.message || "Erro ao atualizar obra");
               }
             }}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!removeId} onOpenChange={(open) => { if (!open) setRemoveId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar remoção</DialogTitle>
+          </DialogHeader>
+          <p>Tem certeza que deseja remover esta obra? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveId(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={async () => {
+              if (!removeId) return;
+              await handleRemoveWork(removeId);
+              setRemoveId(null);
+            }}>Remover</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

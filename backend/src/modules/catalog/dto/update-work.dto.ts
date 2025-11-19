@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsIn, IsInt, Min, IsBoolean, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsArray } from 'class-validator';
 
 export class UpdateWorkDto {
   @ApiProperty({
@@ -73,4 +74,9 @@ export class UpdateWorkDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({ description: 'Tag IDs to set on work', required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  tagIds?: string[];
 }

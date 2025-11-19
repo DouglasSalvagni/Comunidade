@@ -490,16 +490,25 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminGetUsers(params?: any): Promise<{ data: User[]; meta: any }> {
-    const response = await this.client.get<ApiResponse<{ data: User[]; meta: any }>>('/admin/users', {
+  async adminGetUsers(params?: any): Promise<User[]> {
+    const response = await this.client.get<ApiResponse<User[]>>('/users', {
       params,
     });
     return response.data.data;
   }
 
   async adminToggleUserStatus(id: string): Promise<User> {
-    const response = await this.client.post<ApiResponse<User>>(`/admin/users/${id}/toggle-status`);
+    const response = await this.client.patch<ApiResponse<User>>(`/users/${id}/toggle-status`);
     return response.data.data;
+  }
+
+  async adminUpdateUser(id: string, data: Partial<Pick<User, 'name' | 'email' | 'role' | 'isActive'>>): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>(`/users/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteUser(id: string): Promise<void> {
+    await this.client.delete(`/users/${id}`);
   }
 
   async adminGetTags(): Promise<Tag[]> {

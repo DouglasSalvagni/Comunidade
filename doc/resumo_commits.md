@@ -184,3 +184,15 @@ Detalhes dracônicos e cauda elevada.
 - Inseridos traços internos nas asas para sugerir membranas.
 - Pequeno espinho adicional na cauda para acabamento.
 - Arquivo: `frontend/src/components/inspira/HeroInspira.tsx`.
+- Admin Catálogo: edição completa de obras (exceto áudio) e confirmação de remoção.
+
+- Frontend `/admin/catalog`: diálogo de edição agora permite alterar tipo, idade recomendada (min/max/rótulo), tags e thumbnail. Upload/processing da thumbnail via `media/upload-url` + `media/process` e atualização de `coverUrl`. Adicionada modal de confirmação ao remover obra.
+- Backend: `UpdateWorkDto` passou a aceitar `tagIds` e `CatalogService.update` atualiza relacionamento de tags (`backend/src/modules/catalog/dto/update-work.dto.ts`, `backend/src/modules/catalog/catalog.service.ts`).
+- Admin Usuários: integração completa com backend.
+
+- Frontend `/admin/users`: lista agora carrega do backend, edição em dialog (nome, email, perfil/role, ativo), toggle de status integrado e modal de confirmação para remover. Removido uso de mock.
+- API do frontend: corrigidos endpoints para `/users` (lista e toggle), adicionados `adminUpdateUser` e `adminDeleteUser`.
+
+Paginação na lista de usuários (admin).
+
+- Frontend `/admin/users`: adicionada paginação client-side similar ao catálogo (5 itens por página, navegação com componentes de paginação).

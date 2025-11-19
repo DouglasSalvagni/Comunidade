@@ -21,6 +21,9 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash: string;
 
+  @Column({ name: 'auth_provider', default: 'local' })
+  authProvider: 'local' | 'google';
+
   @Column()
   name: string;
 
@@ -47,4 +50,16 @@ export class User {
 
   @OneToMany(() => Favorite, (favorite) => favorite.user)
   favorites: Favorite[];
+
+  @Column({ name: 'password_reset_token_hash', type: 'varchar', nullable: true })
+  passwordResetTokenHash?: string | null;
+
+  @Column({ name: 'password_reset_expires_at', type: 'timestamp', nullable: true })
+  passwordResetExpiresAt?: Date | null;
+
+  @Column({ name: 'email_verification_token_hash', type: 'varchar', nullable: true })
+  emailVerificationTokenHash?: string | null;
+
+  @Column({ name: 'email_verification_expires_at', type: 'timestamp', nullable: true })
+  emailVerificationExpiresAt?: Date | null;
 }

@@ -35,6 +35,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
+    if (user.authProvider === 'local' && !user.emailVerified) {
+      throw new UnauthorizedException('E-mail não verificado');
+    }
+
     return {
       userId: user.id,
       email: user.email,

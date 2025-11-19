@@ -24,6 +24,7 @@ export class UsersService {
     role?: 'user' | 'admin';
     isActive?: boolean;
     emailVerified?: boolean;
+    authProvider?: 'local' | 'google';
   }): Promise<User> {
     const user = this.userRepository.create({
       name: data.name,
@@ -32,6 +33,7 @@ export class UsersService {
       role: data.role ?? 'user',
       isActive: data.isActive ?? true,
       emailVerified: data.emailVerified ?? true,
+      authProvider: data.authProvider ?? 'local',
     } as User);
     return this.userRepository.save(user);
   }
@@ -55,6 +57,15 @@ export class UsersService {
     }
     
     Object.assign(user, updateUserDto);
+    return this.userRepository.save(user);
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<User> {
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    user.passwordHash = passwordHash;
     return this.userRepository.save(user);
   }
 

@@ -38,6 +38,28 @@ export class CatalogController {
     return this.catalogService.findAll(searchDto, req.user?.userId, profileId);
   }
 
+  @Get('landing-samples')
+  @ApiOperation({ summary: 'Public landing samples (up to 3 works with tag lp-sample)' })
+  @ApiResponse({ status: 200, description: 'Landing samples retrieved successfully.' })
+  async getLandingSamples(@Query('limit') limit = 3) {
+    const { data } = await this.catalogService.findAll({ tags: 'lp-sample', limit: Math.min(3, Number(limit) || 3), page: 1 } as any);
+    const items = (data || [])
+      .map((w) => {
+        const t = (w.tracks || [])
+          .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+          .find((tt) => !!(tt.hlsMasterKey || tt.hlsManifestStorageKey));
+        const master = t?.hlsMasterKey || t?.hlsManifestStorageKey || '';
+        if (!master) return null;
+        const cdnBase = (process.env.CDN_BASE_URL || '').replace(/\/$/, '');
+        const s3Base = `${(process.env.S3_ENDPOINT || '').replace(/\/$/, '')}/${process.env.S3_BUCKET}`;
+        const url = cdnBase ? `${cdnBase}/${master}` : `${s3Base}/${master}`;
+        return { id: w.id, title: w.title, coverUrl: w.coverUrl, trackId: t?.id || null, hlsUrl: url };
+      })
+      .filter((x) => !!x)
+      .slice(0, 3);
+    return { data: items };
+  }
+
   @Get('suggested')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

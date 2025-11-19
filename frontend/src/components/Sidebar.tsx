@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Users, Library, CreditCard } from "lucide-react";
+import { Home, Users, Library, CreditCard, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", icon: Home, label: "Início" },
+  { href: "/dashboard/account", icon: User, label: "Meu Perfil" },
   { href: "/dashboard/profiles", icon: Users, label: "Perfis" },
   { href: "/dashboard/catalog", icon: Library, label: "Catálogo" },
   { href: "/dashboard/subscriptions", icon: CreditCard, label: "Assinatura" },

@@ -128,20 +128,26 @@ const ProfilesPage = () => {
         <div className="space-y-4 max-w-sm">
           <div className="space-y-2">
             <Label htmlFor="name">Nome</Label>
-            <Input id="name" placeholder="Nome da criança" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <Input id="name" placeholder="Nome da criança" required value={newName} onChange={(e) => setNewName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Data de nascimento</Label>
-            <Input type="date" value={newBirthDate} onChange={(e) => setNewBirthDate(e.target.value)} />
+            <Input type="date" required value={newBirthDate} onChange={(e) => setNewBirthDate(e.target.value)} />
           </div>
           <Button
             onClick={async () => {
-              if (!newName) return;
+              const validDate = /^\d{4}-\d{2}-\d{2}$/.test(newBirthDate);
+              if (!newName || !newBirthDate || !validDate) {
+                toast.error("Preencha todos os campos");
+                return;
+              }
               try {
-                const payload: any = { name: newName };
-                if (newBirthDate && /^\d{4}-\d{2}-\d{2}$/.test(newBirthDate)) payload.birthDate = newBirthDate;
+                const payload: any = { name: newName, birthDate: newBirthDate };
                 const created = await api.createProfile(payload);
                 setItems((prev) => [...prev, created]);
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('profiles-refresh'));
+                }
                 setNewName("");
                 setNewBirthDate("");
               } catch (e: any) { toast.error(e?.message || "Falha ao criar perfil"); }

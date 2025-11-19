@@ -24,6 +24,7 @@ export interface User {
   role: 'user' | 'admin';
   isActive: boolean;
   emailVerified: boolean;
+  authProvider?: 'local' | 'google';
   createdAt: string;
   updatedAt: string;
 }
@@ -158,13 +159,21 @@ class ApiService {
       async (error) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const path = window.location.pathname || '';
+          const url: string = error?.response?.config?.url || '';
           const inAuth = path.startsWith('/auth/login') || path.startsWith('/auth/callback') || path.startsWith('/admin/login');
-          if (!inAuth) {
+          const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
+        if (!inAuth && !isAccountPassword) {
+          const msg = error?.response?.data?.message || '';
+          const pathIsDashboard = path.startsWith('/dashboard') || path.startsWith('/admin');
+          if (msg.includes('E-mail não verificado') || pathIsDashboard) {
+            window.location.href = '/auth/pending';
+          } else {
             window.location.href = '/auth/login';
           }
         }
-        return Promise.reject(this.handleError(error));
       }
+      return Promise.reject(this.handleError(error));
+    }
     );
   }
 
@@ -264,6 +273,16 @@ class ApiService {
     return response.data.data;
   }
 
+  async updateMyProfile(data: { name?: string }): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>('/auth/profile', data);
+    return response.data.data;
+  }
+
+  async changeMyPassword(params: { currentPassword: string; newPassword: string }): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>('/auth/profile/password', params);
+    return response.data.data;
+  }
+
   async logout(): Promise<void> {
     await this.client.post('/auth/logout', {});
     try {
@@ -283,6 +302,35 @@ class ApiService {
         body: JSON.stringify({ accessToken: '' }),
       });
     } catch {}
+  }
+
+  async requestPasswordReset(email: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/password/forgot', { email });
+    return response.data.data;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/password/reset', { token, newPassword });
+    return response.data.data;
+  }
+
+  async requestEmailVerification(email: string): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/auth/email/verify/request', { email });
+    return response.data.data;
+  }
+
+  async verifyEmail(token: string): Promise<AuthResponse> {
+    const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/email/verify', { token });
+    if (response.data.data?.accessToken) {
+      try {
+        await fetch('/api/auth/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+        });
+      } catch {}
+    }
+    return response.data.data;
   }
 
   // ===== PERFIS =====
@@ -324,6 +372,14 @@ class ApiService {
       params,
     });
     return response.data.data;
+  }
+
+  async getLandingSamples(limit = 3): Promise<Array<{ id: string; title: string; coverUrl?: string; trackId?: string; hlsUrl?: string }>> {
+    const response = await this.client.get<ApiResponse<Array<{ id: string; title: string; coverUrl?: string; trackId?: string; hlsUrl?: string }>>>('/works/landing-samples', {
+      params: { limit },
+    });
+    const list = Array.isArray(response.data.data) ? response.data.data : [];
+    return list;
   }
 
   async getSuggestedWorks(params?: { profileId?: string; page?: number; limit?: number }): Promise<{ data: Work[]; meta: any }> {
@@ -442,16 +498,25 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminGetUsers(params?: any): Promise<{ data: User[]; meta: any }> {
-    const response = await this.client.get<ApiResponse<{ data: User[]; meta: any }>>('/admin/users', {
+  async adminGetUsers(params?: any): Promise<User[]> {
+    const response = await this.client.get<ApiResponse<User[]>>('/users', {
       params,
     });
     return response.data.data;
   }
 
   async adminToggleUserStatus(id: string): Promise<User> {
-    const response = await this.client.post<ApiResponse<User>>(`/admin/users/${id}/toggle-status`);
+    const response = await this.client.patch<ApiResponse<User>>(`/users/${id}/toggle-status`);
     return response.data.data;
+  }
+
+  async adminUpdateUser(id: string, data: Partial<Pick<User, 'name' | 'email' | 'role' | 'isActive'>>): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>(`/users/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteUser(id: string): Promise<void> {
+    await this.client.delete(`/users/${id}`);
   }
 
   async adminGetTags(): Promise<Tag[]> {

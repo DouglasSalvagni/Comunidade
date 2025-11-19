@@ -36,6 +36,26 @@ export const ProfileSwitcher = () => {
     return () => { mounted = false; };
   }, []);
 
+  useEffect(() => {
+    const onRefresh = async () => {
+      try {
+        const list = await api.getProfiles();
+        setItems(list);
+        const saved = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') : null;
+        const current = (saved && list.find(p => p.id === saved)) || null;
+        if (current) setActiveProfile(current);
+      } catch {}
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('profiles-refresh', onRefresh as EventListener);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('profiles-refresh', onRefresh as EventListener);
+      }
+    };
+  }, []);
+
   const onSelectProfile = (profile: Profile) => {
     setActiveProfile(profile);
     if (typeof window !== 'undefined') {

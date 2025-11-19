@@ -201,3 +201,36 @@ Paginação na lista de usuários (admin).
 - Ajuste visual do ursinho: barriga atrás do rosto e remoção/reposicionamento das bolinhas das pernas para baixo do corpo.
 - Ursinho refinado: braços com proporções similares às pernas, ambos com cor próxima ao tom principal; personagem reposicionado para encostar na corda do pêndulo.
 - Ajuste fino: aumentada a sobreposição da corda e reduzida a altura para aproximar ainda mais o ursinho da corda (`height=210px`, `overlap=48`).
+- Landing Page: seção “Ouça um pedacinho da magia” dinâmica com HLS.
+
+- Backend: endpoint público `GET /works/landing-samples` retorna até 3 obras marcadas com a tag `lp-sample`, incluindo `hlsUrl` construído a partir de `CDN_BASE_URL`/`S3_ENDPOINT`.
+- Frontend: `AudioPreviewInspira` consome o endpoint, exibe as 3 obras e reproduz via HLS (`hls.js`).
+  - Removido autoplay: a reprodução inicia somente ao clicar no botão de play.
+- Admin Catálogo: botão “Amostra na Landing” que cria/usa a tag especial `lp-sample` e aplica limite de 3 obras.
+  - O botão agora indica estado: "Ativar na Landing"/"Remover da Landing" e exibe badge "Na Landing/Fora da Landing".
+  - Corrigido consumo do endpoint na LP para evitar erro de lista indefinida.
+  - Ao alternar, a obra é atualizada imediatamente (persistência via `adminUpdateWork`), e a tag `lp-sample` é adicionada à lista local se recém criada.
+- Validação: só permite ativar na Landing se a obra tiver HLS gerado (faixa com `hlsMasterKey`/`hlsManifestStorageKey`).
+  - Ao ativar na Landing, a obra é marcada como ativa (`isActive=true`) para garantir exibição pública.
+
+- Landing: quando não há amostras, mensagem informativa é exibida em vez de lista vazia.
+Correção de parsing da API de amostras na landing.
+
+- Frontend: método `getLandingSamples` ajustado para retornar diretamente a lista (`response.data.data`) sem tentar acessar `payload.data`. Antes retornava sempre vazio, causando "Sem amostras disponíveis" mesmo com obras marcadas na LP (`frontend/src/services/api.ts`).
+
+Player da landing: mute funcional, remoção de velocidade e tempo real.
+
+- `AudioPreviewInspira`: botão de volume passou a alternar mute/unmute e exibir ícone correspondente. Removido botão de velocidade `1x`. Timeline agora reflete progresso real e exibe tempos corrente e total com base no `HLS.LEVEL_LOADED` (VOD) ou `loadedmetadata`/`timeupdate` no fallback (`frontend/src/components/inspira/AudioPreviewInspira.tsx`).
+
+Ajustes visuais no player demo da LP.
+
+- Barra de progresso preenchida com gradiente conforme avanço (`bg-gradient-to-r from-brand-teal to-brand-blue`) e remoção do tempo total à direita, exibindo apenas o tempo corrente. Botões de voltar, play/pause e avançar centralizados no card do player; botão de mute reposicionado para o topo à direita do card (`frontend/src/components/inspira/AudioPreviewInspira.tsx`).
+
+Correção do cálculo de progresso HLS e remoção do botão de mute.
+
+- Evitado divisão por zero ao calcular `%` quando `totalduration=0`, impedindo que a barra vá a 100% imediatamente ao iniciar o play (`frontend/src/components/inspira/AudioPreviewInspira.tsx`).
+- Removido completamente o botão de mute e os ícones relacionados para simplificar o card conforme solicitado.
+
+Remoção da timeline no player da LP.
+
+- Removida a barra de progresso e o tempo exibido abaixo da capa no card do player demo da landing, mantendo apenas os botões de voltar, play/pause e avançar centralizados (`frontend/src/components/inspira/AudioPreviewInspira.tsx`).

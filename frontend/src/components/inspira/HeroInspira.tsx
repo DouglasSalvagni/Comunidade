@@ -87,53 +87,36 @@ const CastleSVG = () => (
   </svg>
 );
 
-  const DragonSVG = () => (
+  const TeddyBearSVG = () => (
     <svg width="220" height="240" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="dragonBody" x1="100" y1="0" x2="100" y2="200" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4ADE80" />
-        <stop offset="1" stopColor="#15803D" />
-      </linearGradient>
-      <linearGradient id="dragonBelly" x1="100" y1="100" x2="100" y2="180" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FEF3C7" />
-        <stop offset="1" stopColor="#FCD34D" />
-      </linearGradient>
-    </defs>
-    <g transform="translate(0,10)">
-      <path d="M50 90 Q 20 50, 50 40 Q 80 50, 70 90" fill="#86EFAC" stroke="#166534" strokeWidth="2" />
-      <path d="M150 90 Q 180 50, 150 40 Q 120 50, 130 90" fill="#86EFAC" stroke="#166534" strokeWidth="2" />
-    </g>
-    <path d="M50 100 L 62 75" stroke="#166534" strokeWidth="1.5" />
-    <path d="M150 100 L 138 75" stroke="#166534" strokeWidth="1.5" />
-    <path d="M110 138 Q 160 185, 188 160" stroke="#15803D" strokeWidth="15" strokeLinecap="round" fill="none" />
-    <path d="M183 155 L 198 150 L 193 170 Z" fill="#F59E0B" stroke="#B45309" strokeWidth="1" />
-    <path d="M150 165 L 152 158 L 156 164 Z" fill="#15803D" stroke="#166534" strokeWidth="1.5" />
-    <ellipse cx="75" cy="180" rx="15" ry="10" fill="#15803D" />
-    <ellipse cx="125" cy="180" rx="15" ry="10" fill="#15803D" />
-    <ellipse cx="100" cy="130" rx="45" ry="55" fill="url(#dragonBody)" stroke="#166534" strokeWidth="2" />
-    <path d="M85 95 L 90 80 L 95 95 Z" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <path d="M100 92 L 105 78 L 110 92 Z" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <path d="M115 100 L 120 86 L 125 100 Z" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <path d="M80 110 C 80 110, 120 110, 120 110 C 120 140, 110 170, 100 175 C 90 170, 80 140, 80 110 Z" fill="url(#dragonBelly)" />
-    <path d="M85 130 H 115" stroke="#D97706" strokeWidth="1" opacity="0.5" />
-    <path d="M90 150 H 110" stroke="#D97706" strokeWidth="1" opacity="0.5" />
-    <circle cx="100" cy="70" r="35" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <ellipse cx="100" cy="85" rx="18" ry="12" fill="#86EFAC" />
-    <circle cx="95" cy="82" r="1.5" fill="#064E3B" />
-    <circle cx="105" cy="82" r="1.5" fill="#064E3B" />
-    <path d="M90 92 Q100 100 110 92" stroke="#166534" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <circle cx="88" cy="65" r="7" fill="white" stroke="#166534" strokeWidth="1.5" />
-    <circle cx="88" cy="65" r="3.2" fill="#064E3B" />
-    <circle cx="86.5" cy="63.5" r="0.8" fill="white" opacity="0.85" />
-    <circle cx="112" cy="65" r="7" fill="white" stroke="#166534" strokeWidth="1.5" />
-    <circle cx="112" cy="65" r="3.2" fill="#064E3B" />
-    <circle cx="110.5" cy="63.5" r="0.8" fill="white" opacity="0.85" />
-    <path d="M72 60 L60 38 L80 52 Z" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <path d="M128 60 L140 38 L120 52 Z" fill="#4ADE80" stroke="#166534" strokeWidth="2" />
-    <path d="M65 120 Q 50 130, 70 140" stroke="#15803D" strokeWidth="8" strokeLinecap="round" />
-    <path d="M135 120 Q 150 130, 130 140" stroke="#15803D" strokeWidth="8" strokeLinecap="round" />
-  </svg>
-);
+      <defs>
+        <linearGradient id="bearFur" x1="100" y1="0" x2="100" y2="200" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#a16207" />
+          <stop offset="1" stopColor="#78350f" />
+        </linearGradient>
+        <linearGradient id="bearBelly" x1="100" y1="100" x2="100" y2="180" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#f5deb3" />
+          <stop offset="1" stopColor="#e9cfa6" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="100" cy="152" rx="40" ry="45" fill="url(#bearFur)" stroke="#5c3a1d" strokeWidth="2" />
+      <ellipse cx="100" cy="162" rx="24" ry="18" fill="url(#bearBelly)" />
+      <ellipse cx="82" cy="150" rx="14" ry="10" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="2" />
+      <ellipse cx="118" cy="150" rx="14" ry="10" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="2" />
+      <ellipse cx="80" cy="192" rx="12" ry="9" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="1.5" />
+      <ellipse cx="120" cy="192" rx="12" ry="9" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="1.5" />
+      <ellipse cx="60" cy="70" rx="18" ry="18" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="2" />
+      <ellipse cx="140" cy="70" rx="18" ry="18" fill="#8b5a2b" stroke="#5c3a1d" strokeWidth="2" />
+      <circle cx="100" cy="90" r="40" fill="url(#bearFur)" stroke="#5c3a1d" strokeWidth="2" />
+      <ellipse cx="100" cy="110" rx="22" ry="16" fill="#d8b089" />
+      <circle cx="88" cy="95" r="4" fill="#2b1b10" />
+      <circle cx="112" cy="95" r="4" fill="#2b1b10" />
+      <path d="M92 110 Q100 116 108 110" stroke="#5c3a1d" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <circle cx="100" cy="105" r="5" fill="#2b1b10" />
+      <circle cx="60" cy="70" r="6" fill="#d8b089" opacity="0.7" />
+      <circle cx="140" cy="70" r="6" fill="#d8b089" opacity="0.7" />
+    </svg>
+  );
 
 const MusicNoteSVG = () => (
   <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -220,14 +203,14 @@ export const HeroInspira: React.FC = () => {
         </div>
         <div className="lg:w-1/2 h-[600px] w-full relative perspective-1000 pointer-events-none">
           <div className="absolute inset-0 w-full h-full">
-            <HangingProp x="80%" height="180px" duration={6} delay={0} rotateRange={3} overlap={30}>
+            <HangingProp x="80%" height="80px" duration={6} delay={0} rotateRange={3} overlap={30}>
               <MoonSVG />
             </HangingProp>
-            <HangingProp x="50%" height="340px" duration={8} delay={1} rotateRange={2} overlap={35}>
+            <HangingProp x="50%" height="240px" duration={8} delay={1} rotateRange={2} overlap={35}>
               <CastleSVG />
             </HangingProp>
-            <HangingProp x="20%" height="270px" duration={7} delay={2} rotateRange={4} overlap={40}>
-              <DragonSVG />
+            <HangingProp x="20%" height="210px" duration={7} delay={2} rotateRange={4} overlap={55}>
+              <TeddyBearSVG />
             </HangingProp>
             <HangingProp x="5%" height="150px" duration={5} delay={0.5} rotateRange={5} overlap={26}>
               <MusicNoteSVG />
@@ -237,22 +220,22 @@ export const HeroInspira: React.FC = () => {
                 <MusicNoteSVG />
               </div>
             </HangingProp>
-            <HangingProp x="42%" height="120px" duration={9} delay={3} rotateRange={8} overlap={5}>
+            <HangingProp x="42%" height="150px" duration={9} delay={3} rotateRange={8} overlap={5}>
               <StarSVG />
             </HangingProp>
-            <HangingProp x="12%" height="90px" duration={7} delay={4} rotateRange={10} overlap={4}>
+            <HangingProp x="12%" height="90px" duration={7} delay={4} rotateRange={10} overlap={9}>
               <div className="transform scale-75">
                 <StarSVG />
               </div>
             </HangingProp>
-            <HangingProp x="92%" height="130px" duration={8} delay={2.5} rotateRange={6} overlap={4}>
+            <HangingProp x="92%" height="40px" duration={8} delay={2.5} rotateRange={6} overlap={4}>
               <div className="transform scale-90">
                 <StarSVG />
               </div>
             </HangingProp>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-64 z-10">
-            <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-brand-dark via-brand-dark/80 to-transparent"></div>
+            <div className="absolute bottom-0 w-full h-full from-brand-dark via-brand-dark/80 to-transparent"></div>
             <motion.div animate={{ x: [-50, 0, -50] }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="absolute -bottom-10 left-0 w-[200%] h-48 bg-[url('https://www.transparenttextures.com/patterns/clouds.png')] opacity-20" />
           </div>
         </div>

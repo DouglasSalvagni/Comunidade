@@ -38,7 +38,7 @@ export const AudioPreviewInspira: React.FC = () => {
         <div className="lg:w-1/2 z-10">
           <h2 className="text-4xl font-bold mb-6">Ouça um pedacinho da magia</h2>
           <p className="text-gray-300 text-lg mb-8">
-            De aventuras espaciais a contos de fadas modernos. Nosso catálogo cresce toda semana com produções de qualidade cinematográfica.
+            De aventuras espaciais a contos de fadas. Nosso catálogo cresce toda semana com produções de alta qualidade.
           </p>
           <ul className="space-y-4">
             {["O Dragão que Queria Cantar Jazz", "Viagem ao Planeta dos Doces", "A Orquestra da Floresta Encantada"].map((item, idx) => (

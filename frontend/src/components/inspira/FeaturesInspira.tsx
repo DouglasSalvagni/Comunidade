@@ -30,12 +30,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, desc, colo
 
 export const FeaturesInspira: React.FC = () => {
   const features = [
-    { icon: Headphones, title: "Áudio Imersivo", desc: "Design de som 8D que transporta as crianças para dentro das histórias.", color: "bg-gradient-to-br from-pink-500 to-rose-500" },
-    { icon: Book, title: "Contos Originais", desc: "Histórias exclusivas escritas por autores premiados e pedagogos.", color: "bg-gradient-to-br from-brand-teal to-emerald-500" },
+    { icon: Headphones, title: "Áudio Imersivo", desc: "Design de som que transporta as crianças para dentro das histórias.", color: "bg-gradient-to-br from-pink-500 to-rose-500" },
+    { icon: Book, title: "Contos Originais", desc: "Além de clássicos temos histórias exclusivas pensadas a servirem de estímulo e de aprendizado.", color: "bg-gradient-to-br from-brand-teal to-emerald-500" },
     { icon: ShieldCheck, title: "100% Seguro", desc: "Ambiente livre de anúncios e conteúdo curado para cada faixa etária.", color: "bg-gradient-to-br from-blue-500 to-indigo-600" },
-    { icon: Clock, title: "Modo Soneca", desc: "Playlists especiais e timer para ajudar na hora de dormir.", color: "bg-gradient-to-br from-brand-orange to-red-500" },
+    { icon: Clock, title: "Modo Soneca", desc: "Playlists especiais para ajudar na hora de dormir.", color: "bg-gradient-to-br from-brand-orange to-red-500" },
     { icon: Download, title: "Offline", desc: "Baixe seus favoritos para ouvir no carro ou em viagens sem internet.", color: "bg-gradient-to-br from-brand-yellow to-amber-600" },
-    { icon: Heart, title: "Educação Emocional", desc: "Temas que ajudam a lidar com sentimentos e desenvolver empatia.", color: "bg-gradient-to-br from-purple-500 to-fuchsia-600" },
+    { icon: Heart, title: "Educação Emocional", desc: "Temas que ajudam a lidar com sentimentos e buscam o desenvolvimento emocional.", color: "bg-gradient-to-br from-purple-500 to-fuchsia-600" },
   ];
 
   return (

@@ -196,3 +196,8 @@ Detalhes dracônicos e cauda elevada.
 Paginação na lista de usuários (admin).
 
 - Frontend `/admin/users`: adicionada paginação client-side similar ao catálogo (5 itens por página, navegação com componentes de paginação).
+- Landing page (Hero Inspira): substituído personagem dragão verde por ursinho de pelúcia.
+- Implementado `TeddyBearSVG` e aplicado na cena pendurada do herói (`frontend/src/components/inspira/HeroInspira.tsx`).
+- Ajuste visual do ursinho: barriga atrás do rosto e remoção/reposicionamento das bolinhas das pernas para baixo do corpo.
+- Ursinho refinado: braços com proporções similares às pernas, ambos com cor próxima ao tom principal; personagem reposicionado para encostar na corda do pêndulo.
+- Ajuste fino: aumentada a sobreposição da corda e reduzida a altura para aproximar ainda mais o ursinho da corda (`height=210px`, `overlap=48`).

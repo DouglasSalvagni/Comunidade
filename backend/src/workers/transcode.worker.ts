@@ -136,12 +136,15 @@ async function processJob(job: Job) {
     const inputPath = await downloadToTemp(storageKey);
     const key = crypto.randomBytes(16);
     const keyPrefix = `hls/${Date.now()}`;
-    const apiBase = process.env.API_BASE_URL || 'http://backend:3001/api/v1';
-    const keyUri = `${apiBase}/media/hls-key?id=${trackId ?? ''}`;
     const keyLocalPath = join('/app/uploads', `enc-${Date.now()}.key`);
     const keyInfoPath = join('/app/uploads', `keyinfo-${Date.now()}.txt`);
+    const keyObjectKey = `${keyPrefix}/enc.key`;
+    const cdnBase = (process.env.CDN_BASE_URL || '').replace(/\/$/, '');
+    const s3Base = `${(process.env.S3_ENDPOINT || '').replace(/\/$/, '')}/${process.env.S3_BUCKET}`;
+    const keyUri = cdnBase ? `${cdnBase}/${keyObjectKey}` : `${s3Base}/${keyObjectKey}`;
     const ivHex = crypto.randomBytes(16).toString('hex');
     await fs.writeFile(keyLocalPath, key);
+    await s3.upload({ Bucket: bucket, Key: keyObjectKey, Body: key, ContentType: 'application/octet-stream' }).promise();
     await fs.writeFile(keyInfoPath, `${keyUri}\n${keyLocalPath}\n${ivHex}`);
     const outDir = join('/app/uploads', `hls-${Date.now()}`);
     const { masterPath, variants } = await transcodeMultiHls(inputPath, outDir, keyInfoPath);

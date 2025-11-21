@@ -20,9 +20,9 @@ export default function PrimaryButton({ title, onPress, disabled, variant = 'sol
 }
 
 const styles = StyleSheet.create({
-  button: { backgroundColor: '#ffd66b', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  button: { backgroundColor: '#7C3AED', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   buttonOutline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: '#ffd66b', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
-  text: { color: '#0b1023', fontSize: 16, fontWeight: '600' },
+  text: { color: '#F8FAFC', fontSize: 16, fontWeight: '600' },
   textOutline: { color: '#ffd66b', fontSize: 16, fontWeight: '600' },
 })

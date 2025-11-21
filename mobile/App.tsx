@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StyleSheet, View } from 'react-native'
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
@@ -13,13 +14,12 @@ function Screens() {
   const { user, accessToken, logout } = useAuth()
   const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'home'>('login')
 
-  if (user && accessToken) {
-    return <HomeScreen onLogout={() => { logout(); setScreen('login') }} />
-  }
-
   return (
     <View style={styles.container}>
-      {screen === 'login' && (
+      {user && accessToken && (
+        <HomeScreen onLogout={() => { logout(); setScreen('login') }} />
+      )}
+      {!user && !accessToken && screen === 'login' && (
         <LoginScreen
           onRegister={() => setScreen('register')}
           onForgot={() => setScreen('forgot')}
@@ -27,16 +27,16 @@ function Screens() {
           onVerificationNotice={() => setScreen('verify_notice')}
         />
       )}
-      {screen === 'register' && (
+      {!user && !accessToken && screen === 'register' && (
         <RegisterScreen onBackToLogin={() => setScreen('login')} onVerifyEmail={() => setScreen('verify_notice')} />
       )}
-      {screen === 'verify' && (
+      {!user && !accessToken && screen === 'verify' && (
         <VerifyEmailScreen onVerified={() => setScreen('home')} onBack={() => setScreen('login')} />
       )}
-      {screen === 'verify_notice' && (
+      {!user && !accessToken && screen === 'verify_notice' && (
         <VerificationNoticeScreen onBackToLogin={() => setScreen('login')} />
       )}
-      {screen === 'forgot' && (
+      {!user && !accessToken && screen === 'forgot' && (
         <ForgotPasswordScreen onBack={() => setScreen('login')} />
       )}
       <StatusBar style="light" />
@@ -46,9 +46,11 @@ function Screens() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Screens />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <Screens />
+      </AuthProvider>
+    </SafeAreaProvider>
   )
 }
 

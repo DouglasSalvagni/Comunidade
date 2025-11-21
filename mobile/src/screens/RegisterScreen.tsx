@@ -47,7 +47,6 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <Animated.View style={{ transform: [{ translateY: shift }] }}>
-      <Text style={styles.mood}>🌙 ⭐</Text>
       <Text style={styles.title}>Criar conta</Text>
       <Input label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
       <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
@@ -63,7 +62,6 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#0b1023' },
-  mood: { textAlign: 'center', fontSize: 22, color: '#ffd66b', marginBottom: 8 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 16, color: '#e6e9ff', textAlign: 'center' },
+  title: { fontSize: 26, fontWeight: '700', marginBottom: 16, color: '#F8FAFC', textAlign: 'center' },
   error: { color: '#ff8b8b', marginBottom: 12 },
 })

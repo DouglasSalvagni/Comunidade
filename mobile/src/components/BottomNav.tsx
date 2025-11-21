@@ -1,0 +1,39 @@
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Pressable, Text, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+
+type Tab = { key: string; label: string; icon?: string; iconActive?: string }
+
+type Props = {
+  tabs: Tab[]
+  current: string
+  onChange: (key: string) => void
+}
+
+export default function BottomNav({ tabs, current, onChange }: Props) {
+  return (
+    <SafeAreaView edges={['bottom']} style={styles.safe}>
+      <View style={styles.container}>
+        {tabs.map((t) => {
+          const active = t.key === current
+          const iconName = active ? t.iconActive || t.icon : t.icon
+          return (
+            <Pressable key={t.key} style={[styles.item, active && styles.itemActive]} onPress={() => onChange(t.key)}>
+              {iconName && <Ionicons name={iconName as any} size={22} color={active ? '#A78BFA' : '#cfd3ff'} />}
+              <Text style={[styles.label, active && styles.labelActive]}>{t.label}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  safe: { backgroundColor: '#0b1023', paddingHorizontal: 0 },
+  container: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#1d2340', paddingVertical: 6, width: '100%' },
+  item: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 },
+  itemActive: { backgroundColor: '#121632' },
+  label: { fontSize: 12, color: '#cfd3ff', marginTop: 2 },
+  labelActive: { color: '#A78BFA', fontWeight: '600' },
+})

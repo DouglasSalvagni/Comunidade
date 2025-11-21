@@ -20,12 +20,13 @@ export default function Input({ label, value, onChangeText, placeholder, secureT
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#8a91b8"
+        placeholderTextColor="#94a3b8"
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         autoCapitalize="none"
+        selectionColor="#A78BFA"
       />
     </View>
   )
@@ -33,7 +34,7 @@ export default function Input({ label, value, onChangeText, placeholder, secureT
 
 const styles = StyleSheet.create({
   container: { width: '100%', marginBottom: 12 },
-  label: { fontSize: 14, color: '#cfd3ff', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#3a3f5a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, backgroundColor: '#121632', color: '#e6e9ff' },
-  inputFocused: { borderColor: '#ffd66b' },
+  label: { fontSize: 14, color: '#e5e7eb', marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, backgroundColor: '#111827', color: '#f8fafc' },
+  inputFocused: { borderColor: '#7C3AED' },
 })

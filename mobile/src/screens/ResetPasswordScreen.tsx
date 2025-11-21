@@ -34,7 +34,6 @@ export default function ResetPasswordScreen({ onBack }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.mood}>🌙 ⭐</Text>
       <Text style={styles.title}>Redefinir senha</Text>
       <Input label="Token" value={token} onChangeText={setToken} placeholder="Cole o token recebido" />
       <Input label="Nova senha" value={newPassword} onChangeText={setNewPassword} secureTextEntry placeholder="••••••" />
@@ -47,7 +46,6 @@ export default function ResetPasswordScreen({ onBack }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#0b1023' },
-  mood: { textAlign: 'center', fontSize: 22, color: '#ffd66b', marginBottom: 8 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 16, color: '#e6e9ff', textAlign: 'center' },
+  title: { fontSize: 26, fontWeight: '700', marginBottom: 16, color: '#F8FAFC', textAlign: 'center' },
   error: { color: '#ff8b8b', marginBottom: 12 },
 })

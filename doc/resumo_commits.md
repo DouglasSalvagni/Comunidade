@@ -71,3 +71,20 @@ Fluxo de criação de conta e verificação de e-mail no mobile.
 - Após cadastro, mostramos aviso para confirmar e-mail via link recebido.
 - Nova tela `VerificationNoticeScreen` com opções de reenviar e voltar ao login.
 - Login trata `E-mail não verificado`: oferece reenviar e abrir instruções.
+Login social Google funcional no mobile.
+
+- Adicionadas dependências: `expo-auth-session` e `expo-web-browser`.
+- Implementado fluxo com `useAuthRequest` e `promptAsync({ useProxy: true })` para obter `id_token` no Expo Go sem exigir SHA-1.
+ - Ajustado tipagem para `useIdTokenAuthRequest({ clientId })` compatível com SDK atual; evita exigir `androidClientId` no desenvolvimento com proxy.
+- Chama endpoint do backend `/auth/oauth/google` via `googleOAuth` no contexto.
+- Lê IDs do Google de `app.json > expo.extra.googleOAuth`; exibe erro se ausente.
+Configuração do Client ID do Google no mobile.
+
+- Adicionado `expo.extra.googleOAuth.expoClientId` em `mobile/app.json` usando o valor do web (`frontend/.env.local:3`).
+Notas de configuração para Google OAuth (Expo Go).
+
+- Consent Screen externo em modo Testing com usuário de teste.
+- Adicionar Redirect URI: `https://auth.expo.io/@<expo-username>/mobile` (ou `@anonymous` se não logado).
+- UI: Segundo botão em telas de Login, Criar Conta e Esqueci Senha agora é outline (contorno/texto amarelo, fundo transparente). Espaçamento de 12px entre botões adjacentes.
+- UX de teclado nas telas de Login/Criar Conta/Esqueci Senha: conteúdo agora eleva suavemente quando o teclado aparece (Animated + KeyboardAvoidingView), evitando sobreposição.
+- Documento `production_checklist.md` criado na raiz com checklist conciso para colocar web, backend e mobile em produção (auth Google Android/iOS, Docker produção, CORS S3/R2, segurança, observabilidade, DNS e validações).

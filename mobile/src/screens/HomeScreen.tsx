@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
-import ProfileSelector from '../components/ProfileSelector'
 import { useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 
@@ -16,7 +15,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles'>('menu')
   return (
     <View style={styles.container}>
-      <ProfileSelector />
+      {/* Seletor de perfil removido; seleção é feita na tela de Perfis */}
       {tab === 'settings' && settingsView === 'profiles' ? (
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
       ) : (

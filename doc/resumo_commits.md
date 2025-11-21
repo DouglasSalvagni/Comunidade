@@ -123,5 +123,8 @@ Correções adicionais (mobile):
 - UI perfis: substituídos botões de texto (Editar/Excluir) por ícones lado a lado com `Ionicons` para compactar ações na lista (mobile/src/screens/ProfilesScreen.tsx).
 - Correção UX perfis: exclusão agora atualiza imediatamente e desabilita ícones durante processamento; edição mostra estado “Salvando...” e bloqueia envio, com atualização por `id` para evitar inconsistências (mobile/src/screens/ProfilesScreen.tsx).
 - Feedback de sucesso na exclusão: adicionada mensagem “Perfil excluído” por 2s e remoção otimista com rollback em caso de falha (mobile/src/screens/ProfilesScreen.tsx).
- - Modal de confirmação antes de excluir perfil; após confirmação, remove localmente, chama DELETE e re-carrega lista do backend para garantir consistência visual (mobile/src/screens/ProfilesScreen.tsx).
- - Correção de cliente HTTP para respostas 204/sem JSON: evita quebra ao tentar `res.json()` em DELETE e retorna vazio; melhora robustez geral (mobile/src/services/api.ts).
+- Modal de confirmação antes de excluir perfil; após confirmação, remove localmente, chama DELETE e re-carrega lista do backend para garantir consistência visual (mobile/src/screens/ProfilesScreen.tsx).
+- Correção de cliente HTTP para respostas 204/sem JSON: evita quebra ao tentar `res.json()` em DELETE e retorna vazio; melhora robustez geral (mobile/src/services/api.ts).
+ - Seleção de perfil ativo na tela de perfis: adicionados ícones de seleção e ação para definir `activeProfileId`; ao excluir o perfil ativo, escolhe automaticamente o próximo disponível (mobile/src/screens/ProfilesScreen.tsx).
+- Removido seletor de perfil do topo direito; seleção passa a ocorrer na tela de Perfis (mobile/src/screens/HomeScreen.tsx, mobile/src/screens/ProfilesScreen.tsx).
+- Ajuste visual na separação de perfis: aumentada a área de padding vertical da linha separadora para melhor espaçamento entre textos e botões (mobile/src/screens/ProfilesScreen.tsx).

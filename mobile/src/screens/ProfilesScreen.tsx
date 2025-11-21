@@ -12,7 +12,7 @@ type Props = {
 }
 
 export default function ProfilesScreen({ onBack }: Props) {
-  const { accessToken } = useAuth()
+  const { accessToken, activeProfileId, setActiveProfileId } = useAuth()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editIndex, setEditIndex] = useState<number | null>(null)
@@ -36,13 +36,25 @@ export default function ProfilesScreen({ onBack }: Props) {
       setLoading(true)
       try {
         const list = await apiGetProfiles(accessToken)
-        if (mounted) setItems(Array.isArray(list) ? list : [])
+        if (mounted) {
+          const arr = Array.isArray(list) ? list : []
+          setItems(arr)
+          if (!activeProfileId && arr.length > 0) {
+            setActiveProfileId(arr[0].id)
+          }
+        }
       } catch {}
       if (mounted) setLoading(false)
     }
     load()
     return () => { mounted = false }
   }, [accessToken])
+
+  function activate(id: string) {
+    setActiveProfileId(id)
+    setInfoMsg('Perfil ativo atualizado')
+    setTimeout(() => setInfoMsg(''), 1500)
+  }
 
   async function saveEdit(i: number) {
     const p = items[i]
@@ -64,7 +76,13 @@ export default function ProfilesScreen({ onBack }: Props) {
   async function removeById(id: string) {
     try {
       setDeletingId(id)
-      setItems((prev) => prev.filter((it) => it.id !== id))
+      setItems((prev) => {
+        const next = prev.filter((it) => it.id !== id)
+        if (activeProfileId === id) {
+          setActiveProfileId(next[0]?.id || null)
+        }
+        return next
+      })
       await apiDeleteProfile(accessToken as string, id)
       try {
         const list = await apiGetProfiles(accessToken as string)
@@ -152,6 +170,9 @@ export default function ProfilesScreen({ onBack }: Props) {
                 </View>
               ) : (
                 <View style={styles.viewRow}>
+                  <Pressable accessibilityRole="button" onPress={() => activate(p.id)} style={{ paddingRight: 6 }}>
+                    <Ionicons name={activeProfileId === p.id ? 'radio-button-on' : 'radio-button-off'} size={20} color={activeProfileId === p.id ? '#A78BFA' : '#94a3b8'} />
+                  </Pressable>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemName}>{p.name}</Text>
                     <Text style={styles.itemSub}>{p.birthDate || '-'}</Text>
@@ -240,7 +261,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: '#1d2340', borderRadius: 10, padding: 16, marginBottom: 16, backgroundColor: '#0e1430' },
   cardTitle: { fontSize: 18, fontWeight: '600', color: '#e6e9ff', marginBottom: 12 },
   empty: { color: '#cfd3ff', marginBottom: 8 },
-  itemRow: { borderTopWidth: 1, borderTopColor: '#1d2340', paddingTop: 12 },
+  itemRow: { borderTopWidth: 1, borderTopColor: '#1d2340', paddingVertical: 14 },
   editRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   viewRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   itemName: { color: '#e6e9ff', fontSize: 16, fontWeight: '600' },

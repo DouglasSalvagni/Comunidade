@@ -24,7 +24,6 @@ function Screens() {
           onRegister={() => setScreen('register')}
           onForgot={() => setScreen('forgot')}
           onLoggedIn={() => setScreen('home')}
-          onGoogle={() => setScreen('login')}
           onVerificationNotice={() => setScreen('verify_notice')}
         />
       )}

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -16,6 +16,7 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const shift = useRef(new Animated.Value(0)).current
 
   async function handleSubmit() {
     try {
@@ -44,7 +45,8 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <Animated.View style={{ transform: [{ translateY: shift }] }}>
       <Text style={styles.mood}>🌙 ⭐</Text>
       <Text style={styles.title}>Criar conta</Text>
       <Input label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
@@ -52,8 +54,10 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
       <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
       {error && <Text style={styles.error}>{error}</Text>}
       <PrimaryButton title={loading ? 'Criando...' : 'Criar conta'} onPress={handleSubmit} disabled={loading} />
-      <PrimaryButton title={'Voltar'} onPress={onBackToLogin} />
-    </View>
+      <View style={{ height: 12 }} />
+      <PrimaryButton variant={'outline'} title={'Voltar'} onPress={onBackToLogin} />
+      </Animated.View>
+    </KeyboardAvoidingView>
   )
 }
 

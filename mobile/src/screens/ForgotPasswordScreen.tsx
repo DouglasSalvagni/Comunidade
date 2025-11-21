@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -14,6 +14,7 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  const shift = useRef(new Animated.Value(0)).current
 
   async function handleSubmit() {
     try {
@@ -32,7 +33,8 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <Animated.View style={{ transform: [{ translateY: shift }] }}>
       <Text style={styles.mood}>🌙 ⭐</Text>
       <Text style={styles.title}>Recuperar senha</Text>
       {!sent && (
@@ -40,7 +42,8 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
           <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
           {error && <Text style={styles.error}>{error}</Text>}
           <PrimaryButton title={loading ? 'Enviando...' : 'Enviar'} onPress={handleSubmit} disabled={loading} />
-          <PrimaryButton title={'Voltar'} onPress={onBack} />
+          <View style={{ height: 12 }} />
+          <PrimaryButton variant={'outline'} title={'Voltar'} onPress={onBack} />
         </>
       )}
       {sent && (
@@ -49,7 +52,8 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
           <PrimaryButton title={'Voltar ao login'} onPress={onBack} />
         </>
       )}
-    </View>
+      </Animated.View>
+    </KeyboardAvoidingView>
   )
 }
 

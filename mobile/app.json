@@ -27,7 +27,13 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://0599aeb68d94.ngrok-free.app/api/v1"
-    }
+      "apiBaseUrl": "https://0599aeb68d94.ngrok-free.app/api/v1",
+      "googleOAuth": {
+        "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com"
+      }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

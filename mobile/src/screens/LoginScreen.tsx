@@ -1,26 +1,42 @@
-import { useState } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, Pressable, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import { apiRequestEmailVerification } from '../services/api'
+import * as WebBrowser from 'expo-web-browser'
+import * as Google from 'expo-auth-session/providers/google'
+import appConfig from '../../app.json'
 
 type Props = {
   onRegister: () => void
   onForgot: () => void
   onLoggedIn: () => void
-  onGoogle: () => void
   onVerificationNotice: () => void
 }
 
-export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onGoogle, onVerificationNotice }: Props) {
-  const { login } = useAuth()
+WebBrowser.maybeCompleteAuthSession()
+
+export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerificationNotice }: Props) {
+  const { login, googleOAuth } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [unverified, setUnverified] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
+  const [gLoading, setGLoading] = useState(false)
+  const shift = useRef(new Animated.Value(0)).current
+
+  const extra: any = (appConfig as any)?.expo?.extra || {}
+  const googleIds: any = extra?.googleOAuth || {}
+  const expoClientId: string | undefined = googleIds?.expoClientId
+  const androidClientId: string | undefined = googleIds?.androidClientId
+  const iosClientId: string | undefined = googleIds?.iosClientId
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: expoClientId,
+  })
 
   async function handleSubmit() {
     try {
@@ -63,8 +79,45 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onGoogle
     }
   }
 
+  async function handleGoogleLogin() {
+    try {
+      setGLoading(true)
+      setError(null)
+      if (!expoClientId && !androidClientId && !iosClientId) {
+        throw new Error('Configuração do Google ausente')
+      }
+      const res = await promptAsync({ useProxy: true } as any)
+      if (res?.type === 'success') {
+        const idToken = (res as any)?.params?.id_token
+        if (!idToken) throw new Error('idToken não recebido')
+        await googleOAuth(idToken)
+        onLoggedIn()
+      } else if (res?.type === 'dismiss') {
+        throw new Error('Login com Google cancelado')
+      }
+    } catch (e: any) {
+      console.error(e)
+      setError(e?.message || 'Falha no login com Google')
+    } finally {
+      setGLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const showSub = Keyboard.addListener(showEvt, () => {
+      Animated.timing(shift, { toValue: -60, duration: 200, useNativeDriver: true }).start()
+    })
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      Animated.timing(shift, { toValue: 0, duration: 200, useNativeDriver: true }).start()
+    })
+    return () => { showSub.remove(); hideSub.remove() }
+  }, [shift])
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <Animated.View style={{ transform: [{ translateY: shift }] }}>
       <Text style={styles.mood}>🌙 ⭐</Text>
       <Text style={styles.title}>Entrar</Text>
       <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
@@ -84,8 +137,9 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onGoogle
         </View>
       )}
       <View style={styles.divider} />
-      <PrimaryButton title={'Entrar com Google'} onPress={onGoogle} />
-    </View>
+      <PrimaryButton variant={'outline'} title={gLoading ? 'Abrindo Google...' : 'Entrar com Google'} onPress={handleGoogleLogin} disabled={gLoading || !request} />
+      </Animated.View>
+    </KeyboardAvoidingView>
   )
 }
 

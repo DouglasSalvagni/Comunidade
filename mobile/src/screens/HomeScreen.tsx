@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
 import { useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
+import AccountScreen from './AccountScreen'
 
 type Props = {
   onLogout: () => void
@@ -12,12 +13,14 @@ type Props = {
 export default function HomeScreen({ onLogout }: Props) {
   const { user } = useAuth()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
-  const [settingsView, setSettingsView] = useState<'menu' | 'profiles'>('menu')
+  const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
   return (
     <View style={styles.container}>
       {/* Seletor de perfil removido; seleção é feita na tela de Perfis */}
       {tab === 'settings' && settingsView === 'profiles' ? (
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
+      ) : tab === 'settings' && settingsView === 'account' ? (
+        <AccountScreen onBack={() => setSettingsView('menu')} />
       ) : (
         <View style={styles.content}>
           <Text style={styles.title}>{tab === 'home' ? 'Início' : tab === 'catalog' ? 'Catálogo' : tab === 'favorites' ? 'Favoritos' : tab === 'playlist' ? 'Playlist' : 'Mais'}</Text>
@@ -26,6 +29,9 @@ export default function HomeScreen({ onLogout }: Props) {
             <View style={styles.menu}>
               <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
                 <Text style={styles.menuItemText}>Perfis</Text>
+              </Pressable>
+              <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
+                <Text style={styles.menuItemText}>Conta</Text>
               </Pressable>
             </View>
           ) : (

@@ -144,3 +144,19 @@ export async function apiDeleteProfile(accessToken: string, id: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
+
+export async function apiUpdateMyProfile(accessToken: string, data: { name?: string }) {
+  return request<any>('/auth/profile', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function apiChangeMyPassword(accessToken: string, data: { currentPassword: string; newPassword: string }) {
+  return request<any>('/auth/profile/password', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}

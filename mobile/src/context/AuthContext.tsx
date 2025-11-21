@@ -12,6 +12,8 @@ type AuthContextValue = {
   user: AuthUser | null
   accessToken: string | null
   setTokens: (accessToken: string | null) => void
+  activeProfileId: string | null
+  setActiveProfileId: (id: string | null) => void
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   verifyEmail: (token: string) => Promise<void>
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: any }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
 
   function setTokens(token: string | null) {
     setAccessToken(token)
@@ -66,11 +69,12 @@ export function AuthProvider({ children }: { children: any }) {
   function logout() {
     setAccessToken(null)
     setUser(null)
+    setActiveProfileId(null)
   }
 
   const value = useMemo(
-    () => ({ user, accessToken, setTokens, login, register, verifyEmail, forgotPassword, resetPassword, googleOAuth, logout }),
-    [user, accessToken],
+    () => ({ user, accessToken, setTokens, activeProfileId, setActiveProfileId, login, register, verifyEmail, forgotPassword, resetPassword, googleOAuth, logout }),
+    [user, accessToken, activeProfileId],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

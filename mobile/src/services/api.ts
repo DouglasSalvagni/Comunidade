@@ -4,24 +4,36 @@ const BASE_URL: string = (appConfig as any)?.expo?.extra?.apiBaseUrl || ''
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       ...(options.headers || {}),
     },
-    ...options,
   })
   if (!res.ok) {
     const text = await res.text()
+    try { console.log('[API ERROR]', options.method || 'GET', path, res.status, text) } catch {}
     try {
       const json = JSON.parse(text)
-      const msg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`
-      const normalized = Array.isArray(msg) ? msg.join(', ') : String(msg)
+      const rawMsg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`
+      const normalized = Array.isArray(rawMsg) ? rawMsg.join(', ') : String(rawMsg)
       throw new Error(normalized)
     } catch {
-      throw new Error(text || `HTTP ${res.status}`)
+      // Texto pode vir como JSON ou string plana; se não parsear, retorne status amigável
+      const friendly = text && text.startsWith('{') ? `HTTP ${res.status}` : (text || `HTTP ${res.status}`)
+      throw new Error(friendly)
     }
   }
-  return res.json()
+  const ct = res.headers.get('content-type') || ''
+  if (res.status === 204) {
+    return undefined as any
+  }
+  if (ct.includes('application/json')) {
+    return res.json()
+  }
+  const text = await res.text()
+  try { return JSON.parse(text) } catch { return text as any }
 }
 
 export async function apiLogin(email: string, password: string) {
@@ -101,4 +113,34 @@ export async function apiGoogleOAuth(idToken: string) {
       body: JSON.stringify({ idToken }),
     },
   )
+}
+
+export async function apiGetProfiles(accessToken: string) {
+  return request<any[]>('/profiles', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiCreateProfile(accessToken: string, data: { name: string; birthDate?: string; avatarUrl?: string; parentalPin?: string }) {
+  return request<any>('/profiles', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function apiUpdateProfile(accessToken: string, id: string, data: Partial<{ name: string; birthDate: string; avatarUrl: string; parentalPin: string }>) {
+  return request<any>(`/profiles/${id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function apiDeleteProfile(accessToken: string, id: string) {
+  return request<void>(`/profiles/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
 }

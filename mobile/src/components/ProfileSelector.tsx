@@ -1,25 +1,43 @@
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { View, Text, StyleSheet, Pressable, Modal } from 'react-native'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
+import { apiGetProfiles } from '../services/api'
 
 type Props = {
   onChange?: (name: string) => void
 }
 
 export default function ProfileSelector({ onChange }: Props) {
-  const { user } = useAuth()
+  const { user, accessToken, activeProfileId, setActiveProfileId } = useAuth()
   const baseName = user?.name || user?.email || 'Perfil'
   const [open, setOpen] = useState(false)
-  const [current, setCurrent] = useState(baseName)
-  const profiles = [baseName]
+  const [profiles, setProfiles] = useState<any[]>([])
   const insets = useSafeAreaInsets()
 
-  function select(name: string) {
-    setCurrent(name)
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      if (!accessToken) return
+      try {
+        const list = await apiGetProfiles(accessToken)
+        if (mounted) setProfiles(Array.isArray(list) ? list : [])
+      } catch {}
+    }
+    load()
+    return () => { mounted = false }
+  }, [accessToken])
+
+  const currentName = useMemo(() => {
+    const found = profiles.find((p) => p.id === activeProfileId)
+    return found?.name || baseName
+  }, [profiles, activeProfileId, baseName])
+
+  function select(id: string) {
+    setActiveProfileId(id)
     setOpen(false)
-    onChange && onChange(name)
+    onChange && onChange(id)
   }
 
   return (
@@ -27,7 +45,7 @@ export default function ProfileSelector({ onChange }: Props) {
       <View style={[styles.container, { minHeight: 44 }] }>
         <Pressable style={styles.selector} onPress={() => setOpen(true)} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
           <Text style={styles.label}>Perfil</Text>
-          <Text style={styles.value}>{current}</Text>
+          <Text style={styles.value}>{currentName}</Text>
           <Ionicons name="chevron-down" size={16} color="#94a3b8" />
         </Pressable>
       </View>
@@ -35,8 +53,8 @@ export default function ProfileSelector({ onChange }: Props) {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { marginTop: insets.top + 16, marginBottom: insets.bottom + 16 }]}>
             {profiles.map((p) => (
-              <Pressable key={p} style={styles.modalItem} onPress={() => select(p)}>
-                <Text style={styles.modalText}>{p}</Text>
+              <Pressable key={p.id} style={styles.modalItem} onPress={() => select(p.id)}>
+                <Text style={styles.modalText}>{p.name}</Text>
               </Pressable>
             ))}
             <Pressable style={[styles.modalItem, { borderTopWidth: 1, borderTopColor: '#1d2340' }]} onPress={() => setOpen(false)}>

@@ -5,6 +5,7 @@ import BottomNav from '../components/BottomNav'
 import { useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
+import CatalogScreen from './CatalogScreen'
 
 type Props = {
   onLogout: () => void
@@ -17,13 +18,23 @@ export default function HomeScreen({ onLogout }: Props) {
   return (
     <View style={styles.container}>
       {/* Seletor de perfil removido; seleção é feita na tela de Perfis */}
-      {tab === 'settings' && settingsView === 'profiles' ? (
+      {tab === 'catalog' ? (
+        <CatalogScreen />
+      ) : tab === 'settings' && settingsView === 'profiles' ? (
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
       ) : tab === 'settings' && settingsView === 'account' ? (
         <AccountScreen onBack={() => setSettingsView('menu')} />
       ) : (
         <View style={styles.content}>
-          <Text style={styles.title}>{tab === 'home' ? 'Início' : tab === 'catalog' ? 'Catálogo' : tab === 'favorites' ? 'Favoritos' : tab === 'playlist' ? 'Playlist' : 'Mais'}</Text>
+          <Text style={styles.title}>{(() => {
+            switch (tab) {
+              case 'home': return 'Início'
+              case 'favorites': return 'Favoritos'
+              case 'playlist': return 'Playlist'
+              case 'settings': return 'Mais'
+              default: return 'Mais'
+            }
+          })()}</Text>
           <Text style={styles.subtitle}>{user?.name || user?.email}</Text>
           {tab === 'settings' ? (
             <View style={styles.menu}>

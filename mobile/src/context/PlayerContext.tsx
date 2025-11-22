@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useRef, useState, useEffect } from 'react'
-import { Video, ResizeMode } from 'expo-av'
+import { useVideoPlayer, VideoView } from 'expo-video'
+import { useEvent } from 'expo'
 import { useAuth } from './AuthContext'
 import { apiGetStreamingUrl, apiToggleFavorite } from '../services/api'
 import { View } from 'react-native'
@@ -25,7 +26,6 @@ const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
 
 export function PlayerProvider({ children }: { children: any }) {
   const { accessToken, activeProfileId } = useAuth()
-  const videoRef = useRef<Video | null>(null)
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null)
   const [currentWork, setCurrentWork] = useState<PlayerWork | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -35,7 +35,6 @@ export function PlayerProvider({ children }: { children: any }) {
   const [isFavorite, setIsFavorite] = useState(false)
 
   async function playWork(work: PlayerWork) {
-    try { console.log('[Player] playWork', (work as any)?.id, 'tracks:', Array.isArray(work.tracks) ? work.tracks.length : 0) } catch {}
     const list = Array.isArray(work.tracks) ? work.tracks : []
     const ordered = [...list].sort((a: any, b: any) => {
       const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : 0
@@ -48,37 +47,33 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   async function playTrack(track: PlayerTrack, work?: PlayerWork) {
-    if (!accessToken) { try { console.log('[Player] playTrack aborted: no accessToken') } catch {}; return }
+    if (!accessToken) { return }
     try {
-      try { console.log('[Player] playTrack', (track as any)?.id, 'accessToken?', !!accessToken) } catch {}
       setCurrentTrack(track)
       setCurrentWork(work || currentWork)
       setIsFavorite(Boolean((work || currentWork)?.isFavorite))
       setIsPlaying(true)
       setPosition(0)
-      try { console.log('[Player] fetching streaming url for track', (track as any)?.id) } catch {}
       const res = await apiGetStreamingUrl(accessToken, track.id)
       const url = (res as any)?.url || ''
       if (!url) {
-        try { console.log('[Player] streaming url missing for track', (track as any)?.id) } catch {}
         setIsPlaying(false)
         return
       }
-      try { console.log('[Player] streaming url ok for track', (track as any)?.id) } catch {}
       setStreamUrl(url)
-    } catch (e) { try { console.log('[Player] error fetching streaming url', e) } catch {} }
+    } catch {}
   }
 
+  // expo-video player
+  const player = useVideoPlayer(streamUrl || '', (p) => {
+    p.loop = false
+  })
+
   async function togglePlay() {
-    const v = videoRef.current
-    if (!v) return
-    if (isPlaying) {
-      try { await v.pauseAsync() } catch {}
-      setIsPlaying(false)
-    } else {
-      try { await v.playAsync() } catch {}
-      setIsPlaying(true)
-    }
+    if (!player) return
+    const native = player.playing === true
+    try { native ? player.pause() : player.play() } catch {}
+    setIsPlaying(!native)
   }
 
   async function toggleFavorite() {
@@ -92,8 +87,7 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   async function stop() {
-    const v = videoRef.current
-    try { if (v) await v.pauseAsync() } catch {}
+    try { if (player) player.pause() } catch {}
     setIsPlaying(false)
     setStreamUrl(null)
     setCurrentTrack(null)
@@ -103,43 +97,33 @@ export function PlayerProvider({ children }: { children: any }) {
     setIsFavorite(false)
   }
 
-  const onStatus = (status: any) => {
-    if (!status) return
-    const pos = typeof status.positionMillis === 'number' ? Math.floor(status.positionMillis / 1000) : 0
-    const dur = typeof status.durationMillis === 'number' ? Math.floor(status.durationMillis / 1000) : duration
-    setPosition(pos)
-    if (dur > 0) setDuration(dur)
-    if (typeof status.isPlaying === 'boolean') setIsPlaying(status.isPlaying)
-    if (status.didJustFinish) setIsPlaying(false)
-  }
+  // keep native playing state in sync when possible
+  const nativePlaying = useEvent(player, 'playingChange', { isPlaying: player?.playing }).isPlaying
+  useEffect(() => {
+    if (typeof nativePlaying === 'boolean') setIsPlaying(nativePlaying)
+  }, [nativePlaying])
 
   const value = useMemo(
     () => ({ currentTrack, currentWork, isPlaying, position, duration, playWork, playTrack, togglePlay, toggleFavorite, isFavorite, stop }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, player],
   )
 
   useEffect(() => {
-    const v = videoRef.current
-    if (!v || !streamUrl) return
+    if (!player || !streamUrl) return
+    try { player.replace(streamUrl) } catch {}
     if (isPlaying) {
-      try { v.playAsync() } catch {}
+      try { player.play() } catch {}
+    } else {
+      try { player.pause() } catch {}
     }
-  }, [streamUrl])
+  }, [streamUrl, player, isPlaying])
 
   return (
     <PlayerContext.Provider value={value}>
       {children}
       <View style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
         {streamUrl ? (
-          <Video
-            ref={(r) => { videoRef.current = r }}
-            source={{ uri: streamUrl }}
-            shouldPlay={isPlaying}
-            useNativeControls={false}
-            isLooping={false}
-            onPlaybackStatusUpdate={onStatus}
-            resizeMode={ResizeMode.CONTAIN}
-          />
+          <VideoView player={player} style={{ width: 1, height: 1 }} />
         ) : null}
       </View>
     </PlayerContext.Provider>

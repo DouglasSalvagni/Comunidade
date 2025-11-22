@@ -117,3 +117,27 @@ Melhoria de UX: transparência progressiva ao arrastar.
 Limpeza: removidos logs do clique no catálogo para reduzir ruído.
 
 - Remoção dos `console.log` dentro do `onPress` dos cards (mobile/src/screens/CatalogScreen.tsx:228-239).
+
+Limpeza adicional: removidos logs de debug do Player.
+
+- Removidos `console.log` de `playWork`/`playTrack` e erros no `PlayerContext` para evitar poluição no Terminal (mobile/src/context/PlayerContext.tsx:37-70).
+
+Migração para `expo-video` (mínimo necessário).
+
+- Instalado `expo-video` compatível com SDK 54 (mobile/package.json). Plugin adicionado automaticamente.
+- Substituído `expo-av` por `useVideoPlayer` + `VideoView` no `PlayerContext`, mantendo reprodução oculta e controle por estado (mobile/src/context/PlayerContext.tsx:2-3, 67-71, 123-129).
+- `togglePlay` e `stop` passaram a usar `player.play()/player.pause()` (mobile/src/context/PlayerContext.tsx:72-81, 93-103).
+- Sincronização básica do `isPlaying` com evento `playingChange` (mobile/src/context/PlayerContext.tsx:105-109).
+
+Bugfix: botão play/pause fora de sincronia.
+
+- `togglePlay` agora usa `player.playing` como fonte de verdade e não altera `isPlaying` de forma otimista; evento nativo atualiza o estado (mobile/src/context/PlayerContext.tsx:72-81).
+- Auto-play acionado apenas quando `streamUrl` muda, evitando replays indevidos após pausar (mobile/src/context/PlayerContext.tsx:116-121).
+
+Ajuste adicional: substituição dinâmica da fonte do player.
+
+- Ao mudar `streamUrl`, chama `player.replace(streamUrl)` e aplica `play/pause` conforme `isPlaying`, garantindo que o botão pause toggle corretamente e que a faixa carregada seja a atual (mobile/src/context/PlayerContext.tsx:116-123).
+
+Bugfix: funções do Player usando instância antiga do `player`.
+
+- O objeto de contexto era memorizado sem depender do `player`, mantendo closures com instâncias antigas após troca de fonte. Incluído `player` na lista de dependências do `useMemo` (mobile/src/context/PlayerContext.tsx:111-114).

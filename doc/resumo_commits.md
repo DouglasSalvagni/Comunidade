@@ -51,3 +51,69 @@ Ajuste de navegação em Minha Conta.
 Skeletons na lista de Perfis.
 
 - Exibidos skeletons enquanto a lista de perfis é carregada; inclui círculo de seleção, linhas de nome/data e ícones placeholders (mobile/src/screens/ProfilesScreen.tsx:136-154, 254-260, 271-273).
+
+Mini Player persistente no mobile (HLS).
+
+- Adicionados métodos de API no mobile: obter URL de streaming `GET /playback/:trackId/url` e alternar favorito `POST /works/:id/favorite` com `profileId` opcional (mobile/src/services/api.ts).
+- Criado `PlayerContext` que gerencia faixa atual, obra atual, estado de reprodução, posição e favorito; utiliza `expo-av` `Video` para reprodução de HLS e áudio remoto, com `onPlaybackStatusUpdate` para refletir play/pause, posição e fim (mobile/src/context/PlayerContext.tsx).
+- Instalado `expo-av` nas dependências do projeto mobile para suporte nativo a HLS (android/iOS) (npm install expo-av).
+- Integrado `PlayerProvider` na árvore do app, envolvendo as telas para prover estado persistente de player (mobile/App.tsx:50-53).
+- Implementado `MiniPlayer` flutuante acima da barra de navegação, com título da faixa, nome da obra, botão play/pause e favorito; ao tocar na barra, prepara a abertura da futura tela de player (mobile/src/components/MiniPlayer.tsx).
+- Posicionado `MiniPlayer` na `HomeScreen` logo acima da `BottomNav` para persistência em todas as abas (mobile/src/screens/HomeScreen.tsx:61-64).
+- Ação de tocar uma obra: cards do catálogo agora são tocáveis e disparam `playWork`, que carrega a primeira faixa da obra e inicia reprodução com HLS quando disponível (mobile/src/screens/CatalogScreen.tsx:214-232, 19-23, 21-23, 25-26).
+- Checagem de tipos executada após alterações: `npx tsc --noEmit` sem erros.
+
+Correção: chaves duplicadas no Catálogo (lista paginada).
+
+- Ao carregar mais páginas, alguns itens repetiam o mesmo `id` e causavam o aviso `Encountered two children with the same key`. Implementada deduplicação por `id` ao definir `works` tanto no carregamento inicial quanto no `loadMore` (mobile/src/screens/CatalogScreen.tsx:66-72, 108-114).
+
+Ajustes de reprodução e exibição do Mini Player.
+
+- `Video` (expo-av) agora chama `playAsync()` ao definir `streamUrl` se `isPlaying` estiver ativo, garantindo início imediato da reprodução (mobile/src/context/PlayerContext.tsx:95-103).
+- `MiniPlayer` com `elevation` para aparecer acima da barra de navegação, evitando sobreposição visual no Android (mobile/src/components/MiniPlayer.tsx:35).
+
+Fallback ao tocar obra sem faixas carregadas.
+
+- Adicionado `apiGetWork` no cliente mobile para obter detalhes/`tracks` de uma obra (mobile/src/services/api.ts).
+- No `CatalogScreen`, ao tocar no card, se a obra não tiver `tracks` carregadas, busca a obra completa e só então inicia a reprodução, garantindo robustez após reload do Expo Go (mobile/src/screens/CatalogScreen.tsx:214-232).
+
+Mini Player aparece antes da URL e inicia assim que disponível.
+
+- Ajustado `playTrack` para definir `currentWork/currentTrack` e estado de play antes de buscar a URL; se a URL falhar, desativa `isPlaying`, mas mantém o Mini Player visível para feedback imediato (mobile/src/context/PlayerContext.tsx:43-56).
+
+Correção crítica: token de autenticação não atualizava no Player após reload.
+
+- O `value` do `PlayerContext` era memorizado sem depender de `accessToken/activeProfileId`, mantendo funções com closures antigas (token `null`) após login/reload. Incluídas dependências `accessToken` e `activeProfileId` para atualizar as funções do contexto e permitir `playTrack` corretamente (mobile/src/context/PlayerContext.tsx:99-101).
+
+Mini Player posicionado dinamicamente acima do BottomNav usando Safe Area.
+
+- `BottomNav` passa sua altura via `onHeight` medindo o `SafeAreaView` (mobile/src/components/BottomNav.tsx:32).
+- `HomeScreen` guarda `bottomNavHeight` e injeta em `MiniPlayer` como `bottomOffset` (mobile/src/screens/HomeScreen.tsx:20,56-68).
+- `MiniPlayer` usa `bottomOffset` e remove margem fixa, garantindo posição correta acima da barra, respeitando o safe area (mobile/src/components/MiniPlayer.tsx:6,13,32).
+
+Ajustes visuais: margem inferior e contraste para destaque.
+
+- Pequena margem adicional de 8px acima do BottomNav para afastamento (mobile/src/components/MiniPlayer.tsx:13).
+- Paleta invertida para maior contraste em tema escuro: fundo claro, textos escuros, ícones escuros; mantendo `elevation` (mobile/src/components/MiniPlayer.tsx:36-43).
+
+Novas features do Mini Player: abrir tela e arrastar para dispensar.
+
+- Clique no Mini Player abre um overlay simples de player, com botão de fechar (mobile/src/screens/HomeScreen.tsx:57-68, 74-80).
+- Gesto horizontal com `PanResponder` permite arrastar; ao soltar além do limiar, anima saída e chama `stop()` para pausar e limpar estado (mobile/src/components/MiniPlayer.tsx:12-31).
+- `PlayerContext` ganhou `stop()` para pausar o vídeo e limpar `currentWork/currentTrack/streamUrl` (mobile/src/context/PlayerContext.tsx:86-95), exposto no contexto (mobile/src/context/PlayerContext.tsx:98-101).
+
+Bugfix: Mini Player reaparecia deslocado após dispensar.
+
+- O `translateX` era persistido globalmente e não voltava a 0. Removida persistência global e reseta para 0 ao montar/alterar obra/faixa (mobile/src/components/MiniPlayer.tsx:8-10).
+
+Bugfix crítico: violação das Regras de Hooks no Mini Player.
+
+- `useRef/useEffect` estavam após um `return null` condicional, mudando a ordem de hooks entre renders e gerando erro de React. Foi movido o `return null` para depois dos hooks, garantindo ordem estável (mobile/src/components/MiniPlayer.tsx:8-14, 27-29).
+
+Melhoria de UX: transparência progressiva ao arrastar.
+
+- `opacity` interpolada por `translateX` de [-260, 0, 260] mapeando para [0.25, 1, 0.25], clareando conforme aproxima das pontas (mobile/src/components/MiniPlayer.tsx:10-13,16).
+
+Limpeza: removidos logs do clique no catálogo para reduzir ruído.
+
+- Remoção dos `console.log` dentro do `onPress` dos cards (mobile/src/screens/CatalogScreen.tsx:228-239).

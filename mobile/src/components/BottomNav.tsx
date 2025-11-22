@@ -8,6 +8,7 @@ type Props = {
   tabs: Tab[]
   current: string
   onChange: (key: string) => void
+  onHeight?: (h: number) => void
 }
 
 function getIconName(key: string, active: boolean): keyof typeof Ionicons.glyphMap {
@@ -27,9 +28,9 @@ function getIconName(key: string, active: boolean): keyof typeof Ionicons.glyphM
   }
 }
 
-export default function BottomNav({ tabs, current, onChange }: Props) {
+export default function BottomNav({ tabs, current, onChange, onHeight }: Props) {
   return (
-    <SafeAreaView edges={['bottom']} style={styles.safe}>
+    <SafeAreaView edges={['bottom']} style={styles.safe} onLayout={(e) => { try { onHeight?.(e.nativeEvent.layout.height) } catch {} }}>
       <View style={styles.container}>
         {tabs.map((t) => {
           const active = t.key === current

@@ -186,3 +186,27 @@ export async function apiGetWorks(accessToken: string, params?: {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
+
+export async function apiGetStreamingUrl(accessToken: string, trackId: string) {
+  return request<{ url: string; expiresAt?: string }>(`/playback/${trackId}/url`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiToggleFavorite(accessToken: string, workId: string, profileId?: string) {
+  const qs = new URLSearchParams()
+  if (profileId) qs.set('profileId', profileId)
+  const path = `/works/${workId}/favorite${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ isFavorite: boolean }>(path, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetWork(accessToken: string, id: string) {
+  return request<any>(`/works/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}

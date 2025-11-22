@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
-import { apiGetWorks } from '../services/api'
+import { apiGetWorks, apiGetWork } from '../services/api'
+import { usePlayer } from '../context/PlayerContext'
 
 type Work = {
   id: string
@@ -15,10 +16,13 @@ type Work = {
   recommendedMaxMonths?: number
   recommendedAgeLabel?: string
   tags?: { id: string; name: string }[]
+  tracks?: { id: string; title?: string; workId: string }[]
+  isFavorite?: boolean
 }
 
 export default function CatalogScreen() {
   const { accessToken, activeProfileId } = useAuth()
+  const player = usePlayer()
   const [works, setWorks] = useState<Work[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -65,7 +69,11 @@ export default function CatalogScreen() {
         const r = await apiGetWorks(accessToken, params)
         const list = Array.isArray(r?.data) ? r.data : []
         if (!mounted) return
-        setWorks(list as any)
+        setWorks(() => {
+          const map = new Map<string, Work>()
+          ;(list as any).forEach((w: Work) => { map.set(w.id, w) })
+          return Array.from(map.values()) as any
+        })
         setPage(1)
         const meta = (r as any)?.meta
         if (meta && typeof meta.totalPages === 'number') setTotalPages(meta.totalPages)
@@ -107,7 +115,12 @@ export default function CatalogScreen() {
       if (selectedTagNames.length > 0) params.tags = selectedTagNames.join(',')
       const r = await apiGetWorks(accessToken, params)
       const list = Array.isArray(r?.data) ? r.data : []
-      setWorks((prev) => [...prev, ...list] as any)
+      setWorks((prev) => {
+        const map = new Map<string, Work>()
+        prev.forEach((w) => map.set(w.id, w))
+        ;(list as any).forEach((w: Work) => { map.set(w.id, w) })
+        return Array.from(map.values()) as any
+      })
       setPage(nextPage)
       const meta = (r as any)?.meta
       if (meta && typeof meta.totalPages === 'number') setTotalPages(meta.totalPages)
@@ -211,25 +224,36 @@ export default function CatalogScreen() {
             ))
           ) : (
             <>
-            {works.map((w) => (
-              <View key={w.id} style={styles.card}>
-                {w.coverUrl ? (
-                  <Image source={{ uri: w.coverUrl }} style={styles.cover} />
-                ) : (
-                  <View style={[styles.cover, styles.coverPlaceholder]} />
-                )}
-                <View style={styles.cardBody}>
-                  <Text style={styles.workType}>{w.type}</Text>
-                  <Text style={styles.workTitle}>{w.title}</Text>
-                  <AgeLabel {...w} />
-                  <View style={styles.tagsRow}>
-                    {(w.tags || []).slice(0, 3).map((t) => (
-                      <Text key={t.id} style={styles.workTag}>{t.name}</Text>
-                    ))}
-                  </View>
+          {works.map((w) => (
+            <Pressable key={w.id} style={styles.card} onPress={async () => {
+              if (!accessToken) return
+              const hasTracks = Array.isArray(w.tracks) && w.tracks.length > 0
+              if (hasTracks) {
+                await player.playWork({ ...w } as any)
+              } else {
+                try {
+                  const full = await apiGetWork(accessToken, w.id)
+                  await player.playWork({ ...(full || w) } as any)
+                } catch {}
+              }
+            }}>
+              {w.coverUrl ? (
+                <Image source={{ uri: w.coverUrl }} style={styles.cover} />
+              ) : (
+                <View style={[styles.cover, styles.coverPlaceholder]} />
+              )}
+              <View style={styles.cardBody}>
+                <Text style={styles.workType}>{w.type}</Text>
+                <Text style={styles.workTitle}>{w.title}</Text>
+                <AgeLabel {...w} />
+                <View style={styles.tagsRow}>
+                  {(w.tags || []).slice(0, 3).map((t) => (
+                    <Text key={t.id} style={styles.workTag}>{t.name}</Text>
+                  ))}
                 </View>
               </View>
-            ))}
+            </Pressable>
+          ))}
             {loadingMore && (
               Array.from({ length: 3 }).map((_, idx) => (
                 <View key={`more-skeleton-${idx}`} style={styles.card}>

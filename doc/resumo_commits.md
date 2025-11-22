@@ -43,3 +43,11 @@ Paginação com carregamento infinito no Catálogo (mobile).
 
 - Implementada paginação com carregamento ao rolar, respeitando filtros aplicados; adicionados estados `page`, `limit`, `totalPages` e `loadingMore`, além de handler `onScroll` que dispara `loadMoreIfNeeded` (mobile/src/screens/CatalogScreen.tsx:30-31, 33-36, 84-121, 139-146, 156-176).
 - Skeletons também são exibidos no rodapé durante `loadingMore` para indicar carregamento incremental (mobile/src/screens/CatalogScreen.tsx:156-176).
+
+Ajuste de navegação em Minha Conta.
+
+- Botão "Voltar" movido para o topo direito com mesmo estilo da tela Perfis; adicionada barra de header e removido botão inferior (mobile/src/screens/AccountScreen.tsx:92-100, 131-132, 139-154).
+
+Skeletons na lista de Perfis.
+
+- Exibidos skeletons enquanto a lista de perfis é carregada; inclui círculo de seleção, linhas de nome/data e ícones placeholders (mobile/src/screens/ProfilesScreen.tsx:136-154, 254-260, 271-273).

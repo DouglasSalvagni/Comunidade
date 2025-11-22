@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -89,8 +89,13 @@ export default function AccountScreen({ onBack }: Props) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Minha Conta</Text>
+        <Pressable onPress={onBack} style={styles.back}>
+          <Text style={styles.backText}>Voltar</Text>
+        </Pressable>
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Minha Conta</Text>
         <Text style={styles.subtitle}>Atualize seu nome de exibição.</Text>
 
         {loading ? (
@@ -128,7 +133,6 @@ export default function AccountScreen({ onBack }: Props) {
             )}
 
             <View style={{ height: 8 }} />
-            <PrimaryButton title={'Voltar'} variant={'outline'} onPress={onBack} />
           </View>
         )}
       </ScrollView>
@@ -138,6 +142,8 @@ export default function AccountScreen({ onBack }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 20, backgroundColor: '#0b1023' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: '#e6e9ff' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
   subtitle: { fontSize: 14, color: '#cfd3ff', marginBottom: 16 },
@@ -151,4 +157,6 @@ const styles = StyleSheet.create({
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#e6e9ff', marginBottom: 8 },
   infoText: { fontSize: 14, color: '#cfd3ff' },
+  back: { paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#1d2340', borderRadius: 8 },
+  backText: { color: '#cfd3ff' },
 })

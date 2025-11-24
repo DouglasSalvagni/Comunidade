@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "package": "com.wizer.babytune",
@@ -36,10 +41,14 @@
     "plugins": [
       "expo-web-browser",
       [
-        "expo-video",
+        "expo-audio",
         {
-          "supportsBackgroundPlayback": true,
-          "supportsPictureInPicture": true
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone.",
+          "audioMode": {
+            "playsInSilentMode": true,
+            "allowsRecording": false,
+            "staysActiveInBackground": true
+          }
         }
       ]
     ]

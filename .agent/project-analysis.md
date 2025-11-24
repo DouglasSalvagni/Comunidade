@@ -43,7 +43,7 @@ Este é um sistema completo de **plataforma de músicas e audiobooks infantis** 
 - **Banco de Dados**: PostgreSQL (TypeORM 0.3.17)
 - **Cache/Queue**: Redis + Bull Queue
 - **Autenticação**: JWT + Passport (local + Google OAuth)
-- **Upload**: Multer + AWS S3
+- **Upload**: Multer + R2 S3
 - **Documentação**: Swagger
 - **Email**: Nodemailer
 

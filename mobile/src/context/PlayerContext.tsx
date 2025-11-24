@@ -61,7 +61,7 @@ export function PlayerProvider({ children }: { children: any }) {
         return
       }
       setStreamUrl(url)
-    } catch {}
+    } catch { }
   }
 
   // expo-video player
@@ -72,7 +72,7 @@ export function PlayerProvider({ children }: { children: any }) {
   async function togglePlay() {
     if (!player) return
     const native = player.playing === true
-    try { native ? player.pause() : player.play() } catch {}
+    try { native ? player.pause() : player.play() } catch { }
     setIsPlaying(!native)
   }
 
@@ -83,11 +83,11 @@ export function PlayerProvider({ children }: { children: any }) {
       const fav = Boolean((res as any)?.isFavorite)
       setIsFavorite(fav)
       setCurrentWork((w) => (w ? { ...w, isFavorite: fav } : w))
-    } catch {}
+    } catch { }
   }
 
   async function stop() {
-    try { if (player) player.pause() } catch {}
+    try { if (player) player.pause() } catch { }
     setIsPlaying(false)
     setStreamUrl(null)
     setCurrentTrack(null)
@@ -108,15 +108,34 @@ export function PlayerProvider({ children }: { children: any }) {
     [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, player],
   )
 
+  // Effect 1: Replace player source when URL changes (new track)
   useEffect(() => {
     if (!player || !streamUrl) return
-    try { player.replace(streamUrl) } catch {}
-    if (isPlaying) {
-      try { player.play() } catch {}
-    } else {
-      try { player.pause() } catch {}
+    try {
+      player.replace(streamUrl)
+      // Auto-play when new track loads
+      if (isPlaying) {
+        player.play()
+      }
+    } catch (err) {
+      console.error('Error replacing player source:', err)
     }
-  }, [streamUrl, player, isPlaying])
+  }, [streamUrl, player])
+
+  // Effect 2: Control play/pause state (without restarting)
+  useEffect(() => {
+    if (!player || !streamUrl) return
+    // Only control play/pause, don't replace
+    try {
+      if (isPlaying && !player.playing) {
+        player.play()
+      } else if (!isPlaying && player.playing) {
+        player.pause()
+      }
+    } catch (err) {
+      console.error('Error controlling playback:', err)
+    }
+  }, [isPlaying])
 
   return (
     <PlayerContext.Provider value={value}>

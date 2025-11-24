@@ -16,7 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  constructor(private readonly subscriptionsService: SubscriptionsService) { }
 
   @Get('current')
   @ApiBearerAuth()
@@ -24,10 +24,10 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Subscription retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'No active subscription found.' })
   async getCurrentSubscription(@Request() req) {
-    const subscription = await this.subscriptionsService.getCurrentSubscription(req.user.userId);
-    
+    let subscription = await this.subscriptionsService.getCurrentSubscription(req.user.userId);
+
     if (!subscription) {
-      return { subscription: null };
+      subscription = await this.subscriptionsService.createFreeSubscription(req.user.userId);
     }
 
     return {
@@ -36,11 +36,12 @@ export class SubscriptionsController {
         plan: {
           id: subscription.plan.id,
           name: subscription.plan.name,
-          price: subscription.plan.priceCents,
+          priceCents: subscription.plan.priceCents,
           billingPeriod: subscription.plan.billingPeriod,
         },
         status: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd,
+        periodStart: subscription.periodStart,
+        periodEnd: subscription.periodEnd,
       },
     };
   }
@@ -56,7 +57,7 @@ export class SubscriptionsController {
         id: plan.id,
         name: plan.name,
         description: plan.description,
-        price: plan.priceCents,
+        priceCents: plan.priceCents,
         billingPeriod: plan.billingPeriod,
         features: plan.features,
       })),
@@ -78,7 +79,8 @@ export class SubscriptionsController {
         id: subscription.id,
         planId: subscription.planId,
         status: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd,
+        periodStart: subscription.periodStart,
+        periodEnd: subscription.periodEnd,
       },
     };
   }
@@ -112,12 +114,13 @@ export class SubscriptionsController {
         plan: {
           id: subscription.plan.id,
           name: subscription.plan.name,
-          price: subscription.plan.priceCents,
+          priceCents: subscription.plan.priceCents,
           billingPeriod: subscription.plan.billingPeriod,
         },
         status: subscription.status,
         createdAt: subscription.createdAt,
-        currentPeriodEnd: subscription.currentPeriodEnd,
+        periodStart: subscription.periodStart,
+        periodEnd: subscription.periodEnd,
       })),
     };
   }

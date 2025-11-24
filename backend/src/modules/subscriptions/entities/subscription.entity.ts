@@ -32,8 +32,11 @@ export class Subscription {
   @Column()
   status: 'active' | 'canceled' | 'past_due' | 'unpaid';
 
-  @Column({ name: 'current_period_end', nullable: true })
-  currentPeriodEnd: Date;
+  @Column({ name: 'period_start', nullable: true })
+  periodStart: Date;
+
+  @Column({ name: 'period_end', nullable: true })
+  periodEnd: Date;
 
   @Column({ nullable: true })
   provider: string;

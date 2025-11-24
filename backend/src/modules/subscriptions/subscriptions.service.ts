@@ -11,7 +11,7 @@ export class SubscriptionsService {
     private readonly subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
-  ) {}
+  ) { }
 
   async getCurrentSubscription(userId: string): Promise<Subscription | null> {
     return this.subscriptionRepository
@@ -19,7 +19,8 @@ export class SubscriptionsService {
       .leftJoinAndSelect('subscription.plan', 'plan')
       .where('subscription.userId = :userId', { userId })
       .andWhere('subscription.status = :status', { status: 'active' })
-      .andWhere('subscription.currentPeriodEnd > :now', { now: new Date() })
+      .andWhere('subscription.periodStart <= :now OR subscription.periodStart IS NULL', { now: new Date() })
+      .andWhere('(subscription.periodEnd >= :now OR subscription.periodEnd IS NULL)', { now: new Date() })
       .orderBy('subscription.createdAt', 'DESC')
       .getOne();
   }
@@ -60,7 +61,7 @@ export class SubscriptionsService {
     // Criar nova assinatura
     const now = new Date();
     const periodEnd = new Date(now);
-    
+
     if (plan.billingPeriod === 'monthly') {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     } else if (plan.billingPeriod === 'yearly') {
@@ -71,7 +72,8 @@ export class SubscriptionsService {
       userId,
       planId,
       status: 'active',
-      currentPeriodEnd: periodEnd,
+      periodStart: now,
+      periodEnd: periodEnd,
     });
 
     return this.subscriptionRepository.save(newSubscription);
@@ -79,7 +81,7 @@ export class SubscriptionsService {
 
   async cancelSubscription(userId: string): Promise<Subscription> {
     const subscription = await this.getCurrentSubscription(userId);
-    
+
     if (!subscription) {
       throw new NotFoundException('No active subscription found');
     }
@@ -90,18 +92,18 @@ export class SubscriptionsService {
 
   async checkSubscriptionAccess(userId: string): Promise<boolean> {
     const subscription = await this.getCurrentSubscription(userId);
-    
+
     if (!subscription) {
       return false;
     }
 
-    return subscription.status === 'active' && 
-           subscription.currentPeriodEnd > new Date();
+    return subscription.status === 'active' &&
+      subscription.periodEnd > new Date();
   }
 
   async getSubscriptionLimits(userId: string): Promise<any> {
     const subscription = await this.getCurrentSubscription(userId);
-    
+
     if (!subscription) {
       // Plano gratuito
       return {
@@ -125,7 +127,34 @@ export class SubscriptionsService {
       hasAds: features.hasAds || false,
       hdQuality: features.hdQuality || false,
       billingPeriod: plan.billingPeriod,
-      currentPeriodEnd: subscription.currentPeriodEnd,
+      periodEnd: subscription.periodEnd,
     };
+  }
+
+  async createFreeSubscription(userId: string): Promise<Subscription> {
+    const freePlan = await this.planRepository.findOne({
+      where: { priceCents: 0, isActive: true }
+    });
+
+    if (!freePlan) {
+      throw new NotFoundException('Plano gratuito não encontrado');
+    }
+
+    const now = new Date();
+    const newSubscription = this.subscriptionRepository.create({
+      userId,
+      planId: freePlan.id,
+      status: 'active',
+      periodStart: now,
+      periodEnd: null,
+    });
+
+    const saved = await this.subscriptionRepository.save(newSubscription);
+
+    // Recarregar com o relacionamento plan
+    return this.subscriptionRepository.findOne({
+      where: { id: saved.id },
+      relations: ['plan'],
+    });
   }
 }

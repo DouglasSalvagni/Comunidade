@@ -28,13 +28,24 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
+<<<<<<< HEAD
       "apiBaseUrl": "https://f43eaa4fe39c.ngrok-free.app/api/v1",
+=======
+      "apiBaseUrl": "https://32462f7c3a49.ngrok-free.app/api/v1",
+>>>>>>> 6711a454e80d09c140834151aefeba93696280ca
       "googleOAuth": {
         "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com"
       }
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ]
     ]
   }
 }

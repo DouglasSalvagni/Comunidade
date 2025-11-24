@@ -6,6 +6,7 @@ type AuthUser = {
   email: string
   name?: string
   role?: string
+  authProvider?: 'local' | 'google'
 }
 
 type AuthContextValue = {
@@ -20,6 +21,7 @@ type AuthContextValue = {
   forgotPassword: (email: string) => Promise<void>
   resetPassword: (token: string, newPassword: string) => Promise<void>
   googleOAuth: (idToken: string) => Promise<void>
+  refreshProfile: () => Promise<void>
   logout: () => void
 }
 
@@ -66,6 +68,14 @@ export function AuthProvider({ children }: { children: any }) {
     setUser(res.user || null)
   }
 
+  async function refreshProfile() {
+    if (!accessToken) return
+    try {
+      const me = await apiProfile(accessToken)
+      setUser(me || null)
+    } catch {}
+  }
+
   function logout() {
     setAccessToken(null)
     setUser(null)
@@ -73,7 +83,7 @@ export function AuthProvider({ children }: { children: any }) {
   }
 
   const value = useMemo(
-    () => ({ user, accessToken, setTokens, activeProfileId, setActiveProfileId, login, register, verifyEmail, forgotPassword, resetPassword, googleOAuth, logout }),
+    () => ({ user, accessToken, setTokens, activeProfileId, setActiveProfileId, login, register, verifyEmail, forgotPassword, resetPassword, googleOAuth, refreshProfile, logout }),
     [user, accessToken, activeProfileId],
   )
 

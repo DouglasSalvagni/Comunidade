@@ -135,8 +135,25 @@ export default function ProfilesScreen({ onBack }: Props) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Gerenciar perfis</Text>
           {infoMsg ? <Text style={styles.info}>{infoMsg}</Text> : null}
+          {loading && (
+            Array.from({ length: 5 }).map((_, idx) => (
+              <View key={`skel-${idx}`} style={styles.itemRow}>
+                <View style={styles.viewRow}>
+                  <View style={styles.skelCircle} />
+                  <View style={{ flex: 1 }}>
+                    <View style={[styles.skelLine, { width: '60%' }]} />
+                    <View style={[styles.skelLine, { width: '40%', marginTop: 6 }]} />
+                  </View>
+                  <View style={styles.actionsIcons}>
+                    <View style={[styles.iconBtn, styles.skelIcon]} />
+                    <View style={[styles.iconBtn, styles.skelIcon]} />
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
           {!loading && items.length === 0 && <Text style={styles.empty}>Nenhum perfil encontrado</Text>}
-          {items.map((p, i) => (
+          {!loading && items.map((p, i) => (
             <View key={p.id} style={styles.itemRow}>
               {editIndex === i ? (
                 <View style={styles.editRow}>
@@ -270,6 +287,9 @@ const styles = StyleSheet.create({
   actionsIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconBtn: { padding: 8, borderWidth: 1, borderColor: '#2b3448', borderRadius: 8, backgroundColor: '#111827' },
   iconBtnDisabled: { opacity: 0.5 },
+  skelCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#171a2f' },
+  skelLine: { height: 12, backgroundColor: '#171a2f', borderRadius: 6 },
+  skelIcon: { backgroundColor: '#171a2f', borderColor: '#171a2f' },
   label: { fontSize: 14, color: '#e5e7eb', marginBottom: 6 },
   dateButton: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#111827' },
   dateText: { color: '#f8fafc', fontSize: 16 },

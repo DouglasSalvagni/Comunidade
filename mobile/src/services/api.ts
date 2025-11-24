@@ -144,3 +144,69 @@ export async function apiDeleteProfile(accessToken: string, id: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
+
+export async function apiUpdateMyProfile(accessToken: string, data: { name?: string }) {
+  return request<any>('/auth/profile', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function apiChangeMyPassword(accessToken: string, data: { currentPassword: string; newPassword: string }) {
+  return request<any>('/auth/profile/password', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
+export async function apiGetWorks(accessToken: string, params?: {
+  type?: 'music' | 'audiobook' | 'series'
+  search?: string
+  minMonths?: number
+  maxMonths?: number
+  tags?: string
+  page?: number
+  limit?: number
+  profileId?: string
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (params?.type) qs.set('type', params.type)
+  if (params?.search) qs.set('search', params.search)
+  if (typeof params?.minMonths === 'number') qs.set('minMonths', String(params.minMonths))
+  if (typeof params?.maxMonths === 'number') qs.set('maxMonths', String(params.maxMonths))
+  if (params?.tags) qs.set('tags', params.tags)
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  if (params?.profileId) qs.set('profileId', params.profileId)
+  const path = `/works${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetStreamingUrl(accessToken: string, trackId: string) {
+  return request<{ url: string; expiresAt?: string }>(`/playback/${trackId}/url`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiToggleFavorite(accessToken: string, workId: string, profileId?: string) {
+  const qs = new URLSearchParams()
+  if (profileId) qs.set('profileId', profileId)
+  const path = `/works/${workId}/favorite${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ isFavorite: boolean }>(path, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetWork(accessToken: string, id: string) {
+  return request<any>(`/works/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}

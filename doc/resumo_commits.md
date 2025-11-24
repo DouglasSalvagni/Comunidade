@@ -1,130 +1,148 @@
 
-Correção do HLS: URI da chave AES apontando para host inválido.
 
-- Identificado que faixas recentes transcodadas geravam `#EXT-X-KEY` com `URI` em `http://backend:3001/...`, inacessível pelo navegador (host interno do Docker) e com porta divergente do `.env` local (3003).
-- Atualizado fallback do `API_BASE_URL` no worker para `http://localhost:3003/api/v1` (`backend/src/workers/transcode.worker.ts`).
-- Ajustado `docker-compose.yml` para definir `API_BASE_URL` do `media-worker` como `http://localhost:3001/api/v1`, garantindo que playlists em ambiente Docker usem host alcançável pelo browser.
-- Observação operacional: faixas já transcodadas com `URI` antigo precisam ser reprocessadas via `POST /api/v1/media/process` para atualizar os manifests.
-Build e restart do serviço media-worker para aplicar correção.
+Página de Conta no mobile (editar nome e senha condicional).
 
-- Executado `docker compose build media-worker` e `docker compose up -d media-worker` na raiz do projeto, garantindo que o novo `API_BASE_URL` seja usado na geração dos manifests HLS futuros.
-- Verificado nos logs do container que o worker iniciou e conectou ao Redis com sucesso.
-Chave HLS servida via CDN para evitar mixed content.
+- Criada `AccountScreen` com edição de nome e visualização de e-mail (somente leitura). Alteração de senha disponível apenas para `authProvider=local`; para login social (Google), exibe aviso e oculta formulário (mobile/src/screens/AccountScreen.tsx).
+- Adicionados métodos de API: `PATCH /auth/profile` e `PATCH /auth/profile/password` no cliente mobile (`mobile/src/services/api.ts`).
+- Estendido `AuthContext` para incluir `authProvider` e método `refreshProfile` para recarregar dados após alterações (mobile/src/context/AuthContext.tsx).
+- Integrado item "Conta" no menu de Configurações da Home; navega para a nova tela e botão "Voltar" retorna ao menu (mobile/src/screens/HomeScreen.tsx).
+- Checagem de tipos executada em `mobile/`: `npx tsc --noEmit` sem erros.
+- Ajuste visual do e-mail na tela de Conta: campo de e-mail com opacidade reduzida para comunicar claramente que é não editável (mobile/src/screens/AccountScreen.tsx).
+- Validação de senha nova alinhada ao backend/web: exige confirmação igual e mínimo de 6 caracteres antes de habilitar o envio (mobile/src/screens/AccountScreen.tsx; backend/src/modules/auth/dto/change-password.dto.ts:11).
 
-- Alterado o worker para publicar a chave AES (`enc.key`) no mesmo prefixo dos manifests HLS e referenciar `URI` absoluto no CDN/S3 em vez de endpoint HTTP local.
-- Implementado upload da chave para S3 e uso de `CDN_BASE_URL` quando disponível; fallback para `S3_ENDPOINT/S3_BUCKET`.
-- Rebuild e restart do `media-worker` concluídos.
-Inicialização do app mobile (Expo).
+Tela de Catálogo no mobile.
 
-- Removida pasta `.expo` antiga em `mobile/` para permitir scaffold limpo.
-- Criado projeto Expo TypeScript com `create-expo-app` em `mobile/`.
-- Dependências instaladas automaticamente; scripts `start/android/ios/web` disponíveis.
-- Confirmada estrutura: `App.tsx`, `app.json`, `tsconfig.json`, `package.json` com Expo SDK 54.
-Servidor Expo em modo tunnel para testes no celular.
+- Criada `CatalogScreen` com listagem de obras, busca por título, filtro de tipo (Todos/Música/Audiobook/Série), intervalo de idade (anos/meses com conversão para meses) e seleção de tags derivadas das obras carregadas (mobile/src/screens/CatalogScreen.tsx).
+- Adicionada função `apiGetWorks` com suporte a parâmetros `type`, `search`, `minMonths`, `maxMonths`, `tags`, `page`, `limit`, `profileId` e cabeçalho `Authorization` (mobile/src/services/api.ts).
+- Integrada a tela de Catálogo ao tab `Catálogo` na navegação inferior (mobile/src/screens/HomeScreen.tsx).
+- Checagem de tipos executada em `mobile/`: `npx tsc --noEmit` sem erros após ajustes.
+Correções no Catálogo (flicker e filtros).
 
-- Executado `expo start --tunnel` em `mobile/`.
-- Tunnel conectado e pronto, URL `exp://swo8niy-anonymous-8081.exp.direct` disponível para Expo Go.
-Backend ouvindo em `0.0.0.0`.
+- Removida dependência de `computedTags` no `useEffect` que carrega obras para evitar recarregamentos sucessivos e estado `Carregando` piscando (mobile/src/screens/CatalogScreen.tsx:92).
+- Filtro `tipo`: enviado ao backend apenas para valores aceitos (`music` e `audiobook`), evitando erros quando selecionado `Série` (mobile/src/screens/CatalogScreen.tsx:101).
+- Intervalo de idade: agora aceita mínimo e máximo independentes — envia `minMonths` e/ou `maxMonths` separadamente com conversão de anos→meses (mobile/src/screens/CatalogScreen.tsx:106-108).
 
-- Alterado `await app.listen(port)` para `await app.listen(port, '0.0.0.0')` (`backend/src/main.ts:75`).
-- Compilado projeto backend para validar alteração.
-Preparação do túnel para backend via ngrok.
+Ajustes adicionais conforme testes no mobile.
 
-- Tentativa de `npx ngrok http 3003` falhou por ausência de `authtoken`.
-- Necessário configurar `authtoken` via `npx ngrok config add-authtoken <TOKEN>` antes de abrir o túnel.
-Configuração do authtoken do ngrok e erro de autenticação.
+- Removida opção "Série" da UI de tipo do catálogo; filtros oferecem apenas `Todos`, `Música`, `Audiobook` (mobile/src/screens/CatalogScreen.tsx:88-93).
+- Intervalo de idade espelhado do web: aplica filtro apenas quando `mín` e `máx` estão preenchidos; converte anos→meses e envia ambos (mobile/src/screens/CatalogScreen.tsx:53-55).
+- Thumbnail dos cards agora ocupa toda a altura do card: imagem com `alignSelf: 'stretch'` e sem altura fixa, acompanhando o conteúdo (mobile/src/screens/CatalogScreen.tsx:173-174).
+- Correção visual: campo `máx` do intervalo de idade não aparecia por conflito de layout; envolvido cada `Input` em contêiner com `flex: 1` dentro da linha para dividir a largura e exibir ambos lado a lado (mobile/src/screens/CatalogScreen.tsx:104-107).
 
-- Authtoken salvo em `C:\Users\Douglas\AppData\Local\ngrok\ngrok.yml`.
-- Execução do túnel retornou `ERR_NGROK_105` (authtoken inválido).
-- Aguardando novo `NGROK_AUTHTOKEN` válido para publicar o backend em `3003`.
-Túnel ngrok ativo para backend local (porta 3003).
+Dropdown de filtros no Catálogo (mobile).
 
-- Novo authtoken configurado e sessão estabelecida.
-- URL pública: `https://0599aeb68d94.ngrok-free.app` apontando para `http://localhost:3003`.
-Interfaces de autenticação no app mobile (Expo).
+- Adicionado botão com ícone de filtro ao lado do campo de busca; ao tocar, abre/fecha os filtros adicionais (tipo, idade, tags) e permanece aberto até novo toque (mobile/src/screens/CatalogScreen.tsx:95-101, 103-107, 109-147).
+- Estilos para o botão de ícone e linha de busca adicionados (mobile/src/screens/CatalogScreen.tsx:160-162).
+- Alinhamento do botão de filtros com o campo de busca: adicionada opção `labelHidden` ao componente `Input` para ocultar o label e alinhar o botão na mesma linha do campo (mobile/src/components/Input.tsx; aplicado no campo de busca em mobile/src/screens/CatalogScreen.tsx:97-99).
 
-- Adicionadas telas: Login, Criar Conta, Verificar E-mail, Recuperar Senha, Redefinir Senha, Home.
-- Implementado `AuthContext` com chamadas ao backend (`/auth/*`).
-- Definido `extra.apiBaseUrl` em `app.json` para usar o endpoint público do ngrok.
-Captura de erros no mobile ajustada para debugging.
+Skeletons de carregamento no Catálogo.
 
-- Removidos modais `Alert` de erro nas telas de autenticação.
-- Erros agora são logados no console e exibidos inline na UI.
-Validação de formulários no mobile.
+- Substituída mensagem "Carregando..." por skeletons de cards durante fetch/refresh para melhorar a UX (mobile/src/screens/CatalogScreen.tsx:122-146, 170-181).
 
-- Login: valida e-mail e tamanho mínimo da senha antes de enviar.
-- Registro: valida nome, e-mail e senha com letra+número e 6+ caracteres.
-- Recuperação/Reset: valida formatos mínimos e exibe mensagens claras.
-- Parsing de erro da API: normaliza mensagens JSON do backend.
-Tema escuro infantil aplicado ao mobile.
+Paginação com carregamento infinito no Catálogo (mobile).
 
-- Fundo escuro (#0b1023), textos claros (#e6e9ff/#cfd3ff).
-- Botões com tom claro (#ffd66b) e texto escuro para contraste.
-- Inputs com fundo escuro (#121632) e borda (#3a3f5a).
-- Elementos decorativos de lua/estrela adicionados nas telas principais.
-Fluxo de recuperação de senha no mobile alinhado ao web.
+- Implementada paginação com carregamento ao rolar, respeitando filtros aplicados; adicionados estados `page`, `limit`, `totalPages` e `loadingMore`, além de handler `onScroll` que dispara `loadMoreIfNeeded` (mobile/src/screens/CatalogScreen.tsx:30-31, 33-36, 84-121, 139-146, 156-176).
+- Skeletons também são exibidos no rodapé durante `loadingMore` para indicar carregamento incremental (mobile/src/screens/CatalogScreen.tsx:156-176).
 
-- Após solicitar recuperação, exibimos instrução para usar o link enviado por e-mail.
-- Removida navegação para tela de redefinição interna; retorno ao login após instrução.
-Fluxo de criação de conta e verificação de e-mail no mobile.
+Ajuste de navegação em Minha Conta.
 
-- Após cadastro, mostramos aviso para confirmar e-mail via link recebido.
-- Nova tela `VerificationNoticeScreen` com opções de reenviar e voltar ao login.
-- Login trata `E-mail não verificado`: oferece reenviar e abrir instruções.
-Login social Google funcional no mobile.
+- Botão "Voltar" movido para o topo direito com mesmo estilo da tela Perfis; adicionada barra de header e removido botão inferior (mobile/src/screens/AccountScreen.tsx:92-100, 131-132, 139-154).
 
-- Adicionadas dependências: `expo-auth-session` e `expo-web-browser`.
-- Implementado fluxo com `useAuthRequest` e `promptAsync({ useProxy: true })` para obter `id_token` no Expo Go sem exigir SHA-1.
- - Ajustado tipagem para `useIdTokenAuthRequest({ clientId })` compatível com SDK atual; evita exigir `androidClientId` no desenvolvimento com proxy.
-- Chama endpoint do backend `/auth/oauth/google` via `googleOAuth` no contexto.
-- Lê IDs do Google de `app.json > expo.extra.googleOAuth`; exibe erro se ausente.
-Configuração do Client ID do Google no mobile.
+Skeletons na lista de Perfis.
 
-- Adicionado `expo.extra.googleOAuth.expoClientId` em `mobile/app.json` usando o valor do web (`frontend/.env.local:3`).
-Notas de configuração para Google OAuth (Expo Go).
+- Exibidos skeletons enquanto a lista de perfis é carregada; inclui círculo de seleção, linhas de nome/data e ícones placeholders (mobile/src/screens/ProfilesScreen.tsx:136-154, 254-260, 271-273).
 
-- Consent Screen externo em modo Testing com usuário de teste.
-- Adicionar Redirect URI: `https://auth.expo.io/@<expo-username>/mobile` (ou `@anonymous` se não logado).
-- UI: Segundo botão em telas de Login, Criar Conta e Esqueci Senha agora é outline (contorno/texto amarelo, fundo transparente). Espaçamento de 12px entre botões adjacentes.
-- UX de teclado nas telas de Login/Criar Conta/Esqueci Senha: conteúdo agora eleva suavemente quando o teclado aparece (Animated + KeyboardAvoidingView), evitando sobreposição.
-- Documento `production_checklist.md` criado na raiz com checklist conciso para colocar web, backend e mobile em produção (auth Google Android/iOS, Docker produção, CORS S3/R2, segurança, observabilidade, DNS e validações).
-- Mobile base: adicionados `BottomNav` com SafeArea (sem sobrepor barras nativas) e `ProfileSelector` no topo; integrados à `HomeScreen`.
-- Modernização do design no mobile: botões primários em roxo (violet-600), textos e títulos mais limpos, links em violeta, inputs com foco roxo e fundo escuro de alto contraste, remoção de elementos infantis nas telas.
-- BottomNav atualizado: ícones Ionicons modernos (`@expo/vector-icons`), itens distribuídos com `flex: 1`, estados ativos com violeta.
-- BottomNav ocupa 100% da largura, sem recuos laterais; itens com `flex: 1` e ícones Ionicons compatíveis (home/albums/star/settings). Ajuste no container da Home para não limitar a largura.
-- Otimização do `ProfileSelector` para iOS/Android: uso de `SafeArea` e `useSafeAreaInsets`, botão com `hitSlop`, modal com margens dinâmicas por insets para evitar conflito com áreas nativas.
-- Adicionado `SafeAreaProvider` na raiz (`mobile/App.tsx`) para corrigir erro de safe area e garantir compatibilidade com `ProfileSelector` e `BottomNav`.
-- SafeAreaProvider movido para raiz do App e remoção de early return em `Screens` para garantir que todas as rotas (autenticado e não autenticado) sejam renderizadas dentro do provider, eliminando o erro de safe area.
+Mini Player persistente no mobile (HLS).
 
-Navegação inferior: botão Playlist e gestão de perfis no mobile.
+- Adicionados métodos de API no mobile: obter URL de streaming `GET /playback/:trackId/url` e alternar favorito `POST /works/:id/favorite` com `profileId` opcional (mobile/src/services/api.ts).
+- Criado `PlayerContext` que gerencia faixa atual, obra atual, estado de reprodução, posição e favorito; utiliza `expo-av` `Video` para reprodução de HLS e áudio remoto, com `onPlaybackStatusUpdate` para refletir play/pause, posição e fim (mobile/src/context/PlayerContext.tsx).
+- Instalado `expo-av` nas dependências do projeto mobile para suporte nativo a HLS (android/iOS) (npm install expo-av).
+- Integrado `PlayerProvider` na árvore do app, envolvendo as telas para prover estado persistente de player (mobile/App.tsx:50-53).
+- Implementado `MiniPlayer` flutuante acima da barra de navegação, com título da faixa, nome da obra, botão play/pause e favorito; ao tocar na barra, prepara a abertura da futura tela de player (mobile/src/components/MiniPlayer.tsx).
+- Posicionado `MiniPlayer` na `HomeScreen` logo acima da `BottomNav` para persistência em todas as abas (mobile/src/screens/HomeScreen.tsx:61-64).
+- Ação de tocar uma obra: cards do catálogo agora são tocáveis e disparam `playWork`, que carrega a primeira faixa da obra e inicia reprodução com HLS quando disponível (mobile/src/screens/CatalogScreen.tsx:214-232, 19-23, 21-23, 25-26).
+- Checagem de tipos executada após alterações: `npx tsc --noEmit` sem erros.
 
-- Adicionado botão `Playlist` no BottomNav e suporte no `HomeScreen` (mobile/src/screens/HomeScreen.tsx), mantendo comportamento mínimo com placeholder.
-- Em `Mais`, incluído item de menu `Perfis` e criada a tela `ProfilesScreen` com CRUD básico alinhado ao web (`/dashboard/profiles`).
-- Atualizado `ProfileSelector` para carregar perfis reais do backend e selecionar ativo em tempo real (mobile/src/components/ProfileSelector.tsx).
-- Extendido `AuthContext` com `activeProfileId` para refletir seleção de perfil no app (mobile/src/context/AuthContext.tsx).
-- Adicionadas funções de API para perfis: listar, criar, atualizar e excluir (mobile/src/services/api.ts).
+Correção: chaves duplicadas no Catálogo (lista paginada).
 
-Checagem de tipos do projeto mobile.
+- Ao carregar mais páginas, alguns itens repetiam o mesmo `id` e causavam o aviso `Encountered two children with the same key`. Implementada deduplicação por `id` ao definir `works` tanto no carregamento inicial quanto no `loadMore` (mobile/src/screens/CatalogScreen.tsx:66-72, 108-114).
 
-- Executado `npx tsc --noEmit` em `mobile/`; sem erros de tipo após alterações.
+Ajustes de reprodução e exibição do Mini Player.
 
-Correções adicionais (mobile):
+- `Video` (expo-av) agora chama `playAsync()` ao definir `streamUrl` se `isPlaying` estiver ativo, garantindo início imediato da reprodução (mobile/src/context/PlayerContext.tsx:95-103).
+- `MiniPlayer` com `elevation` para aparecer acima da barra de navegação, evitando sobreposição visual no Android (mobile/src/components/MiniPlayer.tsx:35).
 
-- Ícones do BottomNav estabilizados com mapeamento fixo de nomes do Ionicons (mobile/src/components/BottomNav.tsx) e remoção de strings livres por aba.
-- Campo de data na tela de perfis convertido para DatePicker nativo (`@react-native-community/datetimepicker`), com formatação `YYYY-MM-DD` e validação mínima (mobile/src/screens/ProfilesScreen.tsx).
-- Instalado módulo compatível: `npx expo install @react-native-community/datetimepicker`.
-- Botão "Adicionar Perfil": adicionada margem superior e feedback de erro; logs de debug no console para facilitar diagnóstico (mobile/src/screens/ProfilesScreen.tsx).
-- Validação adicional no botão: exige nome com 2+ caracteres e data válida antes do POST; desabilita durante envio e mostra rótulo "Adicionando..." (mobile/src/screens/ProfilesScreen.tsx).
-- Tratamento de erro amigável no mobile: normalização de mensagens vindas do backend para evitar exibir JSON bruto na UI; fallback para mensagens curtas (mobile/src/services/api.ts, mobile/src/screens/ProfilesScreen.tsx).
-- Forçado envio de `birthDate` em ISO completo (`YYYY-MM-DDT00:00:00.000Z`) para compatibilizar com validação estrita do backend; log do payload para depuração (mobile/src/screens/ProfilesScreen.tsx).
-- Ajuste: retorno ao formato simples `YYYY-MM-DD` (como o web) para `birthDate` após novos testes; mantidos logs de payload e erros para diagnóstico.
-- Backend (dev): adicionados logs de `body` e cabeçalhos (com `authorization` mascarado) no `DevExceptionFilter` para inspecionar o que chega no POST `/profiles`.
- - Corrigido merge de headers no cliente: garantia de manter `Content-Type: application/json` e `Accept: application/json` sem sobrescrever por `options.headers` (mobile/src/services/api.ts).
-- UI perfis: substituídos botões de texto (Editar/Excluir) por ícones lado a lado com `Ionicons` para compactar ações na lista (mobile/src/screens/ProfilesScreen.tsx).
-- Correção UX perfis: exclusão agora atualiza imediatamente e desabilita ícones durante processamento; edição mostra estado “Salvando...” e bloqueia envio, com atualização por `id` para evitar inconsistências (mobile/src/screens/ProfilesScreen.tsx).
-- Feedback de sucesso na exclusão: adicionada mensagem “Perfil excluído” por 2s e remoção otimista com rollback em caso de falha (mobile/src/screens/ProfilesScreen.tsx).
-- Modal de confirmação antes de excluir perfil; após confirmação, remove localmente, chama DELETE e re-carrega lista do backend para garantir consistência visual (mobile/src/screens/ProfilesScreen.tsx).
-- Correção de cliente HTTP para respostas 204/sem JSON: evita quebra ao tentar `res.json()` em DELETE e retorna vazio; melhora robustez geral (mobile/src/services/api.ts).
- - Seleção de perfil ativo na tela de perfis: adicionados ícones de seleção e ação para definir `activeProfileId`; ao excluir o perfil ativo, escolhe automaticamente o próximo disponível (mobile/src/screens/ProfilesScreen.tsx).
-- Removido seletor de perfil do topo direito; seleção passa a ocorrer na tela de Perfis (mobile/src/screens/HomeScreen.tsx, mobile/src/screens/ProfilesScreen.tsx).
-- Ajuste visual na separação de perfis: aumentada a área de padding vertical da linha separadora para melhor espaçamento entre textos e botões (mobile/src/screens/ProfilesScreen.tsx).
+Fallback ao tocar obra sem faixas carregadas.
+
+- Adicionado `apiGetWork` no cliente mobile para obter detalhes/`tracks` de uma obra (mobile/src/services/api.ts).
+- No `CatalogScreen`, ao tocar no card, se a obra não tiver `tracks` carregadas, busca a obra completa e só então inicia a reprodução, garantindo robustez após reload do Expo Go (mobile/src/screens/CatalogScreen.tsx:214-232).
+
+Mini Player aparece antes da URL e inicia assim que disponível.
+
+- Ajustado `playTrack` para definir `currentWork/currentTrack` e estado de play antes de buscar a URL; se a URL falhar, desativa `isPlaying`, mas mantém o Mini Player visível para feedback imediato (mobile/src/context/PlayerContext.tsx:43-56).
+
+Correção crítica: token de autenticação não atualizava no Player após reload.
+
+- O `value` do `PlayerContext` era memorizado sem depender de `accessToken/activeProfileId`, mantendo funções com closures antigas (token `null`) após login/reload. Incluídas dependências `accessToken` e `activeProfileId` para atualizar as funções do contexto e permitir `playTrack` corretamente (mobile/src/context/PlayerContext.tsx:99-101).
+
+Mini Player posicionado dinamicamente acima do BottomNav usando Safe Area.
+
+- `BottomNav` passa sua altura via `onHeight` medindo o `SafeAreaView` (mobile/src/components/BottomNav.tsx:32).
+- `HomeScreen` guarda `bottomNavHeight` e injeta em `MiniPlayer` como `bottomOffset` (mobile/src/screens/HomeScreen.tsx:20,56-68).
+- `MiniPlayer` usa `bottomOffset` e remove margem fixa, garantindo posição correta acima da barra, respeitando o safe area (mobile/src/components/MiniPlayer.tsx:6,13,32).
+
+Ajustes visuais: margem inferior e contraste para destaque.
+
+- Pequena margem adicional de 8px acima do BottomNav para afastamento (mobile/src/components/MiniPlayer.tsx:13).
+- Paleta invertida para maior contraste em tema escuro: fundo claro, textos escuros, ícones escuros; mantendo `elevation` (mobile/src/components/MiniPlayer.tsx:36-43).
+
+Novas features do Mini Player: abrir tela e arrastar para dispensar.
+
+- Clique no Mini Player abre um overlay simples de player, com botão de fechar (mobile/src/screens/HomeScreen.tsx:57-68, 74-80).
+- Gesto horizontal com `PanResponder` permite arrastar; ao soltar além do limiar, anima saída e chama `stop()` para pausar e limpar estado (mobile/src/components/MiniPlayer.tsx:12-31).
+- `PlayerContext` ganhou `stop()` para pausar o vídeo e limpar `currentWork/currentTrack/streamUrl` (mobile/src/context/PlayerContext.tsx:86-95), exposto no contexto (mobile/src/context/PlayerContext.tsx:98-101).
+
+Bugfix: Mini Player reaparecia deslocado após dispensar.
+
+- O `translateX` era persistido globalmente e não voltava a 0. Removida persistência global e reseta para 0 ao montar/alterar obra/faixa (mobile/src/components/MiniPlayer.tsx:8-10).
+
+Bugfix crítico: violação das Regras de Hooks no Mini Player.
+
+- `useRef/useEffect` estavam após um `return null` condicional, mudando a ordem de hooks entre renders e gerando erro de React. Foi movido o `return null` para depois dos hooks, garantindo ordem estável (mobile/src/components/MiniPlayer.tsx:8-14, 27-29).
+
+Melhoria de UX: transparência progressiva ao arrastar.
+
+- `opacity` interpolada por `translateX` de [-260, 0, 260] mapeando para [0.25, 1, 0.25], clareando conforme aproxima das pontas (mobile/src/components/MiniPlayer.tsx:10-13,16).
+
+Limpeza: removidos logs do clique no catálogo para reduzir ruído.
+
+- Remoção dos `console.log` dentro do `onPress` dos cards (mobile/src/screens/CatalogScreen.tsx:228-239).
+
+Limpeza adicional: removidos logs de debug do Player.
+
+- Removidos `console.log` de `playWork`/`playTrack` e erros no `PlayerContext` para evitar poluição no Terminal (mobile/src/context/PlayerContext.tsx:37-70).
+
+Migração para `expo-video` (mínimo necessário).
+
+- Instalado `expo-video` compatível com SDK 54 (mobile/package.json). Plugin adicionado automaticamente.
+- Substituído `expo-av` por `useVideoPlayer` + `VideoView` no `PlayerContext`, mantendo reprodução oculta e controle por estado (mobile/src/context/PlayerContext.tsx:2-3, 67-71, 123-129).
+- `togglePlay` e `stop` passaram a usar `player.play()/player.pause()` (mobile/src/context/PlayerContext.tsx:72-81, 93-103).
+- Sincronização básica do `isPlaying` com evento `playingChange` (mobile/src/context/PlayerContext.tsx:105-109).
+
+Suporte a background e PiP via config do plugin.
+
+- Habilitado `supportsBackgroundPlayback: true` e `supportsPictureInPicture: true` no plugin `expo-video` (mobile/app.json:33-41).
+- `VideoView` com `allowsPictureInPicture` (mobile/src/context/PlayerContext.tsx:129).
+
+Bugfix: botão play/pause fora de sincronia.
+
+- `togglePlay` agora usa `player.playing` como fonte de verdade e não altera `isPlaying` de forma otimista; evento nativo atualiza o estado (mobile/src/context/PlayerContext.tsx:72-81).
+- Auto-play acionado apenas quando `streamUrl` muda, evitando replays indevidos após pausar (mobile/src/context/PlayerContext.tsx:116-121).
+
+Ajuste adicional: substituição dinâmica da fonte do player.
+
+- Ao mudar `streamUrl`, chama `player.replace(streamUrl)` e aplica `play/pause` conforme `isPlaying`, garantindo que o botão pause toggle corretamente e que a faixa carregada seja a atual (mobile/src/context/PlayerContext.tsx:116-123).
+
+Bugfix: funções do Player usando instância antiga do `player`.
+
+- O objeto de contexto era memorizado sem depender do `player`, mantendo closures com instâncias antigas após troca de fonte. Incluído `player` na lista de dependências do `useMemo` (mobile/src/context/PlayerContext.tsx:111-114).

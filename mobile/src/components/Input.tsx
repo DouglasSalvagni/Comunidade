@@ -8,13 +8,14 @@ type Props = {
   placeholder?: string
   secureTextEntry?: boolean
   keyboardType?: 'default' | 'email-address'
+  labelHidden?: boolean
 }
 
-export default function Input({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType }: Props) {
+export default function Input({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, labelHidden }: Props) {
   const [focused, setFocused] = useState(false)
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {!labelHidden && <Text style={styles.label}>{label}</Text>}
       <TextInput
         style={[styles.input, focused && styles.inputFocused]}
         value={value}

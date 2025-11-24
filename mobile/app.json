@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.wizer.babytune",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,7 +28,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://b1829228335b.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://f43eaa4fe39c.ngrok-free.app/api/v1",
       "googleOAuth": {
         "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com"
       }

@@ -129,6 +129,11 @@ Migração para `expo-video` (mínimo necessário).
 - `togglePlay` e `stop` passaram a usar `player.play()/player.pause()` (mobile/src/context/PlayerContext.tsx:72-81, 93-103).
 - Sincronização básica do `isPlaying` com evento `playingChange` (mobile/src/context/PlayerContext.tsx:105-109).
 
+Suporte a background e PiP via config do plugin.
+
+- Habilitado `supportsBackgroundPlayback: true` e `supportsPictureInPicture: true` no plugin `expo-video` (mobile/app.json:33-41).
+- `VideoView` com `allowsPictureInPicture` (mobile/src/context/PlayerContext.tsx:129).
+
 Bugfix: botão play/pause fora de sincronia.
 
 - `togglePlay` agora usa `player.playing` como fonte de verdade e não altera `isPlaying` de forma otimista; evento nativo atualiza o estado (mobile/src/context/PlayerContext.tsx:72-81).

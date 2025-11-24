@@ -123,7 +123,7 @@ export function PlayerProvider({ children }: { children: any }) {
       {children}
       <View style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
         {streamUrl ? (
-          <VideoView player={player} style={{ width: 1, height: 1 }} />
+          <VideoView player={player} style={{ width: 1, height: 1 }} allowsPictureInPicture />
         ) : null}
       </View>
     </PlayerContext.Provider>

@@ -10,6 +10,9 @@ export class Plan {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ unique: true })
+  slug: string;
+
   @Column()
   name: string;
 

@@ -117,7 +117,8 @@ export interface Subscription {
   planId: string;
   plan: Plan;
   status: 'active' | 'canceled' | 'past_due' | 'unpaid';
-  currentPeriodEnd?: string;
+  periodStart?: string;
+  periodEnd?: string;
   provider?: string;
   providerSubscriptionId?: string;
   createdAt: string;
@@ -162,18 +163,18 @@ class ApiService {
           const url: string = error?.response?.config?.url || '';
           const inAuth = path.startsWith('/auth/login') || path.startsWith('/auth/callback') || path.startsWith('/admin/login');
           const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
-        if (!inAuth && !isAccountPassword) {
-          const msg = error?.response?.data?.message || '';
-          const pathIsDashboard = path.startsWith('/dashboard') || path.startsWith('/admin');
-          if (msg.includes('E-mail não verificado') || pathIsDashboard) {
-            window.location.href = '/auth/pending';
-          } else {
-            window.location.href = '/auth/login';
+          if (!inAuth && !isAccountPassword) {
+            const msg = error?.response?.data?.message || '';
+            const pathIsDashboard = path.startsWith('/dashboard') || path.startsWith('/admin');
+            if (msg.includes('E-mail não verificado') || pathIsDashboard) {
+              window.location.href = '/auth/pending';
+            } else {
+              window.location.href = '/auth/login';
+            }
           }
         }
+        return Promise.reject(this.handleError(error));
       }
-      return Promise.reject(this.handleError(error));
-    }
     );
   }
 
@@ -185,7 +186,7 @@ class ApiService {
         error: error.response.data.error,
       };
     }
-    
+
     return {
       message: error.message || 'Erro de conexão',
       statusCode: 500,
@@ -202,7 +203,7 @@ class ApiService {
       email,
       password,
     });
-    
+
     if (response.data.data?.accessToken) {
       try {
         await fetch('/api/auth/set-token', {
@@ -210,9 +211,9 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: response.data.data.accessToken }),
         });
-      } catch {}
+      } catch { }
     }
-    
+
     return response.data.data;
   }
 
@@ -225,7 +226,7 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: response.data.data.accessToken }),
         });
-      } catch {}
+      } catch { }
     }
     return response.data.data;
   }
@@ -236,7 +237,7 @@ class ApiService {
       email,
       password,
     });
-    
+
     if (response.data.data?.accessToken) {
       try {
         await fetch('/api/auth/set-token', {
@@ -244,9 +245,9 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: response.data.data.accessToken }),
         });
-      } catch {}
+      } catch { }
     }
-    
+
     return response.data.data;
   }
 
@@ -254,7 +255,7 @@ class ApiService {
     const response = await this.client.post<ApiResponse<{ accessToken: string; refreshToken: string }>>('/auth/refresh', {
       refreshToken,
     });
-    
+
     if (response.data.data?.accessToken) {
       try {
         await fetch('/api/auth/set-token', {
@@ -262,9 +263,9 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: response.data.data.accessToken }),
         });
-      } catch {}
+      } catch { }
     }
-    
+
     return response.data.data;
   }
 
@@ -291,7 +292,7 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken: '' }),
       });
-    } catch {}
+    } catch { }
   }
 
   async clearToken(): Promise<void> {
@@ -301,7 +302,7 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken: '' }),
       });
-    } catch {}
+    } catch { }
   }
 
   async requestPasswordReset(email: string): Promise<{ ok: boolean }> {
@@ -328,7 +329,7 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessToken: response.data.data.accessToken }),
         });
-      } catch {}
+      } catch { }
     }
     return response.data.data;
   }
@@ -435,7 +436,7 @@ class ApiService {
     return response.data.data;
   }
 
-  async addPlaylistItem(playlistId: string, trackId: string): Promise<{ id: string; trackId: string; orderIndex: number }>{
+  async addPlaylistItem(playlistId: string, trackId: string): Promise<{ id: string; trackId: string; orderIndex: number }> {
     const response = await this.client.post<ApiResponse<{ id: string; trackId: string; orderIndex: number }>>(`/playlists/${playlistId}/items`, { trackId });
     return response.data.data;
   }
@@ -450,13 +451,13 @@ class ApiService {
 
   // ===== ASSINATURAS =====
   async getPlans(): Promise<Plan[]> {
-    const response = await this.client.get<ApiResponse<Plan[]>>('/subscriptions/plans');
-    return response.data.data;
+    const response = await this.client.get<ApiResponse<{ plans: Plan[] }>>('/subscriptions/plans');
+    return response.data.data.plans;
   }
 
-  async getCurrentSubscription(): Promise<Subscription> {
-    const response = await this.client.get<ApiResponse<Subscription>>('/subscriptions/current');
-    return response.data.data;
+  async getCurrentSubscription(): Promise<Subscription | null> {
+    const response = await this.client.get<ApiResponse<{ subscription: Subscription | null }>>('/subscriptions/current');
+    return response.data.data.subscription;
   }
 
   async changePlan(planId: string): Promise<Subscription> {
@@ -464,6 +465,11 @@ class ApiService {
       planId,
     });
     return response.data.data;
+  }
+
+  async cancelSubscription(): Promise<Subscription> {
+    const response = await this.client.post<ApiResponse<{ subscription: Subscription }>>('/subscriptions/cancel');
+    return response.data.data.subscription;
   }
 
   // ===== ADMIN =====
@@ -538,17 +544,17 @@ class ApiService {
     await this.client.delete(`/admin/tags/${id}`);
   }
 
-  async getUploadUrl(params: { fileName: string; fileType: string; fileSize: number }): Promise<{ uploadUrl: string; storageKey: string; expiresAt: string }>{
+  async getUploadUrl(params: { fileName: string; fileType: string; fileSize: number }): Promise<{ uploadUrl: string; storageKey: string; expiresAt: string }> {
     const response = await this.client.post<ApiResponse<{ uploadUrl: string; storageKey: string; expiresAt: string }>>('/media/upload-url', params);
     return response.data.data;
   }
 
-  async processMedia(params: { storageKey: string; type: 'audio' | 'image'; workId?: string }): Promise<{ processedUrl: string; metadata: any }>{
+  async processMedia(params: { storageKey: string; type: 'audio' | 'image'; workId?: string }): Promise<{ processedUrl: string; metadata: any }> {
     const response = await this.client.post<ApiResponse<{ processedUrl: string; metadata: any }>>('/media/process', params);
     return response.data.data;
   }
 
-  async getStreamingUrl(trackId: string): Promise<{ url: string }>{
+  async getStreamingUrl(trackId: string): Promise<{ url: string }> {
     const response = await this.client.get<ApiResponse<{ url: string }>>(`/playback/${trackId}/url`);
     return response.data.data;
   }

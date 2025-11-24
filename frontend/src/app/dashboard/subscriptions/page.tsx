@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PlanSelector from "@/components/PlanSelector";
+import { api, Subscription } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +16,65 @@ import {
 } from "@/components/ui/dialog";
 
 const SubscriptionPage = () => {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
-  const handleCancelSubscription = () => {
-    setIsCancelDialogOpen(false);
-    // Lógica de cancelamento aqui
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        setLoading(true);
+        const data = await api.getCurrentSubscription();
+        setSubscription(data);
+      } catch (error) {
+        console.error("Erro ao buscar assinatura:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubscription();
+  }, []);
+
+  const handleCancelSubscription = async () => {
+    try {
+      await api.cancelSubscription();
+      setIsCancelDialogOpen(false);
+      // Recarregar assinatura
+      const data = await api.getCurrentSubscription();
+      setSubscription(data);
+    } catch (error) {
+      console.error("Erro ao cancelar assinatura:", error);
+    }
   };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatPrice = (cents: number) => {
+    return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      active: "Ativo",
+      canceled: "Cancelado",
+      past_due: "Vencido",
+      unpaid: "Não pago",
+    };
+    return labels[status] || status;
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Carregando assinatura...</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -29,31 +83,46 @@ const SubscriptionPage = () => {
         <p className="text-muted-foreground">Visualize e gerencie seu plano e faturamento.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Seu Plano Atual</CardTitle>
-          <CardDescription>Plano Família - Anual</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p>Status</p>
-            <Badge variant="default">Ativo</Badge>
-          </div>
-          <div className="flex justify-between items-center">
-            <p>Próxima cobrança em 15 de Julho de 2025</p>
-            <p className="font-semibold">R$ 199,90</p>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            variant="outline"
-            onClick={() => setIsCancelDialogOpen(true)}
-            className="hover:bg-red-900 hover:text-white hover:border-red-900 transition-colors"
-          >
-            Cancelar Assinatura
-          </Button>
-        </CardFooter>
-      </Card>
+      {subscription && subscription.plan ? (
+        <Card>
+          <CardHeader>
+            <CardDescription>Seu Plano Atual</CardDescription>
+            <CardTitle>{subscription.plan.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <p>Status</p>
+              <Badge variant={subscription.status === "active" ? "default" : "destructive"}>
+                {getStatusLabel(subscription.status)}
+              </Badge>
+            </div>
+            {subscription.periodEnd && (
+              <div className="flex gap-4 items-center">
+                <p>Próxima cobrança em {formatDate(subscription.periodEnd)}</p>
+                <p className="font-semibold">{formatPrice(subscription.plan.priceCents)}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            {subscription.status === "active" && (
+              <Button
+                variant="outline"
+                onClick={() => setIsCancelDialogOpen(true)}
+                className="hover:bg-red-900 hover:text-white hover:border-red-900 transition-colors"
+              >
+                Cancelar Assinatura
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nenhuma Assinatura Ativa</CardTitle>
+            <CardDescription>Escolha um plano abaixo para começar</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
         <DialogContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PricingCard from "./PricingCard";
 import {
   Dialog,
@@ -11,50 +11,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-const plans = [
-  {
-    name: "Grátis",
-    price: "Grátis",
-    features: [],
-  },
-  {
-    name: "Mensal",
-    price: "R$ 29,90/mês",
-    features: [
-      "Acesso a todo o catálogo",
-      "Até 4 perfis",
-      "Conteúdo offline",
-      "Suporte prioritário",
-    ],
-  },
-  {
-    name: "Anual",
-    price: "R$ 249,90/ano",
-    features: [
-      "Acesso a todo o catálogo",
-      "Até 4 perfis",
-      "Conteúdo offline",
-      "Suporte prioritário",
-    ],
-  },
-];
+import { api, Plan } from "@/services/api";
 
 const PlanSelector = () => {
-  const [currentPlan, setCurrentPlan] = useState("Mensal");
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
-  const handleSelectPlan = (planName: string) => {
-    setSelectedPlan(planName);
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        const plansData = await api.getPlans();
+        setPlans(plansData);
+      } catch (error) {
+        console.error("Erro ao buscar planos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  const handleSelectPlan = (plan: Plan) => {
+    setSelectedPlan(plan);
     setIsDialogOpen(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedPlan) {
-      setCurrentPlan(selectedPlan);
-      setIsDialogOpen(false);
-      setSelectedPlan(null);
+      try {
+        await api.changePlan(selectedPlan.id);
+        setCurrentPlan(selectedPlan.id);
+        setIsDialogOpen(false);
+        setSelectedPlan(null);
+      } catch (error) {
+        console.error("Erro ao mudar plano:", error);
+      }
     }
   };
 
@@ -63,18 +59,30 @@ const PlanSelector = () => {
     setSelectedPlan(null);
   };
 
+  if (loading) {
+    return <div className="text-center py-8">Carregando planos...</div>;
+  }
+
   return (
     <>
       <div className="space-y-6">
         <div className="grid md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <PricingCard
-              key={plan.name}
-              plan={plan}
-              isCurrentPlan={plan.name === currentPlan}
-              onSelectPlan={() => handleSelectPlan(plan.name)}
-            />
-          ))}
+          {plans.map((plan) => {
+            const formattedPlan = {
+              name: plan.name,
+              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${plan.billingPeriod === 'monthly' ? 'mês' : 'ano'}`,
+              features: plan.features,
+            };
+
+            return (
+              <PricingCard
+                key={plan.id}
+                plan={formattedPlan}
+                isCurrentPlan={plan.id === currentPlan}
+                onSelectPlan={() => handleSelectPlan(plan)}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -83,8 +91,8 @@ const PlanSelector = () => {
           <DialogHeader>
             <DialogTitle>Confirmar mudança de plano</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja mudar para o plano <strong>{selectedPlan}</strong>?
-              {selectedPlan !== "Grátis" && " Você será redirecionado para o pagamento."}
+              Tem certeza que deseja mudar para o plano <strong>{selectedPlan?.name}</strong>?
+              {selectedPlan?.priceCents !== 0 && " Você será redirecionado para o pagamento."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

@@ -214,6 +214,14 @@ export async function apiGetPlaylists(accessToken: string, profileId?: string) {
   })
 }
 
+export async function apiCreatePlaylist(accessToken: string, data: { name: string; profileId?: string }) {
+  return request<{ id: string; name: string }>(`/playlists`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
 export async function apiGetPlaylistItems(accessToken: string, playlistId: string) {
   return request<Array<{ id: string; track: any; orderIndex: number }>>(
     `/playlists/${playlistId}/items`,

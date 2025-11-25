@@ -28,13 +28,11 @@ const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
 
 async function computeHlsDuration(masterUrl: string): Promise<number> {
   try {
-    console.log('[PLAYER][hls] fetch master', masterUrl)
     const masterRes = await fetch(masterUrl)
     const masterTxt = await masterRes.text()
     const lines = masterTxt.split('\n').map((l) => l.trim()).filter(Boolean)
     const variantLine = lines.find((l) => l.endsWith('.m3u8') && !l.startsWith('#'))
     const variantUrl = variantLine ? new URL(variantLine, masterUrl).toString() : masterUrl
-    console.log('[PLAYER][hls] fetch variant', variantUrl)
     const variantRes = await fetch(variantUrl)
     const variantTxt = await variantRes.text()
     const matches = variantTxt.match(/#EXTINF:([0-9.]+)/g) || []
@@ -44,10 +42,9 @@ async function computeHlsDuration(masterUrl: string): Promise<number> {
       const v = parseFloat(m[1])
       return acc + (isNaN(v) ? 0 : v)
     }, 0)
-    console.log('[PLAYER][hls] duration seconds', total)
     return total
   } catch (err) {
-    console.log('[PLAYER][hls] failed to compute duration', err)
+    // Ignore HLS duration errors; player will fall back to defaults
     return 0
   }
 }
@@ -100,7 +97,6 @@ export function PlayerProvider({ children }: { children: any }) {
       try {
         const status = await sound.getStatusAsync()
         if (!status.isLoaded) return
-        console.log('[PLAYER][poll] position/duration', status.positionMillis, status.durationMillis, 'playing', status.isPlaying)
         setIsPlaying(status.isPlaying)
         if (typeof status.positionMillis === 'number' && status.positionMillis > 0) {
           setPosition(status.positionMillis / 1000)
@@ -112,7 +108,7 @@ export function PlayerProvider({ children }: { children: any }) {
           lastTick.current = Date.now()
         }
       } catch (err) {
-        console.log('[PLAYER][poll] status error', err)
+        // ignore polling errors
       }
     }, 800)
     return () => clearInterval(interval)
@@ -125,7 +121,6 @@ export function PlayerProvider({ children }: { children: any }) {
       manualTimer.current = null
     }
     if (isPlaying && duration > 0) {
-      console.log('[PLAYER][timer] start manual timer, duration', duration)
       lastTick.current = Date.now()
       manualTimer.current = setInterval(() => {
         setPosition((prev) => {
@@ -133,12 +128,10 @@ export function PlayerProvider({ children }: { children: any }) {
           const elapsed = lastTick.current ? (now - lastTick.current) / 1000 : 0
           lastTick.current = now
           const next = Math.min(duration, prev + elapsed)
-          console.log('[PLAYER][timer] tick', { prev, next, duration })
           return next
         })
       }, 500)
     } else {
-      console.log('[PLAYER][timer] stop manual timer', { isPlaying, duration })
       lastTick.current = null
     }
     return () => {
@@ -150,13 +143,6 @@ export function PlayerProvider({ children }: { children: any }) {
   // Playback status update callback
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) return
-
-    console.log('[PLAYER][status]', {
-      isPlaying: status.isPlaying,
-      positionMillis: status.positionMillis,
-      durationMillis: (status as any).durationMillis,
-      didJustFinish: (status as any).didJustFinish,
-    })
 
     setIsPlaying(status.isPlaying)
     // Only overwrite position when we have a positive value; otherwise keep current (manual timer will advance)
@@ -243,7 +229,6 @@ export function PlayerProvider({ children }: { children: any }) {
 
     // Prevent concurrent track loading
     if (isLoadingTrack.current) {
-      console.log('Already loading a track, ignoring request')
       return
     }
 
@@ -261,7 +246,6 @@ export function PlayerProvider({ children }: { children: any }) {
       setPosition(0)
       // Prefill duration with metadata while waiting for player to report it
       const metaDuration = (track as any)?.durationSeconds || (workData as any)?.durationSeconds || 0
-      console.log('[PLAYER] meta duration', metaDuration)
       setDuration(metaDuration)
       setIsPlaying(false)
 
@@ -273,7 +257,6 @@ export function PlayerProvider({ children }: { children: any }) {
         isLoadingTrack.current = false
         return
       }
-      console.log('[PLAYER] streaming url', url)
 
       // Create and load new sound
       const { sound } = await Audio.Sound.createAsync(
@@ -361,7 +344,6 @@ export function PlayerProvider({ children }: { children: any }) {
     try {
       const clamped = Math.max(0, Math.min(duration || seconds, seconds))
       const status = await soundRef.current.playFromPositionAsync(clamped * 1000)
-      console.log('[PLAYER][seek] to', clamped, 'status loaded?', status.isLoaded)
       setPosition(clamped)
       lastTick.current = Date.now()
     } catch (error) {

@@ -11,13 +11,14 @@ import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
+import { apiAddPlaylistItem, apiCreatePlaylist, apiGetPlaylists } from '../services/api'
 
 type Props = {
   onLogout: () => void
 }
 
 export default function HomeScreen({ onLogout }: Props) {
-  const { user } = useAuth()
+  const { user, accessToken, activeProfileId } = useAuth()
   const {
     currentTrack,
     currentWork,
@@ -36,6 +37,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [bottomNavHeight, setBottomNavHeight] = useState(70)
   const [playerVisible, setPlayerVisible] = useState(false)
   const [progressBarWidth, setProgressBarWidth] = useState(1)
+  const [addingPlaylist, setAddingPlaylist] = useState(false)
 
   useEffect(() => {
     if (!currentTrack) setPlayerVisible(false)
@@ -64,6 +66,24 @@ export default function HomeScreen({ onLogout }: Props) {
     const ratio = progressBarWidth ? Math.min(1, Math.max(0, x / progressBarWidth)) : 0
     const newPos = ratio * duration
     seekTo(newPos)
+  }
+
+  const handleAddToPlaylist = async () => {
+    if (!accessToken || !currentTrack || addingPlaylist) return
+    setAddingPlaylist(true)
+    try {
+      const playlists = await apiGetPlaylists(accessToken, activeProfileId || undefined)
+      let list = Array.isArray(playlists) ? (playlists.find((p) => p.isDefault) || playlists[0]) : null
+      if (!list) {
+        const created = await apiCreatePlaylist(accessToken, { name: 'Minha Playlist', profileId: activeProfileId || undefined })
+        list = created
+      }
+      await apiAddPlaylistItem(accessToken, (list as any).id, currentTrack.id)
+    } catch (err) {
+      console.error('Erro ao adicionar à playlist:', err)
+    } finally {
+      setAddingPlaylist(false)
+    }
   }
 
   const formatTime = (value: number) => {
@@ -182,6 +202,14 @@ export default function HomeScreen({ onLogout }: Props) {
                 onPress={nextTrack}
               >
                 <Ionicons name="play-skip-forward" size={26} color={hasNext ? '#e6e9ff' : '#6b7280'} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.controlBtn, styles.controlBtnGhost]}
+                onPress={handleAddToPlaylist}
+                disabled={addingPlaylist}
+              >
+                <Ionicons name="add-circle-outline" size={22} color="#cfd3ff" />
               </Pressable>
               <Pressable
                 accessibilityRole="button"

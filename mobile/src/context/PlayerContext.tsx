@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect, useRef } from 'react'
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio'
+import { Audio, AVPlaybackStatus } from 'expo-av'
 import { useAuth } from './AuthContext'
 import { apiGetStreamingUrl, apiToggleFavorite } from '../services/api'
 
@@ -31,42 +31,58 @@ export function PlayerProvider({ children }: { children: any }) {
   const [duration, setDuration] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
 
-  // Create a single audio player instance that persists
-  const player = useAudioPlayer('')
-  const isPlayerInitialized = useRef(false)
+  const soundRef = useRef<Audio.Sound | null>(null)
+  const isAudioConfigured = useRef(false)
+  const isLoadingTrack = useRef(false) // Prevent concurrent loads
 
   // Configure audio mode for background playback on mount
   useEffect(() => {
     const configureAudio = async () => {
       try {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
           staysActiveInBackground: true,
+          shouldDuckAndroid: true,
         })
-        isPlayerInitialized.current = true
+        isAudioConfigured.current = true
       } catch (error) {
         console.error('Error configuring audio mode:', error)
       }
     }
     configureAudio()
+
+    // Cleanup on unmount
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => { })
+      }
+    }
   }, [])
 
-  // Update position periodically when playing
-  useEffect(() => {
-    if (!player.playing) return
+  // Playback status update callback
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (!status.isLoaded) return
 
-    const interval = setInterval(() => {
-      setPosition(player.currentTime)
-      setDuration(player.duration)
-    }, 500)
+    setIsPlaying(status.isPlaying)
+    setPosition(status.positionMillis / 1000)
+    setDuration(status.durationMillis ? status.durationMillis / 1000 : 0)
+  }
 
-    return () => clearInterval(interval)
-  }, [player.playing, player.currentTime, player.duration])
-
-  // Sync playing state with player
-  useEffect(() => {
-    setIsPlaying(player.playing)
-  }, [player.playing])
+  // Helper function to safely unload current sound
+  const unloadCurrentSound = async () => {
+    if (soundRef.current) {
+      try {
+        const status = await soundRef.current.getStatusAsync()
+        if (status.isLoaded) {
+          await soundRef.current.stopAsync()
+          await soundRef.current.unloadAsync()
+        }
+      } catch (error) {
+        console.error('Error unloading sound:', error)
+      }
+      soundRef.current = null
+    }
+  }
 
   async function playWork(work: PlayerWork) {
     const list = Array.isArray(work.tracks) ? work.tracks : []
@@ -81,57 +97,66 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   async function playTrack(track: PlayerTrack, work?: PlayerWork) {
-    if (!accessToken || !isPlayerInitialized.current) return
+    if (!accessToken || !isAudioConfigured.current) return
+
+    // Prevent concurrent track loading
+    if (isLoadingTrack.current) {
+      console.log('Already loading a track, ignoring request')
+      return
+    }
+
+    isLoadingTrack.current = true
 
     try {
       const workData = work || currentWork
+
+      // Always stop and unload previous sound first
+      await unloadCurrentSound()
+
       setCurrentTrack(track)
       setCurrentWork(workData)
       setIsFavorite(Boolean(workData?.isFavorite))
       setPosition(0)
+      setIsPlaying(false)
 
       // Get streaming URL from backend
       const res = await apiGetStreamingUrl(accessToken, track.id)
       const url = (res as any)?.url || ''
       if (!url) {
         console.error('No streaming URL returned')
-        setIsPlaying(false)
+        isLoadingTrack.current = false
         return
       }
 
-      // Replace the current source with the new URL
-      player.replace(url)
+      // Create and load new sound
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate
+      )
 
-      // Try to enable lock screen controls if the method exists
-      try {
-        if (typeof player.setActiveForLockScreen === 'function') {
-          await player.setActiveForLockScreen(true, {
-            title: track.title || workData?.title || 'Unknown Track',
-            artist: 'BabyTune',
-            artwork: workData?.coverUrl,
-          })
-        }
-      } catch (lockScreenError) {
-        console.log('Lock screen controls not available:', lockScreenError)
-      }
-
-      // Play the new track
-      player.play()
+      soundRef.current = sound
       setIsPlaying(true)
     } catch (error) {
       console.error('Error playing track:', error)
       setIsPlaying(false)
+      await unloadCurrentSound()
+    } finally {
+      isLoadingTrack.current = false
     }
   }
 
   async function togglePlay() {
-    if (!isPlayerInitialized.current) return
+    if (!soundRef.current || !isAudioConfigured.current || isLoadingTrack.current) return
 
     try {
-      if (player.playing) {
-        player.pause()
+      const status = await soundRef.current.getStatusAsync()
+      if (!status.isLoaded) return
+
+      if (status.isPlaying) {
+        await soundRef.current.pauseAsync()
       } else {
-        player.play()
+        await soundRef.current.playAsync()
       }
     } catch (error) {
       console.error('Error toggling play:', error)
@@ -151,21 +176,11 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   async function stop() {
-    if (!isPlayerInitialized.current) return
+    if (!isAudioConfigured.current || isLoadingTrack.current) return
 
     try {
-      player.pause()
+      await unloadCurrentSound()
 
-      // Try to disable lock screen controls if the method exists
-      try {
-        if (typeof player.setActiveForLockScreen === 'function') {
-          await player.setActiveForLockScreen(false)
-        }
-      } catch (lockScreenError) {
-        console.log('Lock screen controls not available:', lockScreenError)
-      }
-
-      player.replace('')
       setIsPlaying(false)
       setCurrentTrack(null)
       setCurrentWork(null)

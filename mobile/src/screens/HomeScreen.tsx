@@ -8,6 +8,7 @@ import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
 import CatalogScreen from './CatalogScreen'
 import FavoritesScreen from './FavoritesScreen'
+import PlaylistScreen from './PlaylistScreen'
 
 type Props = {
   onLogout: () => void
@@ -21,11 +22,12 @@ export default function HomeScreen({ onLogout }: Props) {
   const [playerVisible, setPlayerVisible] = useState(false)
   return (
     <View style={styles.container}>
-      {/* Seletor de perfil removido; seleção é feita na tela de Perfis */}
       {tab === 'catalog' ? (
         <CatalogScreen />
       ) : tab === 'favorites' ? (
         <FavoritesScreen />
+      ) : tab === 'playlist' ? (
+        <PlaylistScreen />
       ) : tab === 'settings' && settingsView === 'profiles' ? (
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
       ) : tab === 'settings' && settingsView === 'account' ? (

@@ -226,3 +226,41 @@ export async function apiGetWork(accessToken: string, id: string) {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
+
+export async function apiGetPlaylists(accessToken: string, profileId?: string) {
+  const qs = new URLSearchParams()
+  if (profileId) qs.set('profileId', profileId)
+  const path = `/playlists${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<Array<{ id: string; name: string; isDefault: boolean }>>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetPlaylistItems(accessToken: string, playlistId: string) {
+  return request<Array<{ id: string; track: any; orderIndex: number }>>(
+    `/playlists/${playlistId}/items`,
+    {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  )
+}
+
+export async function apiAddPlaylistItem(accessToken: string, playlistId: string, trackId: string) {
+  return request<{ id: string; trackId: string; orderIndex: number }>(
+    `/playlists/${playlistId}/items`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ trackId }),
+    }
+  )
+}
+
+export async function apiRemovePlaylistItem(accessToken: string, playlistId: string, itemId: string) {
+  return request<void>(`/playlists/${playlistId}/items/${itemId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}

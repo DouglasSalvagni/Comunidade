@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { apiGetProfiles, apiCreateProfile, apiUpdateProfile, apiDeleteProfile } from '../services/api'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
+import { validateBirthDate } from '../utils/birthDate'
 
 type Props = {
   onBack?: () => void
@@ -76,12 +77,6 @@ export default function ProfilesScreen({ onBack }: Props) {
     }
   }
 
-  const convertToISO = (dateStr: string): string | null => {
-    const parts = dateStr.split('/')
-    if (parts.length !== 3) return null
-    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
-  }
-
   const convertFromISO = (isoDate: string): string => {
     if (!isoDate) return ''
     const parts = isoDate.split('-')
@@ -91,11 +86,25 @@ export default function ProfilesScreen({ onBack }: Props) {
 
   async function saveEdit(i: number) {
     const p = items[i]
+    const payload: any = { name: editName }
+    const { iso, error } = validateBirthDate(editBirthDate)
+
+    if (error === 'future') {
+      setErrorMsg('Data de nascimento não pode ser maior que a data atual')
+      return
+    }
+
+    if (error === 'invalid') {
+      setErrorMsg('Data de nascimento inválida (use DD/MM/AAAA)')
+      return
+    }
+
+    if (iso) {
+      payload.birthDate = iso
+    }
+
     try {
       setEditingSaving(true)
-      const payload: any = { name: editName }
-      const isoDate = convertToISO(editBirthDate)
-      if (isoDate) payload.birthDate = isoDate
       const updated = await apiUpdateProfile(accessToken as string, p.id, payload)
       setItems((prev) => prev.map((it) => (it.id === p.id ? updated : it)))
       setEditIndex(null)
@@ -132,13 +141,14 @@ export default function ProfilesScreen({ onBack }: Props) {
   async function addNew() {
     console.log('[ProfilesScreen] addNew clicked')
     const nameOk = (newName || '').trim().length >= 2
-    const isoDate = convertToISO(newBirthDate)
+    const { iso, error } = validateBirthDate(newBirthDate)
     if (!accessToken) { setErrorMsg('Sessão inválida'); return }
     if (!nameOk) { setErrorMsg('Nome deve ter pelo menos 2 caracteres'); return }
-    if (!isoDate) { setErrorMsg('Data de nascimento inválida (use DD/MM/AAAA)'); return }
+    if (error === 'future') { setErrorMsg('Data de nascimento não pode ser maior que a data atual'); return }
+    if (!iso) { setErrorMsg('Data de nascimento inválida (use DD/MM/AAAA)'); return }
     try {
       setSaving(true)
-      const payload = { name: newName.trim(), birthDate: isoDate }
+      const payload = { name: newName.trim(), birthDate: iso }
       console.log('[ProfilesScreen] payload', payload)
       const created = await apiCreateProfile(accessToken, payload)
       console.log('[ProfilesScreen] created profile', created)

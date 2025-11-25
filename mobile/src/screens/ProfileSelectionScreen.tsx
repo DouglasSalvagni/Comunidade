@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
 import { apiGetProfiles, apiCreateProfile } from '../services/api'
+import { validateBirthDate } from '../utils/birthDate'
 
 type Props = {
     onProfileSelected: () => void
@@ -72,19 +73,23 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
             return
         }
 
-        // Convert DD/MM/YYYY to YYYY-MM-DD
-        const dateParts = newProfileBirthDate.split('/')
-        if (dateParts.length !== 3) {
-            Alert.alert('Data inválida', 'Use o formato DD/MM/AAAA (ex: 15/03/2018)')
+        const { iso, error } = validateBirthDate(newProfileBirthDate)
+
+        if (error === 'future') {
+            Alert.alert('Data inválida', 'A data de nascimento não pode ser maior que a data atual')
             return
         }
-        const isoDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`
+
+        if (!iso) {
+            Alert.alert('Data inválida', 'Use uma data real no formato DD/MM/AAAA (ex: 15/03/2018)')
+            return
+        }
 
         try {
             setCreating(true)
             const profile = await apiCreateProfile(accessToken, {
                 name: newProfileName.trim(),
-                birthDate: isoDate
+                birthDate: iso
             })
             setActiveProfileId(profile.id)
             onProfileSelected()

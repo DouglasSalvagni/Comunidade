@@ -1,14 +1,22 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Image } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, Pressable, Image } from 'react-native'
 import { useState, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
-import { apiGetPlaylists, apiGetPlaylistItems, apiRemovePlaylistItem, apiGetWork } from '../services/api'
+import { apiGetPlaylists, apiGetPlaylistItems, apiRemovePlaylistItem, apiGetWork, apiReorderPlaylistItems } from '../services/api'
+
+type PlaylistItem = {
+    id: string
+    orderIndex: number
+    track: any
+}
 
 export default function PlaylistScreen() {
     const { accessToken, activeProfileId } = useAuth()
     const { playTrack } = usePlayer()
-    const [items, setItems] = useState<any[]>([])
+    const [items, setItems] = useState<PlaylistItem[]>([])
     const [loading, setLoading] = useState(true)
     const [playlistId, setPlaylistId] = useState<string | null>(null)
 
@@ -16,26 +24,39 @@ export default function PlaylistScreen() {
         loadPlaylist()
     }, [accessToken, activeProfileId])
 
+    const enrichPlaylistItems = async (playlistItems: PlaylistItem[]) => {
+        if (!accessToken) return playlistItems
+
+        const enriched = await Promise.all(
+            playlistItems.map(async (item) => {
+                if (!item.track.work && item.track.workId) {
+                    try {
+                        const work = await apiGetWork(accessToken, item.track.workId)
+                        return { ...item, track: { ...item.track, work } }
+                    } catch (error) {
+                        console.error('Error fetching work for track:', item.track.id, error)
+                    }
+                }
+                return item
+            })
+        )
+        return enriched
+    }
+
     const loadPlaylist = async () => {
         if (!accessToken) return
 
         try {
             setLoading(true)
 
-            console.log('[PlaylistScreen] Loading playlist for profileId:', activeProfileId)
-
             const playlists = await apiGetPlaylists(accessToken, activeProfileId || undefined)
-            console.log('[PlaylistScreen] Playlists received:', playlists)
 
             let selectedPlaylist = Array.isArray(playlists) ? playlists.find(p => p.isDefault) : null
             if (!selectedPlaylist && Array.isArray(playlists) && playlists.length > 0) {
                 selectedPlaylist = playlists[0]
-                console.log('[PlaylistScreen] No default playlist, using first one')
             }
-            console.log('[PlaylistScreen] Selected playlist:', selectedPlaylist)
 
             if (!selectedPlaylist) {
-                console.log('[PlaylistScreen] No playlist found')
                 setItems([])
                 setLoading(false)
                 return
@@ -44,8 +65,8 @@ export default function PlaylistScreen() {
             setPlaylistId(selectedPlaylist.id)
 
             const playlistItems = await apiGetPlaylistItems(accessToken, selectedPlaylist.id)
-            console.log('[PlaylistScreen] Playlist items:', playlistItems)
-            setItems(Array.isArray(playlistItems) ? playlistItems : [])
+            const enriched = await enrichPlaylistItems(Array.isArray(playlistItems) ? playlistItems : [])
+            setItems(enriched)
         } catch (error) {
             console.error('Error loading playlist:', error)
             setItems([])
@@ -54,7 +75,7 @@ export default function PlaylistScreen() {
         }
     }
 
-    const handlePlay = async (item: any) => {
+    const handlePlay = async (item: PlaylistItem) => {
         if (!item.track) return
 
         const track = {
@@ -63,16 +84,7 @@ export default function PlaylistScreen() {
             workId: item.track.workId,
         }
 
-        let work = item.track.work
-        if (!work && accessToken && item.track.workId) {
-            try {
-                work = await apiGetWork(accessToken, item.track.workId)
-            } catch (error) {
-                console.error('Error fetching work:', error)
-            }
-        }
-
-        playTrack(track, work)
+        playTrack(track, item.track.work)
     }
 
     const handleRemove = async (itemId: string) => {
@@ -86,36 +98,61 @@ export default function PlaylistScreen() {
         }
     }
 
-    const renderItem = ({ item }: { item: any }) => {
+    const handleDragEnd = async ({ data }: { data: PlaylistItem[] }) => {
+        setItems(data)
+
+        if (!accessToken || !playlistId) return
+
+        try {
+            const itemIdsInOrder = data.map(i => i.id)
+            await apiReorderPlaylistItems(accessToken, playlistId, itemIdsInOrder)
+        } catch (error) {
+            console.error('Error reordering playlist:', error)
+            loadPlaylist()
+        }
+    }
+
+    const renderItem = ({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
         const track = item.track
         const work = track?.work
 
         return (
-            <Pressable style={styles.card} onPress={() => handlePlay(item)}>
-                {work?.coverUrl ? (
-                    <Image source={{ uri: work.coverUrl }} style={styles.thumbnail} />
-                ) : (
-                    <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-                        <Ionicons name="musical-notes" size={16} color="#3b4466" />
-                    </View>
-                )}
-
-                <View style={styles.info}>
-                    <Text style={styles.title} numberOfLines={1}>
-                        {track?.title || work?.title || 'Sem título'}
-                    </Text>
-                </View>
-
+            <ScaleDecorator>
                 <Pressable
-                    style={styles.removeBtn}
-                    onPress={(e) => {
-                        e.stopPropagation()
-                        handleRemove(item.id)
-                    }}
+                    style={[styles.card, isActive && styles.cardActive]}
+                    onPress={() => handlePlay(item)}
+                    onLongPress={drag}
+                    disabled={isActive}
                 >
-                    <Ionicons name="close-circle" size={20} color="#8b92b8" />
+                    {work?.coverUrl ? (
+                        <Image source={{ uri: work.coverUrl }} style={styles.thumbnail} />
+                    ) : (
+                        <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+                            <Ionicons name="musical-notes" size={20} color="#3b4466" />
+                        </View>
+                    )}
+
+                    <View style={styles.info}>
+                        <Text style={styles.title} numberOfLines={1}>
+                            {track?.title || work?.title || 'Sem título'}
+                        </Text>
+                    </View>
+
+                    <Pressable style={styles.dragHandle} onPressIn={drag}>
+                        <Ionicons name="reorder-three" size={24} color="#8b92b8" />
+                    </Pressable>
+
+                    <Pressable
+                        style={styles.removeBtn}
+                        onPress={(e) => {
+                            e.stopPropagation()
+                            handleRemove(item.id)
+                        }}
+                    >
+                        <Ionicons name="close-circle" size={20} color="#8b92b8" />
+                    </Pressable>
                 </Pressable>
-            </Pressable>
+            </ScaleDecorator>
         )
     }
 
@@ -130,7 +167,7 @@ export default function PlaylistScreen() {
     )
 
     return (
-        <View style={styles.container}>
+        <GestureHandlerRootView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Minha Playlist</Text>
                 <Text style={styles.headerSubtitle}>
@@ -142,16 +179,18 @@ export default function PlaylistScreen() {
                 <View style={styles.loading}>
                     <ActivityIndicator size="large" color="#A78BFA" />
                 </View>
+            ) : items.length === 0 ? (
+                renderEmpty()
             ) : (
-                <FlatList
+                <DraggableFlatList
                     data={items}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
+                    onDragEnd={handleDragEnd}
                     contentContainerStyle={styles.list}
-                    ListEmptyComponent={renderEmpty}
                 />
             )}
-        </View>
+        </GestureHandlerRootView>
     )
 }
 
@@ -196,6 +235,15 @@ const styles = StyleSheet.create({
         borderColor: '#1d2340',
         alignItems: 'center',
     },
+    cardActive: {
+        backgroundColor: '#1a1f3f',
+        borderColor: '#A78BFA',
+        elevation: 5,
+        shadowColor: '#A78BFA',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
     thumbnail: {
         width: 48,
         height: 48,
@@ -215,6 +263,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#e6e9ff',
+    },
+    dragHandle: {
+        padding: 4,
+        marginRight: 4,
     },
     removeBtn: {
         padding: 4,

@@ -20,7 +20,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       const normalized = Array.isArray(rawMsg) ? rawMsg.join(', ') : String(rawMsg)
       throw new Error(normalized)
     } catch {
-      // Texto pode vir como JSON ou string plana; se não parsear, retorne status amigável
       const friendly = text && text.startsWith('{') ? `HTTP ${res.status}` : (text || `HTTP ${res.status}`)
       throw new Error(friendly)
     }
@@ -37,82 +36,59 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function apiLogin(email: string, password: string) {
-  return request<{ user: any; accessToken: string; refreshToken: string }>(
-    '/auth/login',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    },
-  )
+  return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
 }
 
 export async function apiRegister(name: string, email: string, password: string) {
-  return request<{ user: any; accessToken: string; refreshToken: string }>(
-    '/auth/register',
-    {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    },
-  )
+  return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password }),
+  })
 }
 
 export async function apiRequestEmailVerification(email: string) {
-  return request<{ ok: boolean }>(
-    '/auth/email/verify/request',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    },
-  )
+  return request<{ ok: boolean }>('/auth/email/verify/request', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
 }
 
 export async function apiVerifyEmail(token: string) {
-  return request<{ user: any; accessToken: string; refreshToken: string }>(
-    '/auth/email/verify',
-    {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    },
-  )
+  return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/email/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
 }
 
 export async function apiForgotPassword(email: string) {
-  return request<{ ok: boolean }>(
-    '/auth/password/forgot',
-    {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    },
-  )
+  return request<{ ok: boolean }>('/auth/password/forgot', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
 }
 
 export async function apiResetPassword(token: string, newPassword: string) {
-  return request<{ ok: boolean }>(
-    '/auth/password/reset',
-    {
-      method: 'POST',
-      body: JSON.stringify({ token, newPassword }),
-    },
-  )
+  return request<{ ok: boolean }>('/auth/password/reset', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  })
 }
 
 export async function apiProfile(accessToken: string) {
   return request<any>('/auth/profile', {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
 
 export async function apiGoogleOAuth(idToken: string) {
-  return request<{ user: any; accessToken: string; refreshToken: string }>(
-    '/auth/oauth/google',
-    {
-      method: 'POST',
-      body: JSON.stringify({ idToken }),
-    },
-  )
+  return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/oauth/google', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
+  })
 }
 
 export async function apiGetProfiles(accessToken: string) {
@@ -262,5 +238,13 @@ export async function apiRemovePlaylistItem(accessToken: string, playlistId: str
   return request<void>(`/playlists/${playlistId}/items/${itemId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiReorderPlaylistItems(accessToken: string, playlistId: string, itemIdsInOrder: string[]) {
+  return request<void>(`/playlists/${playlistId}/items/reorder`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ itemIdsInOrder }),
   })
 }

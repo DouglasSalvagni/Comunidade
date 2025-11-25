@@ -18,6 +18,7 @@ const PlanSelector = () => {
   const [loading, setLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
   useEffect(() => {
@@ -60,7 +61,8 @@ const PlanSelector = () => {
         setSelectedPlan(null);
       } catch (error) {
         console.error("Erro ao processar mudança de plano:", error);
-        alert("Erro ao processar sua solicitação. Tente novamente.");
+        setIsDialogOpen(false);
+        setIsErrorDialogOpen(true);
       }
     }
   };
@@ -127,6 +129,25 @@ const PlanSelector = () => {
               className="bg-green-600 hover:bg-green-700 px-8"
             >
               Sim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Erro ao processar pedido</DialogTitle>
+            <DialogDescription>
+              Não foi possível preparar o seu pedido. Tente novamente mais tarde.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsErrorDialogOpen(false)}
+              className="bg-blue-600 hover:bg-blue-700 px-8"
+            >
+              Entendi
             </Button>
           </DialogFooter>
         </DialogContent>

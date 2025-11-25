@@ -70,6 +70,7 @@ export function PlayerProvider({ children }: { children: any }) {
   const isAutoAdvancing = useRef(false)
   const manualTimer = useRef<NodeJS.Timeout | null>(null)
   const lastTick = useRef<number | null>(null)
+  const onPlaybackStatusUpdateRef = useRef((status: AVPlaybackStatus) => { })
 
   // Configure audio mode for background playback on mount
   useEffect(() => {
@@ -163,9 +164,17 @@ export function PlayerProvider({ children }: { children: any }) {
       if (isAutoAdvancing.current) return
       isAutoAdvancing.current = true
       advanceQueue('next')
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => { isAutoAdvancing.current = false })
     }
+  }
+
+  useEffect(() => {
+    onPlaybackStatusUpdateRef.current = onPlaybackStatusUpdate
+  })
+
+  const onPlaybackStatusUpdateWrapper = (status: AVPlaybackStatus) => {
+    onPlaybackStatusUpdateRef.current(status)
   }
 
   // Helper function to safely unload current sound
@@ -197,7 +206,7 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   const getOrderedTracks = (work?: PlayerWork | null) => {
-    const tracks = Array.isArray(work?.tracks) ? [...(work as PlayerWork).tracks] : []
+    const tracks = work?.tracks ? [...work.tracks] : []
     return tracks
       .filter((t) => !!t?.id)
       .sort((a: any, b: any) => {
@@ -332,12 +341,12 @@ export function PlayerProvider({ children }: { children: any }) {
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },
         { shouldPlay: true, progressUpdateIntervalMillis: 500 },
-        onPlaybackStatusUpdate
+        onPlaybackStatusUpdateWrapper
       )
 
       // Ensure periodic status updates for progress
       await sound.setProgressUpdateIntervalAsync(500)
-      sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate)
+      sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdateWrapper)
 
       soundRef.current = sound
       // If we still don't have duration, compute from HLS playlist (or fallback to long duration to keep UI moving)

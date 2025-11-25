@@ -103,6 +103,54 @@ async function uploadDirToS3(prefix: string, dir: string) {
   }
 }
 
+async function getDuration(filePath: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const args = [
+      '-v', 'error',
+      '-show_entries', 'format=duration',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      filePath,
+    ];
+    const ff = spawn('ffprobe', args);
+    let output = '';
+    ff.stdout.on('data', (data) => { output += data.toString(); });
+    ff.on('close', (code) => {
+      if (code === 0) {
+        const duration = parseFloat(output.trim());
+        resolve(isNaN(duration) ? 0 : duration);
+      } else {
+        console.warn('[WORKER_LOG] ffprobe failed to get duration');
+        resolve(0); // Fallback to 0 if fails
+      }
+    });
+    ff.on('error', (err) => {
+      console.warn('[WORKER_LOG] ffprobe error:', err);
+      resolve(0);
+    });
+  });
+}
+
+async function getDurationFromHls(outDir: string, variants: string[]): Promise<number> {
+  // Fallback: sum EXTINF durations from the first variant playlist
+  const variant = variants[0];
+  if (!variant) return 0;
+  const playlistPath = join(outDir, variant, 'index.m3u8');
+  try {
+    const content = await fs.readFile(playlistPath, 'utf-8');
+    const matches: string[] = content.match(/#EXTINF:([0-9.]+)/g) ?? [];
+    const total = matches.reduce((acc: number, line: string) => {
+      const m = line.match(/#EXTINF:([0-9.]+)/);
+      if (!m) return acc;
+      const v = parseFloat(m[1]);
+      return acc + (isNaN(v) ? 0 : v);
+    }, 0);
+    return total;
+  } catch (err) {
+    console.warn('[WORKER_LOG] Failed to read HLS playlist for duration:', err);
+    return 0;
+  }
+}
+
 async function processJob(job: Job) {
   try {
     const { storageKey } = job.data;
@@ -134,6 +182,11 @@ async function processJob(job: Job) {
     const trackPre = await trackPreRepo.findOne({ where: { storageKey } });
     const trackId = trackPre ? trackPre.id : undefined;
     const inputPath = await downloadToTemp(storageKey);
+
+    // Calculate duration
+    let duration = await getDuration(inputPath);
+    console.log(`[WORKER_LOG] Calculated duration for ${storageKey}: ${duration}s (ffprobe)`);
+
     const key = crypto.randomBytes(16);
     const keyPrefix = `hls/${Date.now()}`;
     const keyLocalPath = join('/app/uploads', `enc-${Date.now()}.key`);
@@ -148,6 +201,14 @@ async function processJob(job: Job) {
     await fs.writeFile(keyInfoPath, `${keyUri}\n${keyLocalPath}\n${ivHex}`);
     const outDir = join('/app/uploads', `hls-${Date.now()}`);
     const { masterPath, variants } = await transcodeMultiHls(inputPath, outDir, keyInfoPath);
+
+    // Fallback duration calculation if ffprobe failed
+    if (!duration || duration <= 0) {
+      const hlsDuration = await getDurationFromHls(outDir, variants);
+      duration = hlsDuration ? hlsDuration : 0;
+      console.log(`[WORKER_LOG] Duration fallback (HLS) for ${storageKey}: ${duration}s`);
+    }
+
     await uploadDirToS3(keyPrefix, outDir);
     const manifestStorageKey = `${keyPrefix}/master.m3u8`;
 
@@ -161,6 +222,7 @@ async function processJob(job: Job) {
       track.hlsEncryptionKey = key.toString('hex');
       track.bitrateVariants = variants;
       track.encryptionKeyId = track.id;
+      track.durationSeconds = Math.round(duration); // Save duration
       await trackRepo.save(track);
     }
     await fs.unlink(inputPath);

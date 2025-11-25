@@ -17,6 +17,7 @@ type PlayerContextValue = {
   prevTrack: () => Promise<void>
   playWork: (work: PlayerWork) => Promise<void>
   playTrack: (track: PlayerTrack, work?: PlayerWork) => Promise<void>
+  seekTo: (seconds: number) => Promise<void>
   togglePlay: () => Promise<void>
   toggleFavorite: () => Promise<void>
   isFavorite: boolean
@@ -265,7 +266,7 @@ export function PlayerProvider({ children }: { children: any }) {
       setIsPlaying(false)
 
       // Get streaming URL from backend
-      const res = await apiGetStreamingUrl(accessToken, track.id)
+      const res = await apiGetStreamingUrl(accessToken, track.id, 'original')
       const url = (res as any)?.url || ''
       if (!url) {
         console.error('No streaming URL returned')
@@ -355,6 +356,19 @@ export function PlayerProvider({ children }: { children: any }) {
     }
   }
 
+  async function seekTo(seconds: number) {
+    if (!soundRef.current || isLoadingTrack.current) return
+    try {
+      const clamped = Math.max(0, Math.min(duration || seconds, seconds))
+      const status = await soundRef.current.playFromPositionAsync(clamped * 1000)
+      console.log('[PLAYER][seek] to', clamped, 'status loaded?', status.isLoaded)
+      setPosition(clamped)
+      lastTick.current = Date.now()
+    } catch (error) {
+      console.error('Error seeking:', error)
+    }
+  }
+
   const value = useMemo(
     () => ({
       currentTrack,
@@ -366,6 +380,7 @@ export function PlayerProvider({ children }: { children: any }) {
       prevTrack,
       playWork,
       playTrack,
+      seekTo,
       togglePlay,
       toggleFavorite,
       isFavorite,

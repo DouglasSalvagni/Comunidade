@@ -179,8 +179,9 @@ export async function apiGetFavorites(accessToken: string, params?: {
   })
 }
 
-export async function apiGetStreamingUrl(accessToken: string, trackId: string) {
-  return request<{ url: string; expiresAt?: string }>(`/playback/${trackId}/url`, {
+export async function apiGetStreamingUrl(accessToken: string, trackId: string, format: 'hls' | 'original' = 'hls') {
+  const qs = format ? `?format=${format}` : ''
+  return request<{ url: string; expiresAt?: string }>(`/playback/${trackId}/url${qs}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
   })

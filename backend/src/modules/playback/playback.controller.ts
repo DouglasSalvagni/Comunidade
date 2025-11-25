@@ -23,12 +23,13 @@ export class PlaybackController {
 
   @Get(':trackId/url')
   @ApiBearerAuth()
+  @ApiQuery({ name: 'format', required: false, enum: ['hls', 'original'], description: 'Preferred stream format' })
   @ApiOperation({ summary: 'Get streaming URL for a track' })
   @ApiResponse({ status: 200, description: 'Streaming URL retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Subscription required.' })
   @ApiResponse({ status: 404, description: 'Track not found.' })
-  async getStreamingUrl(@Request() req, @Param('trackId') trackId: string) {
-    return this.playbackService.getStreamingUrl(trackId, req.user.userId);
+  async getStreamingUrl(@Request() req, @Param('trackId') trackId: string, @Query('format') format?: 'hls' | 'original') {
+    return this.playbackService.getStreamingUrl(trackId, req.user.userId, format);
   }
 
   @Post('events')

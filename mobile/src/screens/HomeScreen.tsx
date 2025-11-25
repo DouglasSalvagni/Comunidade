@@ -24,6 +24,7 @@ export default function HomeScreen({ onLogout }: Props) {
     isPlaying,
     position,
     duration,
+    seekTo,
     togglePlay,
     nextTrack,
     prevTrack,
@@ -34,6 +35,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
   const [bottomNavHeight, setBottomNavHeight] = useState(70)
   const [playerVisible, setPlayerVisible] = useState(false)
+  const [progressBarWidth, setProgressBarWidth] = useState(1)
 
   useEffect(() => {
     if (!currentTrack) setPlayerVisible(false)
@@ -55,6 +57,14 @@ export default function HomeScreen({ onLogout }: Props) {
   const hasNext = currentIndex >= 0 && currentIndex < orderedTracks.length - 1
 
   const progress = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0
+
+  const handleSeek = (event: any) => {
+    if (!duration || duration <= 0) return
+    const x = event?.nativeEvent?.locationX || 0
+    const ratio = progressBarWidth ? Math.min(1, Math.max(0, x / progressBarWidth)) : 0
+    const newPos = ratio * duration
+    seekTo(newPos)
+  }
 
   const formatTime = (value: number) => {
     if (!Number.isFinite(value)) return '0:00'
@@ -134,7 +144,14 @@ export default function HomeScreen({ onLogout }: Props) {
             <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
             <Text style={styles.playerSubtitle} numberOfLines={2}>{currentWork.title || ''}</Text>
 
-            <View style={styles.progressBar}>
+            <View
+              style={styles.progressBar}
+              onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
+              onStartShouldSetResponder={() => true}
+              onResponderGrant={handleSeek}
+              onResponderMove={handleSeek}
+              onResponderRelease={handleSeek}
+            >
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
             <View style={styles.progressTimes}>

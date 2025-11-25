@@ -33,7 +33,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://7254a3a4556e.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://cf6e8ed7f1e4.ngrok-free.app/api/v1",
       "googleOAuth": {
         "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com"
       }

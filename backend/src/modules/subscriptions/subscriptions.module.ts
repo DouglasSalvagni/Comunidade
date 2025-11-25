@@ -15,6 +15,7 @@ import { GatewayMetaService } from './services/gateway-meta.service';
 import { GatewayWebhookService } from './services/gateway-webhook.service';
 import { InvoiceService } from './services/invoice.service';
 import { AsaasPaymentGateway } from './providers/asaas-payment.gateway';
+import { PremiumGuard } from './guards/premium.guard';
 
 @Module({
   imports: [
@@ -26,12 +27,13 @@ import { AsaasPaymentGateway } from './providers/asaas-payment.gateway';
     GatewayMetaService,
     GatewayWebhookService,
     InvoiceService,
+    PremiumGuard,
     {
       provide: 'ASAAS_GATEWAY',
       useClass: AsaasPaymentGateway,
     },
   ],
   controllers: [SubscriptionsController, WebhooksController, AsaasCallbackController, InvoicesController],
-  exports: [SubscriptionsService, GatewayMetaService, GatewayWebhookService, InvoiceService],
+  exports: [SubscriptionsService, GatewayMetaService, GatewayWebhookService, InvoiceService, PremiumGuard],
 })
 export class SubscriptionsModule { }

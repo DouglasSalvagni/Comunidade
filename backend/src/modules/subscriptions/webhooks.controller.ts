@@ -16,6 +16,7 @@ import { InvoiceService } from './services/invoice.service';
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
+  private lastSubscriptionData: any = null;
 
   constructor(
     private readonly subscriptionsService: SubscriptionsService,
@@ -64,7 +65,13 @@ export class WebhooksController {
 
         case 'PAYMENT_RECEIVED':
         case 'PAYMENT_CONFIRMED':
+          await this.handlePaymentConfirmed(payload);
+          break;
+
         case 'PAYMENT_OVERDUE':
+          await this.handlePaymentOverdue(payload);
+          break;
+
         case 'PAYMENT_REFUNDED':
           await this.handlePaymentStatusChange(payload);
           break;
@@ -81,7 +88,7 @@ export class WebhooksController {
   }
 
   /**
-   * Processa subscription criada - busca usuário pelo checkoutSession
+   * Processa subscription criada - busca usuário pelo checkoutSession e cria invoice do primeiro pagamento
    */
   private async handleSubscriptionCreated(payload: any) {
     const subscription = payload.subscription;
@@ -90,6 +97,9 @@ export class WebhooksController {
       this.logger.error('❌ Subscription não encontrada no payload');
       return;
     }
+
+    // Guarda dados da subscription para usar ao criar invoice
+    this.lastSubscriptionData = subscription;
 
     const checkoutSessionId = subscription.checkoutSession;
 
@@ -101,9 +111,12 @@ export class WebhooksController {
     this.logger.log(`📝 Processando subscription com checkoutSession: ${checkoutSessionId}`);
 
     try {
-      await this.subscriptionsService.processPaymentReceived(checkoutSessionId, subscription);
+      const createdSubscription = await this.subscriptionsService.processPaymentReceived(checkoutSessionId, subscription);
 
-      this.logger.log(`✅ Subscription criada com sucesso (invoice será criada no PAYMENT_CREATED)`);
+      this.logger.log(`✅ Subscription criada com sucesso`);
+
+      // Busca dados da subscription no Asaas para pegar o primeiro pagamento
+      await this.createFirstInvoiceFromAsaas(subscription.id, createdSubscription);
     } catch (error) {
       // Ignora erro se checkoutSession não for encontrado (webhook antigo ou de outro ambiente)
       if (error.status === 404 && error.message?.includes('checkoutSession')) {
@@ -112,6 +125,49 @@ export class WebhooksController {
       }
       // Re-lança outros tipos de erro
       throw error;
+    }
+  }
+
+  /**
+   * Cria invoice inicial da subscription usando o ID da subscription como providerId
+   * (Asaas não cria payment separado para primeira mensalidade)
+   */
+  private async createFirstInvoiceFromAsaas(asaasSubscriptionId: string, localSubscription: any) {
+    try {
+      this.logger.log(`📝 Criando invoice inicial para subscription ${asaasSubscriptionId}`);
+
+      // Busca dados da subscription do webhook
+      const subscriptionData = this.lastSubscriptionData;
+
+      if (!subscriptionData) {
+        this.logger.warn(`⚠️ Dados da subscription não encontrados no webhook`);
+        return;
+      }
+
+      // Asaas não cria payment separado para primeira mensalidade
+      // Usamos o ID da subscription como providerId
+      const providerId = asaasSubscriptionId;
+
+      // Determina status: se subscription está ACTIVE, primeiro pagamento foi confirmado
+      const invoiceStatus = subscriptionData.status === 'ACTIVE' ? 'CONFIRMED' : 'PENDING';
+
+      // Cria invoice inicial (upsert evita duplicação)
+      // Data de validade = data de criação da subscription (primeira mensalidade é imediata)
+      await this.invoiceService.create({
+        userId: localSubscription.userId,
+        subscriptionId: localSubscription.id,
+        provider: 'asaas',
+        providerId: providerId,
+        dueDate: new Date(this.parseBrazilianDate(subscriptionData.dateCreated)),
+        status: invoiceStatus as any,
+        invoiceUrl: null, // Primeira invoice não tem URL separada
+        amount: subscriptionData.value,
+      });
+
+      this.logger.log(`✅ Invoice inicial criada: ${providerId} (${invoiceStatus})`);
+    } catch (error) {
+      this.logger.error(`❌ Erro ao criar invoice inicial: ${error.message}`);
+      // Não re-lança erro para não falhar o webhook
     }
   }
 
@@ -164,7 +220,108 @@ export class WebhooksController {
   }
 
   /**
-   * Atualiza status de pagamento existente
+   * Processa pagamento confirmado - atualiza invoice e ativa subscription
+   */
+  private async handlePaymentConfirmed(payload: any) {
+    const payment = payload.payment;
+
+    if (!payment) {
+      this.logger.warn('⚠️ Payment não encontrado no payload');
+      return;
+    }
+
+    // Busca subscription local pelo ID do ASAAS
+    const subscription = await this.subscriptionsService.findByProviderId(
+      'asaas',
+      payment.subscription,
+    );
+
+    if (!subscription) {
+      this.logger.warn(`⚠️ Subscription ${payment.subscription} não encontrada localmente`);
+      return;
+    }
+
+    // Busca ou cria invoice
+    let invoice = await this.invoiceService.findByProviderId(
+      'asaas',
+      payment.id,
+    );
+
+    if (!invoice) {
+      // Cria invoice se não existir (primeiro pagamento)
+      invoice = await this.invoiceService.create({
+        userId: subscription.userId,
+        subscriptionId: subscription.id,
+        provider: 'asaas',
+        providerId: payment.id,
+        dueDate: new Date(this.parseBrazilianDate(payment.dueDate)),
+        status: 'CONFIRMED',
+        invoiceUrl: payment.invoiceUrl || null,
+        amount: payment.value,
+      });
+      this.logger.log(`✅ Invoice criada e confirmada: ${payment.id}`);
+    } else {
+      // Atualiza invoice existente
+      await this.invoiceService.updateStatus(
+        'asaas',
+        payment.id,
+        'CONFIRMED',
+        payment.invoiceUrl,
+      );
+      this.logger.log(`✅ Invoice confirmada: ${payment.id}`);
+    }
+
+    // Ativa a assinatura quando o pagamento é confirmado
+    await this.subscriptionsService.activateSubscription(subscription.id);
+    this.logger.log(`✅ Assinatura ativada: ${subscription.id}`);
+  }
+
+  /**
+   * Processa pagamento vencido - atualiza invoice e pausa subscription
+   */
+  private async handlePaymentOverdue(payload: any) {
+    const payment = payload.payment;
+
+    if (!payment) {
+      this.logger.warn('⚠️ Payment não encontrado no payload');
+      return;
+    }
+
+    // Busca subscription local pelo ID do ASAAS
+    const subscription = await this.subscriptionsService.findByProviderId(
+      'asaas',
+      payment.subscription,
+    );
+
+    if (!subscription) {
+      this.logger.warn(`⚠️ Subscription ${payment.subscription} não encontrada localmente`);
+      return;
+    }
+
+    // Atualiza status da invoice
+    try {
+      await this.invoiceService.updateStatus(
+        'asaas',
+        payment.id,
+        'OVERDUE',
+        payment.invoiceUrl,
+      );
+      this.logger.log(`✅ Invoice marcada como vencida: ${payment.id}`);
+    } catch (error) {
+      if (error.status === 404) {
+        this.logger.warn(`⚠️ Invoice ${payment.id} não encontrada - ignorando`);
+      } else {
+        throw error;
+      }
+    }
+
+    // Pausa a assinatura quando há pagamento vencido
+    await this.subscriptionsService.pauseSubscription(subscription.id);
+    this.logger.log(`⏸️ Assinatura pausada devido a pagamento vencido: ${subscription.id}`);
+  }
+
+  /**
+   * Atualiza status de pagamento existente (refund)
    */
   private async handlePaymentStatusChange(payload: any) {
     const payment = payload.payment;
@@ -174,18 +331,9 @@ export class WebhooksController {
       return;
     }
 
-    // Mapeia evento para status (eventos não mapeados ficam como PENDING)
-    const statusMap: Record<string, string> = {
-      PAYMENT_RECEIVED: 'CONFIRMED',
-      PAYMENT_CONFIRMED: 'CONFIRMED',
-      PAYMENT_OVERDUE: 'OVERDUE',
-      PAYMENT_REFUNDED: 'REFUNDED',
-    };
-
-    const newStatus = statusMap[payload.event];
-
-    if (!newStatus) {
-      this.logger.warn(`⚠️ Status não mapeado para evento: ${payload.event}`);
+    // Apenas trata REFUNDED aqui
+    if (payload.event !== 'PAYMENT_REFUNDED') {
+      this.logger.warn(`⚠️ Evento não esperado neste handler: ${payload.event}`);
       return;
     }
 
@@ -193,11 +341,11 @@ export class WebhooksController {
       await this.invoiceService.updateStatus(
         'asaas',
         payment.id,
-        newStatus as any,
+        'REFUNDED',
         payment.invoiceUrl,
       );
 
-      this.logger.log(`✅ Status da fatura ${payment.id} atualizado para ${newStatus}`);
+      this.logger.log(`✅ Status da fatura ${payment.id} atualizado para REFUNDED`);
     } catch (error) {
       // Ignora erro se invoice não existir (pode ser um pagamento avulso)
       if (error.status === 404) {

@@ -11,7 +11,7 @@ export class InvoiceService {
   ) { }
 
   /**
-   * Cria uma nova fatura
+   * Cria ou atualiza uma fatura (upsert baseado em provider + providerId)
    */
   async create(data: {
     userId: string;
@@ -23,6 +23,24 @@ export class InvoiceService {
     invoiceUrl?: string;
     amount: number;
   }): Promise<Invoice> {
+    // Busca invoice existente
+    const existingInvoice = await this.findByProviderId(data.provider, data.providerId);
+
+    if (existingInvoice) {
+      // Atualiza invoice existente
+      existingInvoice.status = data.status;
+      existingInvoice.dueDate = data.dueDate;
+      existingInvoice.amount = data.amount;
+      if (data.invoiceUrl) {
+        existingInvoice.invoiceUrl = data.invoiceUrl;
+      }
+      if (data.subscriptionId) {
+        existingInvoice.subscriptionId = data.subscriptionId;
+      }
+      return this.invoiceRepository.save(existingInvoice);
+    }
+
+    // Cria nova invoice
     const invoice = this.invoiceRepository.create(data);
     return this.invoiceRepository.save(invoice);
   }

@@ -293,4 +293,70 @@ export class SubscriptionsService {
       },
     });
   }
+
+  /**
+   * Ativa uma assinatura
+   */
+  async activateSubscription(subscriptionId: string): Promise<void> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription ${subscriptionId} não encontrada`);
+    }
+
+    subscription.status = 'active';
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  /**
+   * Pausa uma assinatura
+   */
+  async pauseSubscription(subscriptionId: string): Promise<void> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription ${subscriptionId} não encontrada`);
+    }
+
+    subscription.status = 'past_due';
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  /**
+   * Verifica se a assinatura do usuário está válida
+   * (todas as faturas vencidas devem estar pagas)
+   */
+  async isSubscriptionValid(userId: string): Promise<boolean> {
+    const subscription = await this.getCurrentSubscription(userId);
+
+    if (!subscription) {
+      return false;
+    }
+
+    // Se está com status diferente de active, não é válida
+    if (subscription.status !== 'active') {
+      return false;
+    }
+
+    // Verifica se período ainda está válido
+    if (subscription.periodEnd && new Date() > subscription.periodEnd) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Busca pagamentos de uma subscription no gateway Asaas
+   */
+  async getAsaasSubscription(asaasSubscriptionId: string): Promise<any> {
+    if (this.asaasGateway.getSubscriptionPayments) {
+      return this.asaasGateway.getSubscriptionPayments(asaasSubscriptionId);
+    }
+    throw new Error('Gateway não suporta busca de pagamentos');
+  }
 }

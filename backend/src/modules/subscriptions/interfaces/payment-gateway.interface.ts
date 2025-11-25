@@ -19,4 +19,10 @@ export interface IPaymentGateway {
     planName: string,
     planDescription: string,
   ): Promise<{ checkoutUrl: string; checkoutId: string }>;
+
+  /**
+   * Busca pagamentos de uma subscription no gateway
+   * @param subscriptionId ID da subscription no gateway
+   */
+  getSubscriptionPayments?(subscriptionId: string): Promise<any>;
 }

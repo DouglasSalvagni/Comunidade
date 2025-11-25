@@ -78,10 +78,6 @@ export class AsaasPaymentGateway implements IPaymentGateway {
       nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
     }
 
-    // Calcula endDate: 1 ano no futuro
-    const endDate = new Date(today);
-    endDate.setFullYear(endDate.getFullYear() + 1);
-
     const body = {
       billingTypes: ['CREDIT_CARD'],
       chargeTypes: ['RECURRENT'],
@@ -90,6 +86,7 @@ export class AsaasPaymentGateway implements IPaymentGateway {
         cancelUrl: `${this.appUrl}/asaas/checkout/cancel`,
         expiredUrl: `${this.appUrl}/asaas/checkout/expired`,
       },
+      externalReference: 'babytunes',
       items: [
         {
           description: planDescription,
@@ -102,7 +99,6 @@ export class AsaasPaymentGateway implements IPaymentGateway {
       minutesToExpire: 120,
       subscription: {
         cycle,
-        endDate: endDate.toISOString().split('T')[0],
         nextDueDate: nextDueDate.toISOString().split('T')[0],
       },
     };
@@ -133,6 +129,24 @@ export class AsaasPaymentGateway implements IPaymentGateway {
       checkoutUrl: checkout.link,
       checkoutId: checkout.id,
     };
+  }
+
+  /**
+   * Busca pagamentos de uma subscription no Asaas
+   */
+  async getSubscriptionPayments(subscriptionId: string): Promise<any> {
+    this.logger.log(`🔍 Buscando pagamentos da subscription ${subscriptionId} no Asaas`);
+
+    try {
+      const response = await this.request<any>(`/subscriptions/${subscriptionId}/payments`, 'GET');
+      this.logger.log(`✅ Pagamentos encontrados: ${response.totalCount} pagamento(s)`);
+
+      // Retorna a lista completa para o service processar
+      return response;
+    } catch (error) {
+      this.logger.error(`❌ Erro ao buscar pagamentos: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

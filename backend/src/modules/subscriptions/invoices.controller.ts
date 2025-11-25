@@ -13,6 +13,6 @@ export class InvoicesController {
   @Get()
   @ApiOperation({ summary: 'Listar faturas do usuário autenticado' })
   async list(@Request() req: any) {
-    return this.invoiceService.findByUser(req.user.id);
+    return this.invoiceService.findByUser(req.user.userId);
   }
 }

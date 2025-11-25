@@ -125,6 +125,20 @@ export interface Subscription {
   updatedAt: string;
 }
 
+export interface Invoice {
+  id: string;
+  userId: string;
+  subscriptionId: string;
+  provider: string;
+  providerId: string;
+  dueDate: string;
+  status: 'PENDING' | 'CONFIRMED' | 'OVERDUE' | 'REFUNDED';
+  invoiceUrl?: string;
+  amount: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Classe principal da API
 class ApiService {
   private client: AxiosInstance;
@@ -480,6 +494,13 @@ class ApiService {
     return response.data.data;
   }
 
+  async getInvoices(): Promise<Invoice[]> {
+    const response = await this.client.get('/invoices');
+    // Backend retorna array diretamente, interceptor encapsula em { data: [...] }
+    const invoices = response.data?.data || response.data;
+    return Array.isArray(invoices) ? invoices : [];
+  }
+
   // ===== ADMIN =====
   async adminGetWorks(params?: any): Promise<{ data: Work[]; meta: any }> {
     const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/admin/works', {
@@ -570,18 +591,3 @@ class ApiService {
 
 // Exportar instância única da API
 export const api = new ApiService();
-
-// Exportar tipos
-export type {
-  User,
-  Profile,
-  Plan,
-  Work,
-  Track,
-  Tag,
-  Favorite,
-  Subscription,
-  AuthResponse,
-  ApiResponse,
-  ApiError,
-};

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import PlanSelector from "@/components/PlanSelector";
-import { api, Subscription } from "@/services/api";
+import { api, Subscription, Invoice } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,23 +17,29 @@ import {
 
 const SubscriptionPage = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchSubscription = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await api.getCurrentSubscription();
-        setSubscription(data);
+        const [subscriptionData, invoicesData] = await Promise.all([
+          api.getCurrentSubscription(),
+          api.getInvoices(),
+        ]);
+        setSubscription(subscriptionData);
+        setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       } catch (error) {
-        console.error("Erro ao buscar assinatura:", error);
+        console.error("Erro ao buscar dados:", error);
+        setInvoices([]); // Garante que seja array vazio em caso de erro
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSubscription();
+    fetchData();
   }, []);
 
   const handleCancelSubscription = async () => {
@@ -161,23 +167,44 @@ const SubscriptionPage = () => {
           <CardTitle>Histórico de Faturamento</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2">Data</th>
-                <th className="text-left py-2">Descrição</th>
-                <th className="text-right py-2">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-2">15/07/2024</td>
-                <td>Plano Família - Anual</td>
-                <td className="text-right">R$ 199,90</td>
-              </tr>
-              {/* Adicionar mais linhas de histórico aqui */}
-            </tbody>
-          </table>
+          {invoices.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">Nenhuma fatura encontrada</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Criação</th>
+                  <th className="text-left py-2">Validade</th>
+                  <th className="text-left py-2">Status</th>
+                  <th className="text-right py-2">Valor</th>
+                  <th className="text-right py-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="border-b">
+                    <td className="py-2">{formatDate(invoice.createdAt)}</td>
+                    <td className="py-2">{formatDate(invoice.dueDate)}</td>
+                    <td className="py-2">
+                      <Badge variant={invoice.status === 'CONFIRMED' ? 'default' : invoice.status === 'OVERDUE' ? 'destructive' : 'secondary'}>
+                        {invoice.status === 'CONFIRMED' ? 'Pago' : invoice.status === 'PENDING' ? 'Pendente' : invoice.status === 'OVERDUE' ? 'Atrasado' : 'Reembolsado'}
+                      </Badge>
+                    </td>
+                    <td className="text-right py-2">R$ {parseFloat(invoice.amount).toFixed(2).replace('.', ',')}</td>
+                    <td className="text-right py-2">
+                      {invoice.invoiceUrl ? (
+                        <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          Ver Fatura
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
     </div>

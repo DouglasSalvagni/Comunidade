@@ -23,7 +23,9 @@ type PlayerContextValue = {
   togglePlay: () => Promise<void>
   toggleFavorite: () => Promise<void>
   isFavorite: boolean
+  isFavorite: boolean
   stop: () => Promise<void>
+  removeFromQueue: (trackId: string) => void
 }
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
@@ -229,20 +231,27 @@ export function PlayerProvider({ children }: { children: any }) {
 
     // If playlist queue is active and we have an index, use it for consistency
     if (queueSource === 'playlist' && typeof queueIndex === 'number' && queueIndex >= 0) {
-      const nextIdx =
-        direction === 'next'
-          ? (queueIndex + 1) % tracks.length
-          : (queueIndex - 1 + tracks.length) % tracks.length
-      return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+      if (direction === 'next') {
+        if (queueIndex >= tracks.length - 1) return { track: null, tracksSource: tracks }
+        const nextIdx = queueIndex + 1
+        return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+      } else {
+        const nextIdx = (queueIndex - 1 + tracks.length) % tracks.length
+        return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+      }
     }
 
     let idx = currentTrack ? tracks.findIndex((t) => t.id === currentTrack.id) : -1
     if (idx === -1) idx = 0
-    const nextIdx =
-      direction === 'next'
-        ? (idx + 1) % tracks.length
-        : (idx - 1 + tracks.length) % tracks.length
-    return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+
+    if (direction === 'next') {
+      if (idx >= tracks.length - 1) return { track: null, tracksSource: tracks }
+      const nextIdx = idx + 1
+      return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+    } else {
+      const nextIdx = (idx - 1 + tracks.length) % tracks.length
+      return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+    }
   }
 
   const hasPrev = useMemo(() => {
@@ -430,6 +439,18 @@ export function PlayerProvider({ children }: { children: any }) {
     }
   }
 
+  function removeFromQueue(trackId: string) {
+    if (queueSource === 'playlist' && queue) {
+      const newQueue = queue.filter(t => t.id !== trackId)
+      setQueue(newQueue)
+      // Update index if we are currently playing
+      if (currentTrack) {
+        const newIdx = newQueue.findIndex(t => t.id === currentTrack.id)
+        setQueueIndex(newIdx >= 0 ? newIdx : null)
+      }
+    }
+  }
+
   const value = useMemo(
     () => ({
       currentTrack,
@@ -446,8 +467,10 @@ export function PlayerProvider({ children }: { children: any }) {
       seekTo,
       togglePlay,
       toggleFavorite,
+      toggleFavorite,
       isFavorite,
-      stop
+      stop,
+      removeFromQueue
     }),
     [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev],
   )

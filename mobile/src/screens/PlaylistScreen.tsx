@@ -15,7 +15,7 @@ type PlaylistItem = {
 
 export default function PlaylistScreen() {
     const { accessToken, activeProfileId } = useAuth()
-    const { playTrack } = usePlayer()
+    const { playTrack, removeFromQueue } = usePlayer()
     const [items, setItems] = useState<PlaylistItem[]>([])
     const [loading, setLoading] = useState(true)
     const [playlistId, setPlaylistId] = useState<string | null>(null)
@@ -97,6 +97,11 @@ export default function PlaylistScreen() {
 
     const handleRemove = async (itemId: string) => {
         if (!accessToken || !playlistId) return
+
+        const itemToRemove = items.find(i => i.id === itemId)
+        if (itemToRemove && itemToRemove.track) {
+            removeFromQueue(itemToRemove.track.id)
+        }
 
         try {
             await apiRemovePlaylistItem(accessToken, playlistId, itemId)

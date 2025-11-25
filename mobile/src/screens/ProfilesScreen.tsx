@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Modal } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
 import { apiGetProfiles, apiCreateProfile, apiUpdateProfile, apiDeleteProfile } from '../services/api'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
-import DateTimePicker from '@react-native-community/datetimepicker'
 
 type Props = {
   onBack?: () => void
@@ -20,8 +19,6 @@ export default function ProfilesScreen({ onBack }: Props) {
   const [editBirthDate, setEditBirthDate] = useState('')
   const [newName, setNewName] = useState('')
   const [newBirthDate, setNewBirthDate] = useState('')
-  const [showNewPicker, setShowNewPicker] = useState(false)
-  const [showEditPickerIndex, setShowEditPickerIndex] = useState<number | null>(null)
   const [errorMsg, setErrorMsg] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [editingSaving, setEditingSaving] = useState(false)
@@ -43,7 +40,7 @@ export default function ProfilesScreen({ onBack }: Props) {
             setActiveProfileId(arr[0].id)
           }
         }
-      } catch {}
+      } catch { }
       if (mounted) setLoading(false)
     }
     load()
@@ -56,12 +53,49 @@ export default function ProfilesScreen({ onBack }: Props) {
     setTimeout(() => setInfoMsg(''), 1500)
   }
 
+  const handleBirthDateChange = (text: string, isEdit: boolean) => {
+    const currentValue = isEdit ? editBirthDate : newBirthDate
+
+    // Se o usuário está deletando (texto novo é menor que o anterior)
+    // e termina com "/", remove a barra também
+    if (text.length < currentValue.length && text.endsWith('/')) {
+      text = text.slice(0, -1)
+    }
+
+    const numbers = text.replace(/\D/g, '').slice(0, 8)
+    let formatted = numbers
+    if (numbers.length > 2 && numbers.length <= 4) {
+      formatted = numbers.slice(0, 2) + '/' + numbers.slice(2)
+    } else if (numbers.length > 4) {
+      formatted = numbers.slice(0, 2) + '/' + numbers.slice(2, 4) + '/' + numbers.slice(4, 8)
+    }
+    if (isEdit) {
+      setEditBirthDate(formatted)
+    } else {
+      setNewBirthDate(formatted)
+    }
+  }
+
+  const convertToISO = (dateStr: string): string | null => {
+    const parts = dateStr.split('/')
+    if (parts.length !== 3) return null
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
+  }
+
+  const convertFromISO = (isoDate: string): string => {
+    if (!isoDate) return ''
+    const parts = isoDate.split('-')
+    if (parts.length !== 3) return isoDate
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+
   async function saveEdit(i: number) {
     const p = items[i]
     try {
       setEditingSaving(true)
       const payload: any = { name: editName }
-      if (/^\d{4}-\d{2}-\d{2}$/.test(editBirthDate)) payload.birthDate = editBirthDate
+      const isoDate = convertToISO(editBirthDate)
+      if (isoDate) payload.birthDate = isoDate
       const updated = await apiUpdateProfile(accessToken as string, p.id, payload)
       setItems((prev) => prev.map((it) => (it.id === p.id ? updated : it)))
       setEditIndex(null)
@@ -69,7 +103,7 @@ export default function ProfilesScreen({ onBack }: Props) {
       setEditBirthDate('')
       setErrorMsg('')
       setEditingSaving(false)
-    } catch {}
+    } catch { }
     finally { setEditingSaving(false) }
   }
 
@@ -87,7 +121,7 @@ export default function ProfilesScreen({ onBack }: Props) {
       try {
         const list = await apiGetProfiles(accessToken as string)
         setItems(Array.isArray(list) ? list : [])
-      } catch {}
+      } catch { }
       setInfoMsg('Perfil excluído')
       setTimeout(() => setInfoMsg(''), 2000)
     } catch (e: any) {
@@ -98,13 +132,13 @@ export default function ProfilesScreen({ onBack }: Props) {
   async function addNew() {
     console.log('[ProfilesScreen] addNew clicked')
     const nameOk = (newName || '').trim().length >= 2
-    const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(newBirthDate)
+    const isoDate = convertToISO(newBirthDate)
     if (!accessToken) { setErrorMsg('Sessão inválida'); return }
     if (!nameOk) { setErrorMsg('Nome deve ter pelo menos 2 caracteres'); return }
-    if (!dateOk) { setErrorMsg('Data de nascimento inválida'); return }
+    if (!isoDate) { setErrorMsg('Data de nascimento inválida (use DD/MM/AAAA)'); return }
     try {
       setSaving(true)
-      const payload = { name: newName.trim(), birthDate: newBirthDate }
+      const payload = { name: newName.trim(), birthDate: isoDate }
       console.log('[ProfilesScreen] payload', payload)
       const created = await apiCreateProfile(accessToken, payload)
       console.log('[ProfilesScreen] created profile', created)
@@ -160,25 +194,15 @@ export default function ProfilesScreen({ onBack }: Props) {
                   <View style={{ flex: 1 }}>
                     <Input label={'Nome'} value={editName} onChangeText={setEditName} placeholder="Nome" />
                     <Text style={styles.label}>Data de nascimento</Text>
-                    <Pressable style={styles.dateButton} onPress={() => setShowEditPickerIndex(i)}>
-                      <Text style={styles.dateText}>{editBirthDate || 'Selecionar data'}</Text>
-                    </Pressable>
-                    {showEditPickerIndex === i && (
-                      <DateTimePicker
-                        value={editBirthDate ? new Date(editBirthDate) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(e, d) => {
-                          setShowEditPickerIndex(null)
-                          if (d) {
-                            const yyyy = d.getFullYear()
-                            const mm = String(d.getMonth() + 1).padStart(2, '0')
-                            const dd = String(d.getDate()).padStart(2, '0')
-                            setEditBirthDate(`${yyyy}-${mm}-${dd}`)
-                          }
-                        }}
-                      />
-                    )}
+                    <TextInput
+                      style={styles.dateInput}
+                      placeholder="DD/MM/AAAA"
+                      placeholderTextColor="#8b92b8"
+                      value={editBirthDate}
+                      onChangeText={(text) => handleBirthDateChange(text, true)}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
                   </View>
                   <View style={styles.actions}>
                     <PrimaryButton title={editingSaving ? 'Salvando...' : 'Salvar'} onPress={() => saveEdit(i)} disabled={editingSaving} />
@@ -192,7 +216,7 @@ export default function ProfilesScreen({ onBack }: Props) {
                   </Pressable>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemName}>{p.name}</Text>
-                    <Text style={styles.itemSub}>{p.birthDate || '-'}</Text>
+                    <Text style={styles.itemSub}>{convertFromISO(p.birthDate) || '-'}</Text>
                   </View>
                   <View style={styles.actionsIcons}>
                     <Pressable
@@ -200,7 +224,7 @@ export default function ProfilesScreen({ onBack }: Props) {
                       style={[styles.iconBtn, (deletingId === p.id) && styles.iconBtnDisabled]}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       disabled={deletingId === p.id}
-                      onPress={() => { setEditIndex(i); setEditName(p.name); setEditBirthDate(p.birthDate || '') }}
+                      onPress={() => { setEditIndex(i); setEditName(p.name); setEditBirthDate(convertFromISO(p.birthDate || '')) }}
                     >
                       <Ionicons name="create-outline" size={22} color="#cfd3ff" />
                     </Pressable>
@@ -223,25 +247,15 @@ export default function ProfilesScreen({ onBack }: Props) {
           <Text style={styles.cardTitle}>Adicionar novo perfil</Text>
           <Input label={'Nome'} value={newName} onChangeText={setNewName} placeholder="Nome da criança" />
           <Text style={styles.label}>Data de nascimento</Text>
-          <Pressable style={styles.dateButton} onPress={() => setShowNewPicker(true)}>
-            <Text style={styles.dateText}>{newBirthDate || 'Selecionar data'}</Text>
-          </Pressable>
-          {showNewPicker && (
-            <DateTimePicker
-              value={newBirthDate ? new Date(newBirthDate) : new Date()}
-              mode="date"
-              display="default"
-              onChange={(e, d) => {
-                setShowNewPicker(false)
-                if (d) {
-                  const yyyy = d.getFullYear()
-                  const mm = String(d.getMonth() + 1).padStart(2, '0')
-                  const dd = String(d.getDate()).padStart(2, '0')
-                  setNewBirthDate(`${yyyy}-${mm}-${dd}`)
-                }
-              }}
-            />
-          )}
+          <TextInput
+            style={styles.dateInput}
+            placeholder="DD/MM/AAAA"
+            placeholderTextColor="#8b92b8"
+            value={newBirthDate}
+            onChangeText={(text) => handleBirthDateChange(text, false)}
+            keyboardType="numeric"
+            maxLength={10}
+          />
           {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
           <View style={{ marginTop: 12 }}>
             <PrimaryButton title={saving ? 'Adicionando...' : 'Adicionar Perfil'} onPress={addNew} disabled={saving} />
@@ -291,8 +305,7 @@ const styles = StyleSheet.create({
   skelLine: { height: 12, backgroundColor: '#171a2f', borderRadius: 6 },
   skelIcon: { backgroundColor: '#171a2f', borderColor: '#171a2f' },
   label: { fontSize: 14, color: '#e5e7eb', marginBottom: 6 },
-  dateButton: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#111827' },
-  dateText: { color: '#f8fafc', fontSize: 16 },
+  dateInput: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#111827', color: '#f8fafc', fontSize: 16, marginBottom: 12 },
   error: { color: '#ef4444', marginBottom: 8 },
   info: { color: '#22c55e', marginBottom: 8 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(11,16,35,0.6)', alignItems: 'center', justifyContent: 'center' },

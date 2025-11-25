@@ -13,10 +13,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { api, Plan } from "@/services/api";
 
-const PlanSelector = () => {
+interface PlanSelectorProps {
+  currentPlanId?: string | null;
+  hasPaidSubscription?: boolean;
+}
+
+const PlanSelector = ({ currentPlanId, hasPaidSubscription = false }: PlanSelectorProps) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -45,12 +49,13 @@ const PlanSelector = () => {
   const handleConfirm = async () => {
     if (selectedPlan) {
       try {
-        // Se for plano grátis, troca direto
+        // Se for plano grátis, funciona como cancelamento
         if (selectedPlan.priceCents === 0) {
-          await api.changePlan(selectedPlan.id);
-          setCurrentPlan(selectedPlan.id);
+          await api.cancelSubscription();
           setIsDialogOpen(false);
           setSelectedPlan(null);
+          // Recarrega a página para atualizar dados
+          window.location.reload();
           return;
         }
 
@@ -87,12 +92,16 @@ const PlanSelector = () => {
               features: plan.features,
             };
 
+            const isCurrentPlan = plan.id === currentPlanId;
+            const isFreePlanDisabled = plan.priceCents === 0 && hasPaidSubscription;
+
             return (
               <PricingCard
                 key={plan.id}
                 plan={formattedPlan}
-                isCurrentPlan={plan.id === currentPlan}
-                onSelectPlan={() => handleSelectPlan(plan)}
+                isCurrentPlan={isCurrentPlan}
+                onSelectPlan={() => !isCurrentPlan && !isFreePlanDisabled && handleSelectPlan(plan)}
+                disabled={isFreePlanDisabled}
               />
             );
           })}
@@ -106,7 +115,8 @@ const PlanSelector = () => {
             <DialogDescription>
               {selectedPlan?.priceCents === 0 ? (
                 <>
-                  Tem certeza que deseja mudar para o plano <strong>{selectedPlan?.name}</strong>?
+                  Ao mudar para o plano gratuito, sua assinatura premium será cancelada.
+                  Você perderá acesso aos benefícios premium. Deseja continuar?
                 </>
               ) : (
                 <>

@@ -16,12 +16,14 @@ import { Subscription } from './subscription.entity';
  * CONFIRMED: Pagamento confirmado
  * OVERDUE: Atrasada
  * REFUNDED: Reembolsada
+ * CANCELED: Cancelada
  */
 export type InvoiceStatus =
   | 'PENDING'
   | 'CONFIRMED'
   | 'OVERDUE'
-  | 'REFUNDED';
+  | 'REFUNDED'
+  | 'CANCELED';
 
 @Entity('invoices')
 export class Invoice {

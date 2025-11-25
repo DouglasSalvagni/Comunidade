@@ -18,7 +18,7 @@ export class InvoiceService {
     subscriptionId?: string;
     provider: string;
     providerId: string;
-    dueDate: Date;
+    dueDate: Date | string;
     status: InvoiceStatus;
     invoiceUrl?: string;
     amount: number;
@@ -29,7 +29,7 @@ export class InvoiceService {
     if (existingInvoice) {
       // Atualiza invoice existente
       existingInvoice.status = data.status;
-      existingInvoice.dueDate = data.dueDate;
+      existingInvoice.dueDate = data.dueDate as any; // Aceita string YYYY-MM-DD
       existingInvoice.amount = data.amount;
       if (data.invoiceUrl) {
         existingInvoice.invoiceUrl = data.invoiceUrl;
@@ -88,7 +88,10 @@ export class InvoiceService {
   async findByUser(userId: string): Promise<Invoice[]> {
     return this.invoiceRepository.find({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: {
+        dueDate: 'DESC',
+        createdAt: 'DESC',
+      },
     });
   }
 

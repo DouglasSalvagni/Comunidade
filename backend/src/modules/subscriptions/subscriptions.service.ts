@@ -203,7 +203,7 @@ export class SubscriptionsService {
 
 
   /**
-   * Cancela assinatura local
+   * Cancela assinatura no gateway e localmente
    */
   async cancelSubscription(userId: string): Promise<void> {
     const subscription = await this.getCurrentSubscription(userId);
@@ -212,9 +212,24 @@ export class SubscriptionsService {
       throw new NotFoundException('Nenhuma assinatura ativa encontrada');
     }
 
-    // Cancela localmente
-    subscription.status = 'canceled';
-    await this.subscriptionRepository.save(subscription);
+    // Se é assinatura paga do Asaas, cancela no gateway
+    if (subscription.provider === 'asaas' && subscription.providerSubscriptionId) {
+      if (this.asaasGateway.cancelSubscription) {
+        try {
+          await this.asaasGateway.cancelSubscription(subscription.providerSubscriptionId);
+          // Webhook SUBSCRIPTION_DELETED irá cancelar localmente
+        } catch (error) {
+          // Se falhar no gateway, cancela localmente mesmo assim
+          subscription.status = 'canceled';
+          await this.subscriptionRepository.save(subscription);
+          throw error;
+        }
+      }
+    } else {
+      // Plano gratuito ou sem provider, cancela localmente
+      subscription.status = 'canceled';
+      await this.subscriptionRepository.save(subscription);
+    }
   }
 
   /**

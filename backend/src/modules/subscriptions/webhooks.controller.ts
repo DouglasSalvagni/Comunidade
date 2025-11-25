@@ -76,6 +76,14 @@ export class WebhooksController {
           await this.handlePaymentStatusChange(payload);
           break;
 
+        case 'PAYMENT_DELETED':
+          await this.handlePaymentDeleted(payload);
+          break;
+
+        case 'SUBSCRIPTION_DELETED':
+          await this.handleSubscriptionDeleted(payload);
+          break;
+
         default:
           this.logger.warn(`⚠️ Evento não tratado: ${payload.event}`);
       }
@@ -151,14 +159,24 @@ export class WebhooksController {
       // Determina status: se subscription está ACTIVE, primeiro pagamento foi confirmado
       const invoiceStatus = subscriptionData.status === 'ACTIVE' ? 'CONFIRMED' : 'PENDING';
 
+      // Usa nextDueDate ou dateCreated do Asaas
+      let dueDate = subscriptionData.dateCreated;
+      this.logger.log(`📅 Data original da invoice: ${dueDate}`);
+
+      // Converte DD/MM/YYYY para YYYY-MM-DD se necessário
+      if (dueDate && dueDate.includes('/')) {
+        const [day, month, year] = dueDate.split('/');
+        dueDate = `${year}-${month}-${day}`;
+        this.logger.log(`📅 Data convertida para: ${dueDate}`);
+      }
+
       // Cria invoice inicial (upsert evita duplicação)
-      // Data de validade = data de criação da subscription (primeira mensalidade é imediata)
       await this.invoiceService.create({
         userId: localSubscription.userId,
         subscriptionId: localSubscription.id,
         provider: 'asaas',
         providerId: providerId,
-        dueDate: new Date(this.parseBrazilianDate(subscriptionData.dateCreated)),
+        dueDate: dueDate as any, // String YYYY-MM-DD
         status: invoiceStatus as any,
         invoiceUrl: null, // Primeira invoice não tem URL separada
         amount: subscriptionData.value,
@@ -210,7 +228,7 @@ export class WebhooksController {
       subscriptionId: subscription.id,
       provider: 'asaas',
       providerId: payment.id,
-      dueDate: new Date(this.parseBrazilianDate(payment.dueDate)),
+      dueDate: payment.dueDate as any, // String YYYY-MM-DD do Asaas
       status: payment.status,
       invoiceUrl: payment.invoiceUrl || null,
       amount: payment.value,
@@ -254,7 +272,7 @@ export class WebhooksController {
         subscriptionId: subscription.id,
         provider: 'asaas',
         providerId: payment.id,
-        dueDate: new Date(this.parseBrazilianDate(payment.dueDate)),
+        dueDate: payment.dueDate as any, // String YYYY-MM-DD do Asaas
         status: 'CONFIRMED',
         invoiceUrl: payment.invoiceUrl || null,
         amount: payment.value,
@@ -357,10 +375,99 @@ export class WebhooksController {
   }
 
   /**
-   * Converte data brasileira (DD/MM/YYYY) para Date
+   * Processa pagamento deletado - remove invoice local
    */
-  private parseBrazilianDate(dateStr: string): string {
-    const [day, month, year] = dateStr.split('/');
-    return `${year}-${month}-${day}`;
+  private async handlePaymentDeleted(payload: any) {
+    const payment = payload.payment;
+
+    if (!payment || !payment.id) {
+      this.logger.warn('⚠️ Payment não encontrado no payload');
+      return;
+    }
+
+    this.logger.log(`🗑️ Processando deleção do payment ${payment.id}`);
+
+    try {
+      // Busca invoice pelo providerId
+      const invoice = await this.invoiceService.findByProviderId(
+        'asaas',
+        payment.id,
+      );
+
+      if (!invoice) {
+        this.logger.warn(`⚠️ Invoice ${payment.id} não encontrada localmente`);
+        return;
+      }
+
+      // Marca invoice como cancelada
+      await this.invoiceService.updateStatus(
+        'asaas',
+        payment.id,
+        'CANCELED',
+        null,
+      );
+
+      this.logger.log(`✅ Invoice ${payment.id} marcada como cancelada`);
+    } catch (error) {
+      this.logger.error(`❌ Erro ao processar deleção: ${error.message}`);
+      // Não re-lança erro para não falhar o webhook
+    }
+  }
+
+  /**
+   * Processa cancelamento de subscription
+   */
+  private async handleSubscriptionDeleted(payload: any) {
+    const subscription = payload.subscription;
+
+    if (!subscription || !subscription.id) {
+      this.logger.warn('⚠️ Subscription não encontrada no payload');
+      return;
+    }
+
+    this.logger.log(`🚫 Processando cancelamento da subscription ${subscription.id}`);
+
+    try {
+      // Busca subscription local
+      const localSubscription = await this.subscriptionsService.findByProviderId(
+        'asaas',
+        subscription.id,
+      );
+
+      if (!localSubscription) {
+        this.logger.warn(`⚠️ Subscription ${subscription.id} não encontrada localmente`);
+        return;
+      }
+
+      // Cancela localmente
+      await this.subscriptionsService.pauseSubscription(localSubscription.id);
+      this.logger.log(`✅ Subscription cancelada localmente: ${localSubscription.id}`);
+    } catch (error) {
+      this.logger.error(`❌ Erro ao processar cancelamento: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Converte data brasileira (DD/MM/YYYY) ou ISO (YYYY-MM-DD) para Date (timezone local)
+   */
+  private parseBrazilianDate(dateStr: string): Date {
+    if (!dateStr) {
+      throw new Error('Data vazia');
+    }
+
+    // Se vier no formato ISO (YYYY-MM-DD)
+    if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split('-');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+
+    // Se vier no formato brasileiro (DD/MM/YYYY)
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+
+    throw new Error(`Formato de data não reconhecido: ${dateStr}`);
   }
 }

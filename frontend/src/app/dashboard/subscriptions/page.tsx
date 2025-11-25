@@ -56,15 +56,20 @@ const SubscriptionPage = () => {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
 
-  const formatPrice = (cents: number) => {
+    // Remove timestamp se existir, pega apenas YYYY-MM-DD
+    const dateOnly = dateString.split('T')[0];
+
+    // Parse manual para evitar timezone (formato: YYYY-MM-DD)
+    const [year, month, day] = dateOnly.split('-');
+
+    if (!year || !month || !day) {
+      return "Data inválida";
+    }
+
+    // Retorna no formato dd/MM/yyyy sem usar Date
+    return `${day}/${month}/${year}`;
+  }; const formatPrice = (cents: number) => {
     return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
   };
 
@@ -110,7 +115,7 @@ const SubscriptionPage = () => {
             )}
           </CardContent>
           <CardFooter>
-            {subscription.status === "active" && (
+            {subscription.status === "active" && subscription.plan.priceCents > 0 && (
               <Button
                 variant="outline"
                 onClick={() => setIsCancelDialogOpen(true)}
@@ -160,7 +165,10 @@ const SubscriptionPage = () => {
         <h2 className="text-2xl font-bold">Mudar de Plano</h2>
         <p className="text-muted-foreground">Escolha o plano que melhor se adapta às suas necessidades.</p>
       </div>
-      <PlanSelector />
+      <PlanSelector
+        currentPlanId={subscription?.plan?.id}
+        hasPaidSubscription={subscription?.plan?.priceCents ? subscription.plan.priceCents > 0 : false}
+      />
 
       <Card>
         <CardHeader>
@@ -174,23 +182,41 @@ const SubscriptionPage = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2">Criação</th>
-                  <th className="text-left py-2">Validade</th>
-                  <th className="text-left py-2">Status</th>
-                  <th className="text-right py-2">Valor</th>
+                  <th className="text-center py-2">Validade</th>
+                  <th className="text-center py-2">Status</th>
+                  <th className="text-center py-2">Valor</th>
                   <th className="text-right py-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b">
-                    <td className="py-2">{formatDate(invoice.createdAt)}</td>
-                    <td className="py-2">{formatDate(invoice.dueDate)}</td>
-                    <td className="py-2">
-                      <Badge variant={invoice.status === 'CONFIRMED' ? 'default' : invoice.status === 'OVERDUE' ? 'destructive' : 'secondary'}>
-                        {invoice.status === 'CONFIRMED' ? 'Pago' : invoice.status === 'PENDING' ? 'Pendente' : invoice.status === 'OVERDUE' ? 'Atrasado' : 'Reembolsado'}
+                    <td className="text-left py-2">{formatDate(invoice.createdAt)}</td>
+                    <td className="text-center py-2">{formatDate(invoice.dueDate)}</td>
+                    <td className="text-center py-2">
+                      <Badge
+                        variant={
+                          invoice.status === 'CONFIRMED' ? 'default' :
+                            invoice.status === 'OVERDUE' ? 'destructive' :
+                              invoice.status === 'PENDING' ? 'secondary' :
+                                'outline'
+                        }
+                        className={
+                          invoice.status === 'CONFIRMED' ? 'bg-green-600 hover:bg-green-700' :
+                            invoice.status === 'PENDING' ? 'bg-cyan-600 hover:bg-cyan-700 text-white' :
+                              invoice.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' :
+                                invoice.status === 'REFUNDED' ? 'bg-purple-600 hover:bg-purple-700 text-white' :
+                                  'bg-gray-400 hover:bg-gray-500 text-white'
+                        }
+                      >
+                        {invoice.status === 'CONFIRMED' ? 'Pago' :
+                          invoice.status === 'PENDING' ? 'Aberta' :
+                            invoice.status === 'OVERDUE' ? 'Atrasada' :
+                              invoice.status === 'REFUNDED' ? 'Reembolsada' :
+                                'Cancelada'}
                       </Badge>
                     </td>
-                    <td className="text-right py-2">R$ {parseFloat(invoice.amount).toFixed(2).replace('.', ',')}</td>
+                    <td className="text-center py-2">R$ {parseFloat(invoice.amount).toFixed(2).replace('.', ',')}</td>
                     <td className="text-right py-2">
                       {invoice.invoiceUrl ? (
                         <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">

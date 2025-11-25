@@ -25,4 +25,10 @@ export interface IPaymentGateway {
    * @param subscriptionId ID da subscription no gateway
    */
   getSubscriptionPayments?(subscriptionId: string): Promise<any>;
+
+  /**
+   * Cancela uma subscription no gateway
+   * @param subscriptionId ID da subscription no gateway
+   */
+  cancelSubscription?(subscriptionId: string): Promise<void>;
 }

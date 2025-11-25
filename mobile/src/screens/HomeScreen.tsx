@@ -7,6 +7,7 @@ import { useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
 import CatalogScreen from './CatalogScreen'
+import FavoritesScreen from './FavoritesScreen'
 
 type Props = {
   onLogout: () => void
@@ -23,6 +24,8 @@ export default function HomeScreen({ onLogout }: Props) {
       {/* Seletor de perfil removido; seleção é feita na tela de Perfis */}
       {tab === 'catalog' ? (
         <CatalogScreen />
+      ) : tab === 'favorites' ? (
+        <FavoritesScreen />
       ) : tab === 'settings' && settingsView === 'profiles' ? (
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
       ) : tab === 'settings' && settingsView === 'account' ? (

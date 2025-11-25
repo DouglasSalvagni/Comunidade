@@ -13,7 +13,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
   if (!res.ok) {
     const text = await res.text()
-    try { console.log('[API ERROR]', options.method || 'GET', path, res.status, text) } catch {}
+    try { console.log('[API ERROR]', options.method || 'GET', path, res.status, text) } catch { }
     try {
       const json = JSON.parse(text)
       const rawMsg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`
@@ -181,6 +181,22 @@ export async function apiGetWorks(accessToken: string, params?: {
   if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
   if (params?.profileId) qs.set('profileId', params.profileId)
   const path = `/works${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetFavorites(accessToken: string, params?: {
+  page?: number
+  limit?: number
+  profileId?: string
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  if (params?.profileId) qs.set('profileId', params.profileId)
+  const path = `/works/favorites${qs.toString() ? `?${qs.toString()}` : ''}`
   return request<{ data: any[]; meta: any }>(path, {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },

@@ -169,7 +169,7 @@ export default function FavoritesScreen() {
                     data={favorites}
                     renderItem={renderWork}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.list}
+                    contentContainerStyle={favorites.length === 0 ? styles.listEmpty : styles.list}
                     ListEmptyComponent={renderEmpty}
                     ListFooterComponent={renderFooter}
                     onEndReached={handleLoadMore}
@@ -218,6 +218,9 @@ const styles = StyleSheet.create({
     list: {
         padding: 16,
         paddingBottom: 100,
+    },
+    listEmpty: {
+        flexGrow: 1,
     },
     card: {
         flexDirection: 'row',
@@ -277,7 +280,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 60,
         paddingHorizontal: 40,
     },
     emptyTitle: {

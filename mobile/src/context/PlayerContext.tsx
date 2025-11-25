@@ -12,6 +12,8 @@ type PlayerContextValue = {
   isPlaying: boolean
   position: number
   duration: number
+  nextTrack: () => Promise<void>
+  prevTrack: () => Promise<void>
   playWork: (work: PlayerWork) => Promise<void>
   playTrack: (track: PlayerTrack, work?: PlayerWork) => Promise<void>
   togglePlay: () => Promise<void>
@@ -34,6 +36,7 @@ export function PlayerProvider({ children }: { children: any }) {
   const soundRef = useRef<Audio.Sound | null>(null)
   const isAudioConfigured = useRef(false)
   const isLoadingTrack = useRef(false) // Prevent concurrent loads
+  const isAutoAdvancing = useRef(false)
 
   // Configure audio mode for background playback on mount
   useEffect(() => {
@@ -66,6 +69,11 @@ export function PlayerProvider({ children }: { children: any }) {
     setIsPlaying(status.isPlaying)
     setPosition(status.positionMillis / 1000)
     setDuration(status.durationMillis ? status.durationMillis / 1000 : 0)
+
+    if ('didJustFinish' in status && status.didJustFinish && !isLoadingTrack.current && !isAutoAdvancing.current) {
+      isAutoAdvancing.current = true
+      nextTrack().finally(() => { isAutoAdvancing.current = false })
+    }
   }
 
   // Helper function to safely unload current sound
@@ -87,13 +95,50 @@ export function PlayerProvider({ children }: { children: any }) {
   async function playWork(work: PlayerWork) {
     const list = Array.isArray(work.tracks) ? work.tracks : []
     const ordered = [...list].sort((a: any, b: any) => {
-      const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : 0
-      const bo = typeof b?.orderIndex === 'number' ? b.orderIndex : 0
+      const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : (typeof a?.order === 'number' ? a.order : 0)
+      const bo = typeof b?.orderIndex === 'number' ? b.orderIndex : (typeof b?.order === 'number' ? b.order : 0)
       return ao - bo
     })
     const first = ordered.find((t) => !!t)
     if (!first) return
     await playTrack(first, work)
+  }
+
+  const getOrderedTracks = (work?: PlayerWork | null) => {
+    const tracks = Array.isArray(work?.tracks) ? [...(work as PlayerWork).tracks] : []
+    return tracks
+      .filter((t) => !!t?.id)
+      .sort((a: any, b: any) => {
+        const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : (typeof a?.order === 'number' ? a.order : 0)
+        const bo = typeof b?.orderIndex === 'number' ? b.orderIndex : (typeof b?.order === 'number' ? b.order : 0)
+        return ao - bo
+      })
+  }
+
+  const getNeighborTrack = (direction: 'next' | 'prev') => {
+    if (!currentTrack) return null
+    const tracks = getOrderedTracks(currentWork)
+    const idx = tracks.findIndex((t) => t.id === currentTrack.id)
+    if (idx === -1) return null
+    const neighbor = direction === 'next' ? tracks[idx + 1] : tracks[idx - 1]
+    return neighbor || null
+  }
+
+  async function nextTrack() {
+    if (isLoadingTrack.current) return
+    const next = getNeighborTrack('next')
+    if (!next) {
+      await stop()
+      return
+    }
+    await playTrack(next, currentWork || undefined)
+  }
+
+  async function prevTrack() {
+    if (isLoadingTrack.current) return
+    const prev = getNeighborTrack('prev')
+    if (!prev) return
+    await playTrack(prev, currentWork || undefined)
   }
 
   async function playTrack(track: PlayerTrack, work?: PlayerWork) {
@@ -199,6 +244,8 @@ export function PlayerProvider({ children }: { children: any }) {
       isPlaying,
       position,
       duration,
+      nextTrack,
+      prevTrack,
       playWork,
       playTrack,
       togglePlay,

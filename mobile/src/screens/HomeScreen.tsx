@@ -1,14 +1,16 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
 import MiniPlayer from '../components/MiniPlayer'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
 import CatalogScreen from './CatalogScreen'
 import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
+import { Ionicons } from '@expo/vector-icons'
+import { usePlayer } from '../context/PlayerContext'
 
 type Props = {
   onLogout: () => void
@@ -16,10 +18,51 @@ type Props = {
 
 export default function HomeScreen({ onLogout }: Props) {
   const { user } = useAuth()
+  const {
+    currentTrack,
+    currentWork,
+    isPlaying,
+    position,
+    duration,
+    togglePlay,
+    nextTrack,
+    prevTrack,
+    toggleFavorite,
+    isFavorite
+  } = usePlayer()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
   const [bottomNavHeight, setBottomNavHeight] = useState(70)
   const [playerVisible, setPlayerVisible] = useState(false)
+
+  useEffect(() => {
+    if (!currentTrack) setPlayerVisible(false)
+  }, [currentTrack])
+
+  const orderedTracks = useMemo(() => {
+    const list = Array.isArray(currentWork?.tracks) ? [...(currentWork as any).tracks] : []
+    return list
+      .filter((t) => !!t?.id)
+      .sort((a: any, b: any) => {
+        const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : (typeof a?.order === 'number' ? a.order : 0)
+        const bo = typeof b?.orderIndex === 'number' ? b.orderIndex : (typeof b?.order === 'number' ? b.order : 0)
+        return ao - bo
+      })
+  }, [currentWork])
+
+  const currentIndex = useMemo(() => orderedTracks.findIndex((t: any) => t.id === currentTrack?.id), [orderedTracks, currentTrack])
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex >= 0 && currentIndex < orderedTracks.length - 1
+
+  const progress = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0
+
+  const formatTime = (value: number) => {
+    if (!Number.isFinite(value)) return '0:00'
+    const minutes = Math.floor(value / 60)
+    const seconds = Math.floor(value % 60)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
   return (
     <View style={styles.container}>
       {tab === 'catalog' ? (
@@ -71,12 +114,66 @@ export default function HomeScreen({ onLogout }: Props) {
         onChange={(k) => { setTab(k as any); if (k === 'settings') setSettingsView('menu') }}
         onHeight={(h) => setBottomNavHeight(Math.max(60, Math.round(h)))}
       />
-      {playerVisible && (
+      {playerVisible && currentTrack && currentWork && (
         <View style={styles.playerOverlay}>
-          <View style={styles.playerBox}>
-            <Text style={styles.playerTitle}>Player</Text>
-            <Text style={styles.playerSubtitle}>Em breve: tela completa do player</Text>
-            <PrimaryButton title={'Fechar'} onPress={() => setPlayerVisible(false)} />
+          <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
+          <View style={styles.playerCard}>
+            <View style={styles.playerHeader}>
+              <Text style={styles.playerNow}>Tocando agora</Text>
+              <Pressable onPress={() => setPlayerVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={22} color="#cfd3ff" />
+              </Pressable>
+            </View>
+            <View style={styles.playerCoverWrap}>
+              {currentWork.coverUrl ? (
+                <Image source={{ uri: currentWork.coverUrl }} style={styles.playerCover} />
+              ) : (
+                <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
+              )}
+            </View>
+            <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
+            <Text style={styles.playerSubtitle} numberOfLines={2}>{currentWork.title || ''}</Text>
+
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            </View>
+            <View style={styles.progressTimes}>
+              <Text style={styles.progressText}>{formatTime(position)}</Text>
+              <Text style={styles.progressText}>{formatTime(duration)}</Text>
+            </View>
+
+            <View style={styles.playerControls}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={!hasPrev}
+                style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
+                onPress={prevTrack}
+              >
+                <Ionicons name="play-skip-back" size={26} color={hasPrev ? '#e6e9ff' : '#6b7280'} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.controlBtn, styles.controlBtnPrimary]}
+                onPress={togglePlay}
+              >
+                <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={!hasNext}
+                style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
+                onPress={nextTrack}
+              >
+                <Ionicons name="play-skip-forward" size={26} color={hasNext ? '#e6e9ff' : '#6b7280'} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.controlBtn, styles.controlBtnGhost]}
+                onPress={toggleFavorite}
+              >
+                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={22} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+              </Pressable>
+            </View>
           </View>
         </View>
       )}
@@ -92,8 +189,23 @@ const styles = StyleSheet.create({
   menu: { width: '100%', paddingHorizontal: 20 },
   menuItem: { borderWidth: 1, borderColor: '#1d2340', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#0e1430', marginBottom: 10 },
   menuItemText: { color: '#e6e9ff', fontSize: 16 },
-  playerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(11,16,35,0.7)', alignItems: 'center', justifyContent: 'center', zIndex: 40 },
-  playerBox: { backgroundColor: '#121632', borderRadius: 12, padding: 16, width: '86%', borderWidth: 1, borderColor: '#1d2340' },
-  playerTitle: { color: '#e6e9ff', fontSize: 18, fontWeight: '700' },
-  playerSubtitle: { color: '#cfd3ff', fontSize: 13, marginTop: 8, marginBottom: 12 },
+  playerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(11,16,35,0.82)', alignItems: 'center', justifyContent: 'center', zIndex: 40, paddingHorizontal: 16 },
+  playerBackdrop: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+  playerCard: { width: '100%', maxWidth: 480, borderRadius: 16, padding: 18, backgroundColor: '#0f142d', borderWidth: 1, borderColor: '#1d2340' },
+  playerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  playerNow: { color: '#cfd3ff', fontSize: 13, letterSpacing: 0.4 },
+  playerCoverWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  playerCover: { width: 240, height: 240, borderRadius: 18, backgroundColor: '#121632' },
+  playerCoverPlaceholder: { backgroundColor: '#1f2742' },
+  playerTitle: { color: '#e6e9ff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  playerSubtitle: { color: '#cfd3ff', fontSize: 14, textAlign: 'center', marginTop: 4, marginBottom: 16 },
+  progressBar: { height: 6, borderRadius: 6, backgroundColor: '#1f2742', overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#A78BFA' },
+  progressTimes: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  progressText: { color: '#94a3b8', fontSize: 12 },
+  playerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18 },
+  controlBtn: { width: 56, height: 56, borderRadius: 16, borderWidth: 1, borderColor: '#1d2340', backgroundColor: '#121632', alignItems: 'center', justifyContent: 'center' },
+  controlBtnPrimary: { backgroundColor: '#A78BFA', borderColor: '#A78BFA', width: 70, height: 70 },
+  controlBtnGhost: { backgroundColor: '#0f142d', width: 48, height: 48 },
+  controlBtnDisabled: { opacity: 0.4 },
 })

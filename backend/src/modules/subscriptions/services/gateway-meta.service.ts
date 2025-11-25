@@ -71,13 +71,34 @@ export class GatewayMetaService {
     entityType: EntityType,
     gatewayId: string,
   ): Promise<GatewayMeta | null> {
+    // Para customer, busca por customerId
+    // Para subscription, busca por subscriptionId
+    const field = entityType === 'user' ? 'customerId' :
+      entityType === 'subscription' ? 'subscriptionId' :
+        'id';
+
     const metas = await this.gatewayMetaRepository
       .createQueryBuilder('gateway_meta')
       .where('gateway_meta.gateway = :gateway', { gateway })
       .andWhere('gateway_meta.entity_type = :entityType', { entityType })
-      .andWhere("gateway_meta.metas->>'id' = :gatewayId", { gatewayId })
+      .andWhere(`gateway_meta.metas->>'${field}' = :gatewayId`, { gatewayId })
       .getOne();
 
     return metas;
+  }
+
+  /**
+   * Busca usuário pelo checkout session ID
+   */
+  async findUserByCheckoutSession(
+    gateway: GatewayType,
+    checkoutSessionId: string,
+  ): Promise<GatewayMeta | null> {
+    return this.gatewayMetaRepository
+      .createQueryBuilder('gateway_meta')
+      .where('gateway_meta.gateway = :gateway', { gateway })
+      .andWhere('gateway_meta.entity_type = :entityType', { entityType: 'user' })
+      .andWhere(`gateway_meta.metas->'checkout'->>'id' = :checkoutSessionId`, { checkoutSessionId })
+      .getOne();
   }
 }

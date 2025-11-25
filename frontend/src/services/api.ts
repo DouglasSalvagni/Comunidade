@@ -472,6 +472,14 @@ class ApiService {
     return response.data.data.subscription;
   }
 
+  async createCheckoutSession(planId: string, cpf?: string): Promise<{ checkoutUrl: string }> {
+    const response = await this.client.post<ApiResponse<{ checkoutUrl: string }>>('/subscriptions/checkout', {
+      planId,
+      cpf,
+    });
+    return response.data.data;
+  }
+
   // ===== ADMIN =====
   async adminGetWorks(params?: any): Promise<{ data: Work[]; meta: any }> {
     const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/admin/works', {

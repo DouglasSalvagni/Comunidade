@@ -44,12 +44,23 @@ const PlanSelector = () => {
   const handleConfirm = async () => {
     if (selectedPlan) {
       try {
-        await api.changePlan(selectedPlan.id);
-        setCurrentPlan(selectedPlan.id);
+        // Se for plano grátis, troca direto
+        if (selectedPlan.priceCents === 0) {
+          await api.changePlan(selectedPlan.id);
+          setCurrentPlan(selectedPlan.id);
+          setIsDialogOpen(false);
+          setSelectedPlan(null);
+          return;
+        }
+
+        // Se for plano pago, abre checkout do ASAAS em nova aba
+        const { checkoutUrl } = await api.createCheckoutSession(selectedPlan.id);
+        window.open(checkoutUrl, '_blank');
         setIsDialogOpen(false);
         setSelectedPlan(null);
       } catch (error) {
-        console.error("Erro ao mudar plano:", error);
+        console.error("Erro ao processar mudança de plano:", error);
+        alert("Erro ao processar sua solicitação. Tente novamente.");
       }
     }
   };
@@ -91,8 +102,16 @@ const PlanSelector = () => {
           <DialogHeader>
             <DialogTitle>Confirmar mudança de plano</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja mudar para o plano <strong>{selectedPlan?.name}</strong>?
-              {selectedPlan?.priceCents !== 0 && " Você será redirecionado para o pagamento."}
+              {selectedPlan?.priceCents === 0 ? (
+                <>
+                  Tem certeza que deseja mudar para o plano <strong>{selectedPlan?.name}</strong>?
+                </>
+              ) : (
+                <>
+                  Você será redirecionado para o checkout do ASAAS para concluir o pagamento do plano <strong>{selectedPlan?.name}</strong>.
+                  Após a confirmação do pagamento, sua assinatura será ativada automaticamente.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Subscription } from './entities/subscription.entity';
 import { Plan } from './entities/plan.entity';
+import { IPaymentGateway } from './interfaces/payment-gateway.interface';
+import { GatewayMetaService } from './services/gateway-meta.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -11,6 +13,9 @@ export class SubscriptionsService {
     private readonly subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
+    @Inject('ASAAS_GATEWAY')
+    private readonly asaasGateway: IPaymentGateway,
+    private readonly gatewayMetaService: GatewayMetaService,
   ) { }
 
   async getCurrentSubscription(userId: string): Promise<Subscription | null> {
@@ -79,17 +84,6 @@ export class SubscriptionsService {
     return this.subscriptionRepository.save(newSubscription);
   }
 
-  async cancelSubscription(userId: string): Promise<Subscription> {
-    const subscription = await this.getCurrentSubscription(userId);
-
-    if (!subscription) {
-      throw new NotFoundException('No active subscription found');
-    }
-
-    subscription.status = 'canceled';
-    return this.subscriptionRepository.save(subscription);
-  }
-
   async checkSubscriptionAccess(userId: string): Promise<boolean> {
     const subscription = await this.getCurrentSubscription(userId);
 
@@ -156,5 +150,132 @@ export class SubscriptionsService {
       where: { id: saved.id },
       relations: ['plan'],
     });
+  }
+
+  /**
+   * Cria um link de checkout para assinatura paga
+   */
+  async createCheckoutSession(
+    userId: string,
+    planId: string,
+    userEmail: string,
+    userName: string,
+    userCpf?: string,
+  ): Promise<{ checkoutUrl: string }> {
+    // Busca o plano
+    const plan = await this.planRepository.findOne({ where: { id: planId } });
+    if (!plan) {
+      throw new NotFoundException(`Plano ${planId} não encontrado`);
+    }
+
+    if (!plan.isActive) {
+      throw new ConflictException('Plano não está ativo');
+    }
+
+    if (plan.priceCents === 0) {
+      throw new ConflictException('Plano gratuito não requer checkout');
+    }
+
+    // Cria Checkout Link
+    const cycle = plan.billingPeriod === 'monthly' ? 'MONTHLY' : 'YEARLY';
+    const planValue = plan.priceCents / 100; // Converte centavos para reais
+
+    const { checkoutUrl, checkoutId } = await this.asaasGateway.createCheckoutLink(
+      userId,
+      planValue,
+      cycle,
+      plan.name,
+      plan.description || plan.name,
+    );
+
+    // Atualiza o meta para incluir o planId
+    await this.gatewayMetaService.updateMetas('asaas', 'user', userId, {
+      checkout: {
+        id: checkoutId,
+        link: checkoutUrl,
+        planId: planId,
+      },
+    });
+
+    return { checkoutUrl };
+  }
+
+
+
+  /**
+   * Cancela assinatura local
+   */
+  async cancelSubscription(userId: string): Promise<void> {
+    const subscription = await this.getCurrentSubscription(userId);
+
+    if (!subscription) {
+      throw new NotFoundException('Nenhuma assinatura ativa encontrada');
+    }
+
+    // Cancela localmente
+    subscription.status = 'canceled';
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  /**
+   * Processa pagamento recebido via webhook usando checkoutSession
+   */
+  async processPaymentReceived(checkoutSessionId: string, payment: any): Promise<void> {
+    // Busca usuário pelo checkoutSession
+    const userMeta = await this.gatewayMetaService.findUserByCheckoutSession(
+      'asaas',
+      checkoutSessionId,
+    );
+
+    if (!userMeta) {
+      throw new NotFoundException(
+        `Usuário não encontrado para checkoutSession ${checkoutSessionId}`,
+      );
+    }
+
+    const userId = userMeta.entityId;
+    const planId = userMeta.metas?.checkout?.planId;
+
+    if (!planId) {
+      throw new ConflictException(
+        `PlanId não encontrado no checkout para usuário ${userId}`,
+      );
+    }
+
+    // Busca o plano
+    const plan = await this.planRepository.findOne({ where: { id: planId } });
+    if (!plan) {
+      throw new NotFoundException(`Plano ${planId} não encontrado`);
+    }
+
+    // Cancela assinatura atual se existir
+    const currentSubscription = await this.getCurrentSubscription(userId);
+    if (currentSubscription) {
+      currentSubscription.status = 'canceled';
+      await this.subscriptionRepository.save(currentSubscription);
+    }
+
+    // Calcula period_end baseado no ciclo do plano
+    const now = new Date();
+    const periodEnd = new Date(now);
+
+    if (plan.billingPeriod === 'monthly') {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    } else if (plan.billingPeriod === 'yearly') {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    }
+
+    // Cria nova assinatura
+    const newSubscription = this.subscriptionRepository.create({
+      userId,
+      planId,
+      status: 'active',
+      periodStart: now,
+      periodEnd,
+      provider: 'asaas',
+      providerSubscriptionId: payment.subscription || payment.id,
+    });
+
+    await this.subscriptionRepository.save(newSubscription);
   }
 }

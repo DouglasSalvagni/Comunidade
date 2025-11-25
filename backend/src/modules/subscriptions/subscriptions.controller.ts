@@ -85,6 +85,30 @@ export class SubscriptionsController {
     };
   }
 
+  @Post('checkout')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create checkout session for paid subscription' })
+  @ApiResponse({ status: 200, description: 'Checkout URL created successfully.' })
+  @ApiResponse({ status: 404, description: 'Plan not found.' })
+  @ApiResponse({ status: 409, description: 'Plan is not active.' })
+  async createCheckout(
+    @Request() req,
+    @Body() body: { planId: string; cpf?: string },
+  ) {
+    const { checkoutUrl } = await this.subscriptionsService.createCheckoutSession(
+      req.user.userId,
+      body.planId,
+      req.user.email,
+      req.user.name || req.user.email,
+      body.cpf,
+    );
+
+    return {
+      checkoutUrl,
+    };
+  }
+
   @Post('cancel')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -92,13 +116,9 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Subscription canceled successfully.' })
   @ApiResponse({ status: 404, description: 'No active subscription found.' })
   async cancelSubscription(@Request() req) {
-    const subscription = await this.subscriptionsService.cancelSubscription(req.user.userId);
+    await this.subscriptionsService.cancelSubscription(req.user.userId);
     return {
-      message: 'Subscription canceled successfully',
-      subscription: {
-        id: subscription.id,
-        status: subscription.status,
-      },
+      message: 'Assinatura cancelada com sucesso',
     };
   }
 

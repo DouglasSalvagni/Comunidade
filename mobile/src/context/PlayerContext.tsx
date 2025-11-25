@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, useEffect, useRef } from 
 import { Audio, AVPlaybackStatus } from 'expo-av'
 import { useAuth } from './AuthContext'
 import { apiGetStreamingUrl, apiToggleFavorite } from '../services/api'
+import { Platform } from 'react-native'
 
 type PlayerTrack = { id: string; title?: string; workId: string }
 type PlayerWork = { id: string; title?: string; coverUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
@@ -24,6 +25,32 @@ type PlayerContextValue = {
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
 
+async function computeHlsDuration(masterUrl: string): Promise<number> {
+  try {
+    console.log('[PLAYER][hls] fetch master', masterUrl)
+    const masterRes = await fetch(masterUrl)
+    const masterTxt = await masterRes.text()
+    const lines = masterTxt.split('\n').map((l) => l.trim()).filter(Boolean)
+    const variantLine = lines.find((l) => l.endsWith('.m3u8') && !l.startsWith('#'))
+    const variantUrl = variantLine ? new URL(variantLine, masterUrl).toString() : masterUrl
+    console.log('[PLAYER][hls] fetch variant', variantUrl)
+    const variantRes = await fetch(variantUrl)
+    const variantTxt = await variantRes.text()
+    const matches = variantTxt.match(/#EXTINF:([0-9.]+)/g) || []
+    const total = matches.reduce((acc, line) => {
+      const m = line.match(/#EXTINF:([0-9.]+)/)
+      if (!m) return acc
+      const v = parseFloat(m[1])
+      return acc + (isNaN(v) ? 0 : v)
+    }, 0)
+    console.log('[PLAYER][hls] duration seconds', total)
+    return total
+  } catch (err) {
+    console.log('[PLAYER][hls] failed to compute duration', err)
+    return 0
+  }
+}
+
 export function PlayerProvider({ children }: { children: any }) {
   const { accessToken, activeProfileId } = useAuth()
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null)
@@ -37,6 +64,8 @@ export function PlayerProvider({ children }: { children: any }) {
   const isAudioConfigured = useRef(false)
   const isLoadingTrack = useRef(false) // Prevent concurrent loads
   const isAutoAdvancing = useRef(false)
+  const manualTimer = useRef<NodeJS.Timeout | null>(null)
+  const lastTick = useRef<number | null>(null)
 
   // Configure audio mode for background playback on mount
   useEffect(() => {
@@ -62,13 +91,80 @@ export function PlayerProvider({ children }: { children: any }) {
     }
   }, [])
 
+  // Polling fallback to keep progress updated even if playback callback is not firing (HLS edge cases)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const sound = soundRef.current
+      if (!sound) return
+      try {
+        const status = await sound.getStatusAsync()
+        if (!status.isLoaded) return
+        console.log('[PLAYER][poll] position/duration', status.positionMillis, status.durationMillis, 'playing', status.isPlaying)
+        setIsPlaying(status.isPlaying)
+        if (typeof status.positionMillis === 'number' && status.positionMillis > 0) {
+          setPosition(status.positionMillis / 1000)
+          lastTick.current = Date.now()
+        }
+        setDuration((prev) => (status.durationMillis ? status.durationMillis / 1000 : prev || 0))
+        // Sync manual timer with real player position when available
+        if (status.positionMillis) {
+          lastTick.current = Date.now()
+        }
+      } catch (err) {
+        console.log('[PLAYER][poll] status error', err)
+      }
+    }, 800)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Manual timer to keep UI progress moving even when AV status doesn't update
+  useEffect(() => {
+    if (manualTimer.current) {
+      clearInterval(manualTimer.current)
+      manualTimer.current = null
+    }
+    if (isPlaying && duration > 0) {
+      console.log('[PLAYER][timer] start manual timer, duration', duration)
+      lastTick.current = Date.now()
+      manualTimer.current = setInterval(() => {
+        setPosition((prev) => {
+          const now = Date.now()
+          const elapsed = lastTick.current ? (now - lastTick.current) / 1000 : 0
+          lastTick.current = now
+          const next = Math.min(duration, prev + elapsed)
+          console.log('[PLAYER][timer] tick', { prev, next, duration })
+          return next
+        })
+      }, 500)
+    } else {
+      console.log('[PLAYER][timer] stop manual timer', { isPlaying, duration })
+      lastTick.current = null
+    }
+    return () => {
+      if (manualTimer.current) clearInterval(manualTimer.current)
+      manualTimer.current = null
+    }
+  }, [isPlaying, duration])
+
   // Playback status update callback
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) return
 
+    console.log('[PLAYER][status]', {
+      isPlaying: status.isPlaying,
+      positionMillis: status.positionMillis,
+      durationMillis: (status as any).durationMillis,
+      didJustFinish: (status as any).didJustFinish,
+    })
+
     setIsPlaying(status.isPlaying)
-    setPosition(status.positionMillis / 1000)
-    setDuration(status.durationMillis ? status.durationMillis / 1000 : 0)
+    // Only overwrite position when we have a positive value; otherwise keep current (manual timer will advance)
+    if (typeof status.positionMillis === 'number' && status.positionMillis > 0) {
+      setPosition(status.positionMillis / 1000)
+      lastTick.current = Date.now()
+    }
+    // Some HLS streams may not expose duration; keep previous duration if missing
+    setDuration((prev) => (status.durationMillis ? status.durationMillis / 1000 : prev || 0))
 
     if ('didJustFinish' in status && status.didJustFinish && !isLoadingTrack.current && !isAutoAdvancing.current) {
       isAutoAdvancing.current = true
@@ -162,6 +258,10 @@ export function PlayerProvider({ children }: { children: any }) {
       setCurrentWork(workData)
       setIsFavorite(Boolean(workData?.isFavorite))
       setPosition(0)
+      // Prefill duration with metadata while waiting for player to report it
+      const metaDuration = (track as any)?.durationSeconds || (workData as any)?.durationSeconds || 0
+      console.log('[PLAYER] meta duration', metaDuration)
+      setDuration(metaDuration)
       setIsPlaying(false)
 
       // Get streaming URL from backend
@@ -172,15 +272,33 @@ export function PlayerProvider({ children }: { children: any }) {
         isLoadingTrack.current = false
         return
       }
+      console.log('[PLAYER] streaming url', url)
 
       // Create and load new sound
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },
-        { shouldPlay: true },
+        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
         onPlaybackStatusUpdate
       )
 
+      // Ensure periodic status updates for progress
+      await sound.setProgressUpdateIntervalAsync(500)
+      sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate)
+
       soundRef.current = sound
+      // If we still don't have duration, compute from HLS playlist (or fallback to long duration to keep UI moving)
+      let effectiveDuration = metaDuration
+      if (!effectiveDuration) {
+        const hlsDuration = await computeHlsDuration(url)
+        if (hlsDuration > 0) {
+          effectiveDuration = hlsDuration
+        }
+      }
+      if (!effectiveDuration) {
+        effectiveDuration = 3600 // arbitrary long duration so progress can move; will cap when finish fires
+      }
+      setDuration(effectiveDuration)
+
       setIsPlaying(true)
     } catch (error) {
       console.error('Error playing track:', error)

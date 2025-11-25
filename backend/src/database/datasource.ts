@@ -11,6 +11,7 @@ import { Plan } from '@/modules/subscriptions/entities/plan.entity'
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity'
 import { GatewayMeta } from '@/modules/subscriptions/entities/gateway-meta.entity'
 import { GatewayWebhook } from '@/modules/subscriptions/entities/gateway-webhook.entity'
+import { Invoice } from '@/modules/subscriptions/entities/invoice.entity'
 import { Favorite } from '@/modules/catalog/entities/favorite.entity'
 import { PlayEvent } from '@/modules/playback/entities/play-event.entity'
 import { Download } from '@/modules/playback/entities/download.entity'
@@ -36,6 +37,7 @@ const AppDataSource = new DataSource({
     Subscription,
     GatewayMeta,
     GatewayWebhook,
+    Invoice,
     Favorite,
     PlayEvent,
     Download,

@@ -220,7 +220,7 @@ export class SubscriptionsService {
   /**
    * Processa pagamento recebido via webhook usando checkoutSession
    */
-  async processPaymentReceived(checkoutSessionId: string, payment: any): Promise<void> {
+  async processPaymentReceived(checkoutSessionId: string, payment: any): Promise<Subscription> {
     // Busca usuário pelo checkoutSession
     const userMeta = await this.gatewayMetaService.findUserByCheckoutSession(
       'asaas',
@@ -276,6 +276,21 @@ export class SubscriptionsService {
       providerSubscriptionId: payment.subscription || payment.id,
     });
 
-    await this.subscriptionRepository.save(newSubscription);
+    return this.subscriptionRepository.save(newSubscription);
+  }
+
+  /**
+   * Busca subscription por provider e providerId
+   */
+  async findByProviderId(
+    provider: string,
+    providerId: string,
+  ): Promise<Subscription | null> {
+    return this.subscriptionRepository.findOne({
+      where: {
+        provider,
+        providerSubscriptionId: providerId,
+      },
+    });
   }
 }

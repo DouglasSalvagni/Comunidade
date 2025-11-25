@@ -78,13 +78,21 @@ export default function PlaylistScreen() {
     const handlePlay = async (item: PlaylistItem) => {
         if (!item.track) return
 
-        const track = {
+        const queue = items.map((i) => ({
+            id: i.track.id,
+            title: i.track.title,
+            workId: i.track.workId,
+            work: i.track.work,
+        }))
+
+        const track = queue.find((q) => q.id === item.track.id) || {
             id: item.track.id,
             title: item.track.title,
             workId: item.track.workId,
+            work: item.track.work,
         }
 
-        playTrack(track, item.track.work)
+        playTrack(track as any, item.track.work, { playlistQueue: queue as any })
     }
 
     const handleRemove = async (itemId: string) => {

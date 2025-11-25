@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext'
 import { apiGetStreamingUrl, apiToggleFavorite } from '../services/api'
 import { Platform } from 'react-native'
 
-type PlayerTrack = { id: string; title?: string; workId: string }
+type PlayerTrack = { id: string; title?: string; workId: string; work?: any }
 type PlayerWork = { id: string; title?: string; coverUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
 
 type PlayerContextValue = {
@@ -13,10 +13,12 @@ type PlayerContextValue = {
   isPlaying: boolean
   position: number
   duration: number
+  hasNext: boolean
+  hasPrev: boolean
   nextTrack: () => Promise<void>
   prevTrack: () => Promise<void>
   playWork: (work: PlayerWork) => Promise<void>
-  playTrack: (track: PlayerTrack, work?: PlayerWork) => Promise<void>
+  playTrack: (track: PlayerTrack, work?: PlayerWork, options?: { playlistQueue?: PlayerTrack[]; nextIndex?: number }) => Promise<void>
   seekTo: (seconds: number) => Promise<void>
   togglePlay: () => Promise<void>
   toggleFavorite: () => Promise<void>
@@ -57,6 +59,10 @@ export function PlayerProvider({ children }: { children: any }) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [queue, setQueue] = useState<PlayerTrack[] | null>(null) // active playlist queue (ordered)
+  const [queueSource, setQueueSource] = useState<'playlist' | null>(null)
+  const [queueIndex, setQueueIndex] = useState<number | null>(null)
+  const lastAdvanceDirection = useRef<'next' | 'prev' | null>(null)
 
   const soundRef = useRef<Audio.Sound | null>(null)
   const isAudioConfigured = useRef(false)
@@ -153,9 +159,12 @@ export function PlayerProvider({ children }: { children: any }) {
     // Some HLS streams may not expose duration; keep previous duration if missing
     setDuration((prev) => (status.durationMillis ? status.durationMillis / 1000 : prev || 0))
 
-    if ('didJustFinish' in status && status.didJustFinish && !isLoadingTrack.current && !isAutoAdvancing.current) {
+    if ('didJustFinish' in status && status.didJustFinish && !isLoadingTrack.current) {
+      if (isAutoAdvancing.current) return
       isAutoAdvancing.current = true
-      nextTrack().finally(() => { isAutoAdvancing.current = false })
+      advanceQueue('next')
+        .catch(() => {})
+        .finally(() => { isAutoAdvancing.current = false })
     }
   }
 
@@ -198,33 +207,74 @@ export function PlayerProvider({ children }: { children: any }) {
       })
   }
 
-  const getNeighborTrack = (direction: 'next' | 'prev') => {
-    if (!currentTrack) return null
-    const tracks = getOrderedTracks(currentWork)
-    const idx = tracks.findIndex((t) => t.id === currentTrack.id)
-    if (idx === -1) return null
-    const neighbor = direction === 'next' ? tracks[idx + 1] : tracks[idx - 1]
-    return neighbor || null
+  const getActiveQueue = () => {
+    if (queueSource === 'playlist' && Array.isArray(queue) && queue.length > 0) {
+      return queue
+    }
+    return getOrderedTracks(currentWork)
+  }
+
+  const computeNextFromQueue = (direction: 'next' | 'prev') => {
+    const tracks = getActiveQueue()
+    if (tracks.length === 0) return { track: null, tracksSource: tracks }
+
+    // If playlist queue is active and we have an index, use it for consistency
+    if (queueSource === 'playlist' && typeof queueIndex === 'number' && queueIndex >= 0) {
+      const nextIdx =
+        direction === 'next'
+          ? (queueIndex + 1) % tracks.length
+          : (queueIndex - 1 + tracks.length) % tracks.length
+      return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+    }
+
+    let idx = currentTrack ? tracks.findIndex((t) => t.id === currentTrack.id) : -1
+    if (idx === -1) idx = 0
+    const nextIdx =
+      direction === 'next'
+        ? (idx + 1) % tracks.length
+        : (idx - 1 + tracks.length) % tracks.length
+    return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
+  }
+
+  const hasPrev = useMemo(() => {
+    const tracks = getActiveQueue()
+    return tracks.length > 1
+  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex])
+
+  const hasNext = useMemo(() => {
+    const tracks = getActiveQueue()
+    return tracks.length > 1
+  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex])
+
+  const advanceQueue = async (direction: 'next' | 'prev') => {
+    lastAdvanceDirection.current = direction
+    const { track: nextTrackFromQueue, tracksSource, nextIndex } = computeNextFromQueue(direction)
+    if (!nextTrackFromQueue) {
+      await stop()
+      lastAdvanceDirection.current = null
+      return
+    }
+    const targetWork = (nextTrackFromQueue as any).work || currentWork || undefined
+    await playTrack(
+      nextTrackFromQueue,
+      targetWork,
+      queueSource === 'playlist' ? { playlistQueue: tracksSource, nextIndex } : undefined
+    )
+    if (typeof nextIndex === 'number') setQueueIndex(nextIndex)
+    lastAdvanceDirection.current = null
   }
 
   async function nextTrack() {
     if (isLoadingTrack.current) return
-    const next = getNeighborTrack('next')
-    if (!next) {
-      await stop()
-      return
-    }
-    await playTrack(next, currentWork || undefined)
+    await advanceQueue('next')
   }
 
   async function prevTrack() {
     if (isLoadingTrack.current) return
-    const prev = getNeighborTrack('prev')
-    if (!prev) return
-    await playTrack(prev, currentWork || undefined)
+    await advanceQueue('prev')
   }
 
-  async function playTrack(track: PlayerTrack, work?: PlayerWork) {
+  async function playTrack(track: PlayerTrack, work?: PlayerWork, options?: { playlistQueue?: PlayerTrack[]; nextIndex?: number }) {
     if (!accessToken || !isAudioConfigured.current) return
 
     // Prevent concurrent track loading
@@ -235,7 +285,27 @@ export function PlayerProvider({ children }: { children: any }) {
     isLoadingTrack.current = true
 
     try {
-      const workData = work || currentWork
+      const fromPlaylist = Array.isArray(options?.playlistQueue) && options?.playlistQueue.length > 0
+      if (fromPlaylist) {
+        const activeQueue = options?.playlistQueue || queue || []
+        setQueue(activeQueue)
+        setQueueSource('playlist')
+        const idx =
+          typeof options?.nextIndex === 'number'
+            ? options.nextIndex
+            : activeQueue.findIndex((t) => t.id === track.id)
+        setQueueIndex(idx >= 0 ? idx : 0)
+      } else if (queueSource === 'playlist' && queue && queue.length > 0) {
+        // keep existing playlist queue, update index to current track
+        const idx = queue.findIndex((t) => t.id === track.id)
+        setQueueIndex(idx >= 0 ? idx : 0)
+      } else {
+        setQueue(null)
+        setQueueSource(null)
+        setQueueIndex(null)
+      }
+
+      const workData = work || (fromPlaylist ? (track as any).work : currentWork)
 
       // Always stop and unload previous sound first
       await unloadCurrentSound()
@@ -358,6 +428,8 @@ export function PlayerProvider({ children }: { children: any }) {
       isPlaying,
       position,
       duration,
+      hasNext,
+      hasPrev,
       nextTrack,
       prevTrack,
       playWork,
@@ -368,7 +440,7 @@ export function PlayerProvider({ children }: { children: any }) {
       isFavorite,
       stop
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev],
   )
 
   return (

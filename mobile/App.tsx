@@ -49,7 +49,15 @@ function Screens() {
   )
 }
 
+import * as NavigationBar from 'expo-navigation-bar'
+import { Platform } from 'react-native'
+
 export default function App() {
+  if (Platform.OS === 'android') {
+    NavigationBar.setBackgroundColorAsync('#0b1023')
+    NavigationBar.setButtonStyleAsync('light')
+  }
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

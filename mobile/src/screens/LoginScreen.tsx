@@ -5,7 +5,8 @@ import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import { apiRequestEmailVerification } from '../services/api'
 import * as WebBrowser from 'expo-web-browser'
-import * as Google from 'expo-auth-session/providers/google'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
+import Constants from 'expo-constants'
 import appConfig from '../../app.json'
 
 type Props = {
@@ -27,16 +28,6 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   const [info, setInfo] = useState<string | null>(null)
   const [gLoading, setGLoading] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
-
-  const extra: any = (appConfig as any)?.expo?.extra || {}
-  const googleIds: any = extra?.googleOAuth || {}
-  const expoClientId: string | undefined = googleIds?.expoClientId
-  const androidClientId: string | undefined = googleIds?.androidClientId
-  const iosClientId: string | undefined = googleIds?.iosClientId
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: expoClientId,
-  })
 
   async function handleSubmit() {
     try {
@@ -83,25 +74,34 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
     try {
       setGLoading(true)
       setError(null)
-      if (!expoClientId && !androidClientId && !iosClientId) {
-        throw new Error('Configuração do Google ausente')
-      }
-      const res = await promptAsync({ useProxy: true } as any)
-      if (res?.type === 'success') {
-        const idToken = (res as any)?.params?.id_token
-        if (!idToken) throw new Error('idToken não recebido')
-        await googleOAuth(idToken)
-        onLoggedIn()
-      } else if (res?.type === 'dismiss') {
-        throw new Error('Login com Google cancelado')
-      }
+      await GoogleSignin.hasPlayServices()
+      const userInfo = await GoogleSignin.signIn()
+      const idToken = userInfo.data?.idToken
+      if (!idToken) throw new Error('idToken não recebido')
+      await googleOAuth(idToken)
+      onLoggedIn()
     } catch (e: any) {
-      console.error(e)
-      setError(e?.message || 'Falha no login com Google')
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+      } else if (e.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+      } else if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError('Google Play Services não disponível')
+      } else {
+        console.error(e)
+        setError(e?.message || 'Falha no login com Google')
+      }
     } finally {
       setGLoading(false)
     }
   }
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com',
+      offlineAccess: true,
+    })
+  }, [])
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
@@ -118,25 +118,25 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <Animated.View style={{ transform: [{ translateY: shift }] }}>
-      <Text style={styles.title}>Entrar</Text>
-      <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
-      <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
-      {error && <Text style={styles.error}>{error}</Text>}
-      {info && <Text style={styles.info}>{info}</Text>}
-      <PrimaryButton title={loading ? 'Entrando...' : 'Entrar'} onPress={handleSubmit} disabled={loading} />
-      <View style={styles.links}>
-        <Pressable onPress={onRegister}><Text style={styles.linkText}>Criar conta</Text></Pressable>
-        <Pressable onPress={onForgot}><Text style={styles.linkText}>Esqueci a senha</Text></Pressable>
-      </View>
-      {unverified && (
-        <View style={{ marginTop: 16 }}>
-          <PrimaryButton title={'Reenviar e-mail de verificação'} onPress={resendVerification} />
-          <View style={{ height: 12 }} />
-          <PrimaryButton title={'Ver instruções'} onPress={onVerificationNotice} />
+        <Text style={styles.title}>Entrar</Text>
+        <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
+        <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
+        {error && <Text style={styles.error}>{error}</Text>}
+        {info && <Text style={styles.info}>{info}</Text>}
+        <PrimaryButton title={loading ? 'Entrando...' : 'Entrar'} onPress={handleSubmit} disabled={loading} />
+        <View style={styles.links}>
+          <Pressable onPress={onRegister}><Text style={styles.linkText}>Criar conta</Text></Pressable>
+          <Pressable onPress={onForgot}><Text style={styles.linkText}>Esqueci a senha</Text></Pressable>
         </View>
-      )}
-      <View style={styles.divider} />
-      <PrimaryButton variant={'outline'} title={gLoading ? 'Abrindo Google...' : 'Entrar com Google'} onPress={handleGoogleLogin} disabled={gLoading || !request} />
+        {unverified && (
+          <View style={{ marginTop: 16 }}>
+            <PrimaryButton title={'Reenviar e-mail de verificação'} onPress={resendVerification} />
+            <View style={{ height: 12 }} />
+            <PrimaryButton title={'Ver instruções'} onPress={onVerificationNotice} />
+          </View>
+        )}
+        <View style={styles.divider} />
+        <PrimaryButton variant={'outline'} title={gLoading ? 'Abrindo Google...' : 'Entrar com Google'} onPress={handleGoogleLogin} disabled={gLoading} />
       </Animated.View>
     </KeyboardAvoidingView>
   )

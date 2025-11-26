@@ -1,7 +1,15 @@
 import { createContext, useContext, useMemo, useState, useEffect, useRef } from 'react'
 import { Audio, AVPlaybackStatus } from 'expo-av'
 import { useAuth } from './AuthContext'
-import { apiGetStreamingUrl, apiToggleFavorite } from '../services/api'
+import {
+  apiGetStreamingUrl,
+  apiToggleFavorite,
+  apiGetPlaylists,
+  apiCreatePlaylist,
+  apiGetPlaylistItems,
+  apiAddPlaylistItem,
+  apiRemovePlaylistItem
+} from '../services/api'
 import { Platform } from 'react-native'
 
 type PlayerTrack = { id: string; title?: string; workId: string; work?: any }
@@ -23,9 +31,10 @@ type PlayerContextValue = {
   togglePlay: () => Promise<void>
   toggleFavorite: () => Promise<void>
   isFavorite: boolean
-  isFavorite: boolean
   stop: () => Promise<void>
   removeFromQueue: (trackId: string) => void
+  playlistItemId: string | null
+  togglePlaylist: () => Promise<void>
 }
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
@@ -64,6 +73,7 @@ export function PlayerProvider({ children }: { children: any }) {
   const [queue, setQueue] = useState<PlayerTrack[] | null>(null) // active playlist queue (ordered)
   const [queueSource, setQueueSource] = useState<'playlist' | null>(null)
   const [queueIndex, setQueueIndex] = useState<number | null>(null)
+  const [playlistItemId, setPlaylistItemId] = useState<string | null>(null)
   const lastAdvanceDirection = useRef<'next' | 'prev' | null>(null)
 
   const soundRef = useRef<Audio.Sound | null>(null)
@@ -422,6 +432,7 @@ export function PlayerProvider({ children }: { children: any }) {
       setPosition(0)
       setDuration(0)
       setIsFavorite(false)
+      setPlaylistItemId(null)
     } catch (error) {
       console.error('Error stopping playback:', error)
     }
@@ -451,6 +462,63 @@ export function PlayerProvider({ children }: { children: any }) {
     }
   }
 
+  // Playlist Management
+  const ensureDefaultPlaylist = async (createIfMissing = false) => {
+    if (!accessToken) return null
+    try {
+      const playlists = await apiGetPlaylists(accessToken, activeProfileId || undefined)
+      let list = Array.isArray(playlists) ? (playlists.find((p) => p.isDefault) || playlists[0]) : null
+      if (!list && createIfMissing) {
+        list = await apiCreatePlaylist(accessToken, { name: 'Minha Playlist', profileId: activeProfileId || undefined }) as any
+      }
+      return list as any
+    } catch {
+      return null
+    }
+  }
+
+  useEffect(() => {
+    const syncPlaylistState = async () => {
+      if (!accessToken || !currentTrack) {
+        setPlaylistItemId(null)
+        return
+      }
+      try {
+        const list = await ensureDefaultPlaylist(false)
+        if (!list) {
+          setPlaylistItemId(null)
+          return
+        }
+        const items = await apiGetPlaylistItems(accessToken, (list as any).id)
+        const item = Array.isArray(items) ? items.find((it: any) => (it.track?.id || it.trackId) === currentTrack.id) : null
+        setPlaylistItemId(item ? item.id : null)
+      } catch {
+        setPlaylistItemId(null)
+      }
+    }
+    syncPlaylistState()
+  }, [accessToken, activeProfileId, currentTrack?.id])
+
+  async function togglePlaylist() {
+    if (!accessToken || !currentTrack) return
+    try {
+      const list = await ensureDefaultPlaylist(true)
+      if (!list) return
+
+      if (playlistItemId) {
+        // Remove
+        await apiRemovePlaylistItem(accessToken, list.id, playlistItemId)
+        setPlaylistItemId(null)
+      } else {
+        // Add
+        const res = await apiAddPlaylistItem(accessToken, list.id, currentTrack.id)
+        setPlaylistItemId(res.id)
+      }
+    } catch (err) {
+      console.error('Error toggling playlist:', err)
+    }
+  }
+
   const value = useMemo(
     () => ({
       currentTrack,
@@ -467,12 +535,13 @@ export function PlayerProvider({ children }: { children: any }) {
       seekTo,
       togglePlay,
       toggleFavorite,
-      toggleFavorite,
       isFavorite,
       stop,
-      removeFromQueue
+      removeFromQueue,
+      playlistItemId,
+      togglePlaylist
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId],
   )
 
   return (

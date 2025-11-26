@@ -11,7 +11,6 @@ import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
-import { apiAddPlaylistItem, apiCreatePlaylist, apiGetPlaylists, apiGetPlaylistItems } from '../services/api'
 
 type Props = {
   onLogout: () => void
@@ -33,16 +32,15 @@ export default function HomeScreen({ onLogout }: Props) {
     prevTrack,
     toggleFavorite,
     isFavorite,
-    stop
+    stop,
+    togglePlaylist,
+    playlistItemId
   } = usePlayer()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
   const [bottomNavHeight, setBottomNavHeight] = useState(70)
   const [playerVisible, setPlayerVisible] = useState(false)
   const [progressBarWidth, setProgressBarWidth] = useState(1)
-  const [addingPlaylist, setAddingPlaylist] = useState(false)
-  const [playlistId, setPlaylistId] = useState<string | null>(null)
-  const [isInPlaylist, setIsInPlaylist] = useState(false)
 
   useEffect(() => {
     if (!currentTrack) setPlayerVisible(false)
@@ -67,54 +65,6 @@ export default function HomeScreen({ onLogout }: Props) {
     const ratio = progressBarWidth ? Math.min(1, Math.max(0, x / progressBarWidth)) : 0
     const newPos = ratio * duration
     seekTo(newPos)
-  }
-
-  const ensureDefaultPlaylist = async (createIfMissing = false) => {
-    if (!accessToken) return null
-    const playlists = await apiGetPlaylists(accessToken, activeProfileId || undefined)
-    let list = Array.isArray(playlists) ? (playlists.find((p) => p.isDefault) || playlists[0]) : null
-    if (!list && createIfMissing) {
-      list = await apiCreatePlaylist(accessToken, { name: 'Minha Playlist', profileId: activeProfileId || undefined }) as any
-    }
-    if (list) setPlaylistId((list as any).id)
-    return list as any
-  }
-
-  useEffect(() => {
-    const syncPlaylistState = async () => {
-      if (!accessToken || !currentTrack) {
-        setIsInPlaylist(false)
-        return
-      }
-      try {
-        const list = await ensureDefaultPlaylist(false)
-        if (!list) {
-          setIsInPlaylist(false)
-          return
-        }
-        const items = await apiGetPlaylistItems(accessToken, (list as any).id)
-        const exists = Array.isArray(items) && items.some((it: any) => (it.track?.id || it.trackId) === currentTrack.id)
-        setIsInPlaylist(exists)
-      } catch {
-        setIsInPlaylist(false)
-      }
-    }
-    syncPlaylistState()
-  }, [accessToken, activeProfileId, currentTrack?.id])
-
-  const handleAddToPlaylist = async () => {
-    if (!accessToken || !currentTrack || addingPlaylist) return
-    setAddingPlaylist(true)
-    try {
-      const list = await ensureDefaultPlaylist(true)
-      if (!list) return
-      await apiAddPlaylistItem(accessToken, (list as any).id, currentTrack.id)
-      setIsInPlaylist(true)
-    } catch (err) {
-      console.error('Erro ao adicionar à playlist:', err)
-    } finally {
-      setAddingPlaylist(false)
-    }
   }
 
   const formatTime = (value: number) => {
@@ -249,10 +199,9 @@ export default function HomeScreen({ onLogout }: Props) {
               <Pressable
                 accessibilityRole="button"
                 style={[styles.controlBtn, styles.controlBtnGhost]}
-                onPress={handleAddToPlaylist}
-                disabled={addingPlaylist}
+                onPress={togglePlaylist}
               >
-                <Ionicons name={isInPlaylist ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={isInPlaylist ? '#A78BFA' : '#cfd3ff'} />
+                <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"

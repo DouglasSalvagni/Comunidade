@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator } from 'react-native'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
 import MiniPlayer from '../components/MiniPlayer'
+import DashboardCard from '../components/DashboardCard'
 import { useEffect, useMemo, useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
@@ -11,6 +12,8 @@ import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
+import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork } from '../services/api'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Props = {
   onLogout: () => void
@@ -18,6 +21,7 @@ type Props = {
 
 export default function HomeScreen({ onLogout }: Props) {
   const { user, accessToken, activeProfileId } = useAuth()
+  const insets = useSafeAreaInsets()
   const {
     currentTrack,
     currentWork,
@@ -34,7 +38,8 @@ export default function HomeScreen({ onLogout }: Props) {
     isFavorite,
     stop,
     togglePlaylist,
-    playlistItemId
+    playlistItemId,
+    playWork
   } = usePlayer()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
@@ -42,9 +47,56 @@ export default function HomeScreen({ onLogout }: Props) {
   const [playerVisible, setPlayerVisible] = useState(false)
   const [progressBarWidth, setProgressBarWidth] = useState(1)
 
+  // Dashboard Data
+  const [favorites, setFavorites] = useState<any[]>([])
+  const [suggested, setSuggested] = useState<any[]>([])
+  const [loadingDashboard, setLoadingDashboard] = useState(false)
+  const [profileName, setProfileName] = useState('')
+  const [ageLabel, setAgeLabel] = useState('')
+
   useEffect(() => {
     if (!currentTrack) setPlayerVisible(false)
   }, [currentTrack])
+
+  useEffect(() => {
+    let mounted = true
+    async function loadDashboard() {
+      if (!accessToken || !activeProfileId) return
+      setLoadingDashboard(true)
+      try {
+        // 1. Get Profile Info
+        const profiles = await apiGetProfiles(accessToken)
+        const profile = profiles.find((p) => p.id === activeProfileId)
+        if (profile) {
+          setProfileName(profile.name)
+          if (profile.birthDate) {
+            const birth = new Date(profile.birthDate)
+            const now = new Date()
+            const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+            setAgeLabel(months < 12 ? `${months} meses` : `${Math.floor(months / 12)} anos`)
+
+            // Fetch Suggested
+            const min = Math.max(0, months - 6)
+            const max = months + 6
+            const suggRes = await apiGetWorks(accessToken, { minMonths: min, maxMonths: max, limit: 10, profileId: activeProfileId })
+            if (mounted) setSuggested(suggRes.data || [])
+          }
+        }
+
+        // 2. Fetch Favorites
+        const favRes = await apiGetFavorites(accessToken, { limit: 10, profileId: activeProfileId })
+        if (mounted) setFavorites(favRes.data || [])
+
+      } catch (err) {
+        console.error('Error loading dashboard:', err)
+      } finally {
+        if (mounted) setLoadingDashboard(false)
+      }
+    }
+    if (tab === 'home') {
+      loadDashboard()
+    }
+  }, [accessToken, activeProfileId, tab])
 
   const orderedTracks = useMemo(() => {
     const list = Array.isArray(currentWork?.tracks) ? [...(currentWork as any).tracks] : []
@@ -67,6 +119,19 @@ export default function HomeScreen({ onLogout }: Props) {
     seekTo(newPos)
   }
 
+  const handlePlayWork = async (work: any) => {
+    if (!accessToken) return
+    const hasTracks = Array.isArray(work.tracks) && work.tracks.length > 0
+    if (hasTracks) {
+      await playWork({ ...work })
+    } else {
+      try {
+        const full = await apiGetWork(accessToken, work.id)
+        await playWork({ ...(full || work) })
+      } catch { }
+    }
+  }
+
   const formatTime = (value: number) => {
     if (!Number.isFinite(value)) return '0:00'
     const minutes = Math.floor(value / 60)
@@ -87,43 +152,101 @@ export default function HomeScreen({ onLogout }: Props) {
       ) : tab === 'settings' && settingsView === 'account' ? (
         <AccountScreen onBack={() => setSettingsView('menu')} />
       ) : (
-        <View style={styles.content}>
-          <Text style={styles.title}>{(() => {
-            switch (tab) {
-              case 'home': return 'Início'
-              case 'settings': return 'Mais'
-              default: return 'Mais'
-            }
-          })()}</Text>
-          <Text style={styles.subtitle}>{user?.name || user?.email}</Text>
-          {tab === 'settings' ? (
-            <View style={styles.menu}>
-              <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
-                <View style={styles.menuItemContent}>
-                  <Ionicons name="people-outline" size={20} color="#e6e9ff" />
-                  <Text style={styles.menuItemText}>Perfis</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
-              </Pressable>
-              <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
-                <View style={styles.menuItemContent}>
-                  <Ionicons name="person-outline" size={20} color="#e6e9ff" />
-                  <Text style={styles.menuItemText}>Conta</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
-              </Pressable>
-              <Pressable style={[styles.menuItem, styles.logoutButton]} onPress={() => { stop(); onLogout() }}>
-                <View style={styles.menuItemContent}>
-                  <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                  <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
-                </View>
-              </Pressable>
-            </View>
-          ) : (
-            <View />
-          )}
+        <View style={{ flex: 1 }}>
+          <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+            <Text style={styles.title}>{(() => {
+              switch (tab) {
+                case 'home': return 'Início'
+                case 'settings': return 'Mais'
+                default: return 'Mais'
+              }
+            })()}</Text>
+            <Text style={styles.subtitle}>
+              {tab === 'home'
+                ? `Bem-vindo, ${profileName || user?.name || 'Visitante'}`
+                : (user?.name || user?.email)
+              }
+            </Text>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {tab === 'home' && (
+              <View style={styles.dashboard}>
+                {loadingDashboard ? (
+                  <ActivityIndicator size="large" color="#A78BFA" style={{ marginTop: 40 }} />
+                ) : (
+                  <>
+                    {favorites.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Favoritos</Text>
+                          <Pressable onPress={() => setTab('favorites')}>
+                            <Text style={styles.sectionLink}>Ver tudo</Text>
+                          </Pressable>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                          {favorites.map((item) => (
+                            <DashboardCard key={item.id} work={item} onPress={() => handlePlayWork(item)} />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {suggested.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Sugerido para {profileName || 'você'} {ageLabel ? `(${ageLabel})` : ''}</Text>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                          {suggested.map((item) => (
+                            <DashboardCard key={item.id} work={item} onPress={() => handlePlayWork(item)} />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {favorites.length === 0 && suggested.length === 0 && (
+                      <View style={styles.emptyState}>
+                        <Ionicons name="musical-notes-outline" size={48} color="#2b3448" />
+                        <Text style={styles.emptyText}>Explore o catálogo para encontrar músicas e histórias!</Text>
+                        <PrimaryButton title="Ir para o Catálogo" onPress={() => setTab('catalog')} />
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
+
+            {tab === 'settings' ? (
+              <View style={styles.menu}>
+                <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
+                  <View style={styles.menuItemContent}>
+                    <Ionicons name="people-outline" size={20} color="#e6e9ff" />
+                    <Text style={styles.menuItemText}>Perfis</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                </Pressable>
+                <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
+                  <View style={styles.menuItemContent}>
+                    <Ionicons name="person-outline" size={20} color="#e6e9ff" />
+                    <Text style={styles.menuItemText}>Conta</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                </Pressable>
+                <Pressable style={[styles.menuItem, styles.logoutButton]} onPress={() => { stop(); onLogout() }}>
+                  <View style={styles.menuItemContent}>
+                    <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                    <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
+                  </View>
+                </Pressable>
+              </View>
+            ) : (
+              <View />
+            )}
+          </ScrollView>
         </View>
-      )}
+      )
+      }
       <MiniPlayer onOpen={() => setPlayerVisible(true)} bottomOffset={bottomNavHeight} />
       <BottomNav
         tabs={[
@@ -137,92 +260,104 @@ export default function HomeScreen({ onLogout }: Props) {
         onChange={(k) => { setTab(k as any); if (k === 'settings') setSettingsView('menu') }}
         onHeight={(h) => setBottomNavHeight(Math.max(60, Math.round(h)))}
       />
-      {playerVisible && currentTrack && currentWork && (
-        <View style={styles.playerOverlay}>
-          <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
-          <View style={styles.playerCard}>
-            <View style={styles.playerHeader}>
-              <Text style={styles.playerNow}>Tocando agora</Text>
-              <Pressable onPress={() => setPlayerVisible(false)} hitSlop={10}>
-                <Ionicons name="close" size={22} color="#cfd3ff" />
-              </Pressable>
-            </View>
-            <View style={styles.playerCoverWrap}>
-              {currentWork.coverUrl ? (
-                <Image source={{ uri: currentWork.coverUrl }} style={styles.playerCover} />
-              ) : (
-                <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
-              )}
-            </View>
-            <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
-            <Text style={styles.playerSubtitle} numberOfLines={2}>{currentWork.title || ''}</Text>
+      {
+        playerVisible && currentTrack && currentWork && (
+          <View style={styles.playerOverlay}>
+            <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
+            <View style={styles.playerCard}>
+              <View style={styles.playerHeader}>
+                <Text style={styles.playerNow}>Tocando agora</Text>
+                <Pressable onPress={() => setPlayerVisible(false)} hitSlop={10}>
+                  <Ionicons name="close" size={22} color="#cfd3ff" />
+                </Pressable>
+              </View>
+              <View style={styles.playerCoverWrap}>
+                {currentWork.coverUrl ? (
+                  <Image source={{ uri: currentWork.coverUrl }} style={styles.playerCover} />
+                ) : (
+                  <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
+                )}
+              </View>
+              <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
+              <Text style={styles.playerSubtitle} numberOfLines={2}>{currentWork.title || ''}</Text>
 
-            <View
-              style={styles.progressBar}
-              onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
-              onStartShouldSetResponder={() => true}
-              onResponderGrant={handleSeek}
-              onResponderMove={handleSeek}
-              onResponderRelease={handleSeek}
-            >
-              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-            </View>
-            <View style={styles.progressTimes}>
-              <Text style={styles.progressText}>{formatTime(position)}</Text>
-              <Text style={styles.progressText}>{formatTime(duration)}</Text>
-            </View>
+              <View
+                style={styles.progressBar}
+                onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
+                onStartShouldSetResponder={() => true}
+                onResponderGrant={handleSeek}
+                onResponderMove={handleSeek}
+                onResponderRelease={handleSeek}
+              >
+                <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+              </View>
+              <View style={styles.progressTimes}>
+                <Text style={styles.progressText}>{formatTime(position)}</Text>
+                <Text style={styles.progressText}>{formatTime(duration)}</Text>
+              </View>
 
-            <View style={styles.playerControls}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={!hasPrev}
-                style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
-                onPress={prevTrack}
-              >
-                <Ionicons name="play-skip-back" size={26} color={hasPrev ? '#e6e9ff' : '#6b7280'} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                style={[styles.controlBtn, styles.controlBtnPrimary]}
-                onPress={togglePlay}
-              >
-                <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={!hasNext}
-                style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
-                onPress={nextTrack}
-              >
-                <Ionicons name="play-skip-forward" size={26} color={hasNext ? '#e6e9ff' : '#6b7280'} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                style={[styles.controlBtn, styles.controlBtnGhost]}
-                onPress={togglePlaylist}
-              >
-                <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                style={[styles.controlBtn, styles.controlBtnGhost]}
-                onPress={toggleFavorite}
-              >
-                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={22} color={isFavorite ? '#facc15' : '#cfd3ff'} />
-              </Pressable>
+              <View style={styles.playerControls}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!hasPrev}
+                  style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
+                  onPress={prevTrack}
+                >
+                  <Ionicons name="play-skip-back" size={26} color={hasPrev ? '#e6e9ff' : '#6b7280'} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.controlBtn, styles.controlBtnPrimary]}
+                  onPress={togglePlay}
+                >
+                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!hasNext}
+                  style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
+                  onPress={nextTrack}
+                >
+                  <Ionicons name="play-skip-forward" size={26} color={hasNext ? '#e6e9ff' : '#6b7280'} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.controlBtn, styles.controlBtnGhost]}
+                  onPress={togglePlaylist}
+                >
+                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={[styles.controlBtn, styles.controlBtnGhost]}
+                  onPress={toggleFavorite}
+                >
+                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={22} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      )}
-    </View>
+        )
+      }
+    </View >
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 20, backgroundColor: '#0b1023' },
+  container: { flex: 1, backgroundColor: '#0b1023' },
+  scrollContent: { paddingBottom: 100, paddingTop: 20 },
+  header: { paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1d2340' },
+  dashboard: { paddingBottom: 20 },
+  section: { marginBottom: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#e6e9ff' },
+  sectionLink: { color: '#A78BFA', fontSize: 14 },
+  horizontalList: { paddingHorizontal: 20 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', padding: 40, gap: 16 },
+  emptyText: { color: '#8b92b8', textAlign: 'center', fontSize: 16 },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%', paddingHorizontal: 20 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 8, color: '#e6e9ff' },
-  subtitle: { fontSize: 16, color: '#cfd3ff', marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
+  subtitle: { fontSize: 14, color: '#8b92b8' },
   menu: { width: '100%', paddingHorizontal: 20 },
   menuItem: { borderWidth: 1, borderColor: '#1d2340', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#0e1430', marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   menuItemContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },

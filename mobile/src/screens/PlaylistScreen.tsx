@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { apiGetPlaylists, apiGetPlaylistItems, apiRemovePlaylistItem, apiGetWork, apiReorderPlaylistItems } from '../services/api'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type PlaylistItem = {
     id: string
@@ -16,6 +17,7 @@ type PlaylistItem = {
 export default function PlaylistScreen() {
     const { accessToken, activeProfileId } = useAuth()
     const { playTrack, removeFromQueue } = usePlayer()
+    const insets = useSafeAreaInsets()
     const [items, setItems] = useState<PlaylistItem[]>([])
     const [loading, setLoading] = useState(true)
     const [playlistId, setPlaylistId] = useState<string | null>(null)
@@ -181,7 +183,7 @@ export default function PlaylistScreen() {
 
     return (
         <GestureHandlerRootView style={styles.container}>
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <Text style={styles.headerTitle}>Minha Playlist</Text>
                 <Text style={styles.headerSubtitle}>
                     {items.length} {items.length === 1 ? 'música' : 'músicas'}
@@ -214,7 +216,6 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#1d2340',

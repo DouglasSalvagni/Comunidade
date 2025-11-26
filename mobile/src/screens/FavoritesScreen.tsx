@@ -4,10 +4,12 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { apiGetFavorites, apiToggleFavorite } from '../services/api'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function FavoritesScreen() {
     const { accessToken, activeProfileId } = useAuth()
     const { playWork } = usePlayer()
+    const insets = useSafeAreaInsets()
     const [favorites, setFavorites] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
@@ -153,7 +155,7 @@ export default function FavoritesScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <Text style={styles.headerTitle}>Meus Favoritos</Text>
                 <Text style={styles.headerSubtitle}>
                     {favorites.length} {favorites.length === 1 ? 'item' : 'itens'}
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#1d2340',

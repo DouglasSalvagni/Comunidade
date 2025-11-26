@@ -74,6 +74,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
     try {
       setGLoading(true)
       setError(null)
+      await GoogleSignin.signOut() // Ensure we clear previous session to allow account selection
       await GoogleSignin.hasPlayServices()
       const userInfo = await GoogleSignin.signIn()
       const idToken = userInfo.data?.idToken

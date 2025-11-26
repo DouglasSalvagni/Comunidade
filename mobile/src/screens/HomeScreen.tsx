@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
 import MiniPlayer from '../components/MiniPlayer'
 import DashboardCard from '../components/DashboardCard'
+import DashboardCardSkeleton from '../components/DashboardCardSkeleton'
 import { useEffect, useMemo, useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
@@ -50,6 +51,8 @@ export default function HomeScreen({ onLogout }: Props) {
   // Dashboard Data
   const [favorites, setFavorites] = useState<any[]>([])
   const [suggested, setSuggested] = useState<any[]>([])
+  const [recentAudiobooks, setRecentAudiobooks] = useState<any[]>([])
+  const [recentMusic, setRecentMusic] = useState<any[]>([])
   const [loadingDashboard, setLoadingDashboard] = useState(false)
   const [profileName, setProfileName] = useState('')
   const [ageLabel, setAgeLabel] = useState('')
@@ -86,6 +89,14 @@ export default function HomeScreen({ onLogout }: Props) {
         // 2. Fetch Favorites
         const favRes = await apiGetFavorites(accessToken, { limit: 10, profileId: activeProfileId })
         if (mounted) setFavorites(favRes.data || [])
+
+        // 3. Fetch Recent Audiobooks
+        const audioRes = await apiGetWorks(accessToken, { type: 'audiobook', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
+        if (mounted) setRecentAudiobooks(audioRes.data || [])
+
+        // 4. Fetch Recent Music
+        const musicRes = await apiGetWorks(accessToken, { type: 'music', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
+        if (mounted) setRecentMusic(musicRes.data || [])
 
       } catch (err) {
         console.error('Error loading dashboard:', err)
@@ -173,7 +184,55 @@ export default function HomeScreen({ onLogout }: Props) {
             {tab === 'home' && (
               <View style={styles.dashboard}>
                 {loadingDashboard ? (
-                  <ActivityIndicator size="large" color="#A78BFA" style={{ marginTop: 40 }} />
+                  <>
+                    {/* Favoritos Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <DashboardCardSkeleton key={`fav-skel-${idx}`} variant="square" />
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* Sugeridos Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <DashboardCardSkeleton key={`sug-skel-${idx}`} variant="square" />
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* Audiobooks Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <DashboardCardSkeleton key={`audio-skel-${idx}`} variant="portrait" />
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* Músicas Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <DashboardCardSkeleton key={`music-skel-${idx}`} variant="landscape" />
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </>
                 ) : (
                   <>
                     {favorites.length > 0 && (
@@ -200,6 +259,38 @@ export default function HomeScreen({ onLogout }: Props) {
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
                           {suggested.map((item) => (
                             <DashboardCard key={item.id} work={item} onPress={() => handlePlayWork(item)} />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {recentAudiobooks.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Audiobooks Recentes</Text>
+                          <Pressable onPress={() => { setTab('catalog'); /* TODO: filter by audiobook */ }}>
+                            <Text style={styles.sectionLink}>Ver mais</Text>
+                          </Pressable>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                          {recentAudiobooks.map((item) => (
+                            <DashboardCard key={item.id} work={item} variant="portrait" onPress={() => handlePlayWork(item)} />
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {recentMusic.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Músicas Recentes</Text>
+                          <Pressable onPress={() => { setTab('catalog'); /* TODO: filter by music */ }}>
+                            <Text style={styles.sectionLink}>Ver mais</Text>
+                          </Pressable>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                          {recentMusic.map((item) => (
+                            <DashboardCard key={item.id} work={item} variant="landscape" onPress={() => handlePlayWork(item)} />
                           ))}
                         </ScrollView>
                       </View>
@@ -383,4 +474,6 @@ const styles = StyleSheet.create({
   controlBtnPrimary: { backgroundColor: '#A78BFA', borderColor: '#A78BFA', width: 80, height: 80, borderRadius: 40 },
   controlBtnGhost: { backgroundColor: 'transparent', borderWidth: 0, width: 48, height: 48 },
   controlBtnDisabled: { opacity: 0.4 },
+  sectionTitleSkeleton: { height: 20, width: 150, borderRadius: 4 },
+  skeleton: { backgroundColor: '#1d2340', opacity: 0.6 },
 })

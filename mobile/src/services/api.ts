@@ -146,6 +146,7 @@ export async function apiGetWorks(accessToken: string, params?: {
   page?: number
   limit?: number
   profileId?: string
+  sort?: string
 }): Promise<{ data: any[]; meta: any }> {
   const qs = new URLSearchParams()
   if (params?.type) qs.set('type', params.type)
@@ -156,6 +157,7 @@ export async function apiGetWorks(accessToken: string, params?: {
   if (typeof params?.page === 'number') qs.set('page', String(params.page))
   if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
   if (params?.profileId) qs.set('profileId', params.profileId)
+  if (params?.sort) qs.set('sort', params.sort)
   const path = `/works${qs.toString() ? `?${qs.toString()}` : ''}`
   return request<{ data: any[]; meta: any }>(path, {
     method: 'GET',

@@ -93,7 +93,7 @@ export class CatalogController {
 
   @Get('my-top-played')
   @UseGuards(JwtAuthGuard)
-  @ApiBearAuth()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my top played works' })
   @ApiResponse({ status: 200, description: 'User top played works retrieved successfully.' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })

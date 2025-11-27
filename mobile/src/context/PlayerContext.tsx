@@ -8,7 +8,8 @@ import {
   apiCreatePlaylist,
   apiGetPlaylistItems,
   apiAddPlaylistItem,
-  apiRemovePlaylistItem
+  apiRemovePlaylistItem,
+  apiRecordPlaybackEvent
 } from '../services/api'
 import { Platform } from 'react-native'
 
@@ -382,6 +383,21 @@ export function PlayerProvider({ children }: { children: any }) {
       setDuration(effectiveDuration)
 
       setIsPlaying(true)
+
+      // Report 'play' event for new track
+      if (accessToken) {
+        console.log('[PLAY EVENT] Sending play event for track:', track.id, 'profileId:', activeProfileId)
+        apiRecordPlaybackEvent(accessToken, {
+          trackId: track.id,
+          eventType: 'play',
+          positionSeconds: 0,
+          profileId: activeProfileId || undefined
+        })
+          .then(() => console.log('[PLAY EVENT] Event sent successfully'))
+          .catch((err) => console.error('[PLAY EVENT] Error sending event:', err))
+      } else {
+        console.warn('[PLAY EVENT] No accessToken available')
+      }
     } catch (error) {
       console.error('Error playing track:', error)
       setIsPlaying(false)

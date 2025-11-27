@@ -81,12 +81,10 @@ export class PlaybackService {
     userId: string,
     profileId?: string,
   ): Promise<{ status: string }> {
-    // Verificar se o usuário tem acesso
-    const hasAccess = await this.subscriptionsService.checkSubscriptionAccess(userId);
-
-    if (!hasAccess) {
-      throw new ForbiddenException('Subscription required for playback');
-    }
+    // Note: We don't check subscription here because:
+    // 1. The user already passed subscription check when getting the streaming URL
+    // 2. Recording analytics/stats should not require subscription
+    // 3. We want to collect data even for trial users
 
     await this.playEventsQueue.add('process-play-event', {
       trackId,

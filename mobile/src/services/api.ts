@@ -189,6 +189,19 @@ export async function apiGetStreamingUrl(accessToken: string, trackId: string, f
   })
 }
 
+export async function apiRecordPlaybackEvent(accessToken: string, data: {
+  trackId: string;
+  eventType: 'play' | 'pause' | 'complete' | 'seek';
+  positionSeconds?: number;
+  profileId?: string;
+}) {
+  return request<void>('/playback/events', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
 export async function apiToggleFavorite(accessToken: string, workId: string, profileId?: string) {
   const qs = new URLSearchParams()
   if (profileId) qs.set('profileId', profileId)

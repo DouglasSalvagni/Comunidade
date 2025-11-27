@@ -11,10 +11,11 @@ interface PricingCardProps {
     features: string[];
   };
   isCurrentPlan: boolean;
+  disabled?: boolean;
   onSelectPlan: () => void;
 }
 
-const PricingCard = ({ plan, isCurrentPlan, onSelectPlan }: PricingCardProps) => {
+const PricingCard = ({ plan, isCurrentPlan, disabled = false, onSelectPlan }: PricingCardProps) => {
   return (
     <Card className={(isCurrentPlan ? "border-primary " : "") + "flex flex-col h-full"}>
       <CardHeader>
@@ -30,7 +31,7 @@ const PricingCard = ({ plan, isCurrentPlan, onSelectPlan }: PricingCardProps) =>
         ))}
       </CardContent>
       <CardFooter>
-        <Button onClick={onSelectPlan} disabled={isCurrentPlan} className="w-full">
+        <Button onClick={onSelectPlan} disabled={isCurrentPlan || disabled} className="w-full">
           {isCurrentPlan ? "Plano Atual" : "Selecionar Plano"}
         </Button>
       </CardFooter>

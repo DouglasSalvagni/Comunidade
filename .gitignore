@@ -46,3 +46,6 @@ next-env.d.ts
 .trae
 .github
 .vscode
+
+#logs
+*.log

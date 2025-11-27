@@ -235,12 +235,18 @@ async function processJob(job: Job) {
   }
 }
 
-console.log('[WORKER_LOG] Connecting to Redis...');
-const redisConfig = { host: process.env.REDIS_HOST || 'redis', port: parseInt(process.env.REDIS_PORT || '6379') };
-console.log('[WORKER_LOG] Redis config:', redisConfig);
-const queue = new (Bull as any)('transcode', { redis: redisConfig });
-console.log('[WORKER_LOG] Connected to Redis and queue created.');
-queue.process('audio', async (job: Job) => {
-  console.log('[WORKER_LOG] Job received by processor:', { jobId: job.id, storageKey: job.data.storageKey });
-  await processJob(job);
-});
+export async function bootstrapTranscodeWorker() {
+  console.log('[WORKER_LOG] Connecting to Redis...');
+  const redisConfig = { host: process.env.REDIS_HOST || 'redis', port: parseInt(process.env.REDIS_PORT || '6379') };
+  console.log('[WORKER_LOG] Redis config:', redisConfig);
+  const queue = new (Bull as any)('transcode', { redis: redisConfig });
+  console.log('[WORKER_LOG] Connected to Redis and queue created.');
+  queue.process('audio', async (job: Job) => {
+    console.log('[WORKER_LOG] Job received by processor:', { jobId: job.id, storageKey: job.data.storageKey });
+    await processJob(job);
+  });
+}
+
+if (require.main === module) {
+  bootstrapTranscodeWorker();
+}

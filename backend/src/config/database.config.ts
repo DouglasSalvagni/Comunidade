@@ -17,6 +17,8 @@ import { Download } from '@/modules/playback/entities/download.entity';
 import { WorkTag } from '@/modules/catalog/entities/work-tag.entity';
 import { Playlist } from '@/modules/playlists/entities/playlist.entity';
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity';
+import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
+import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -39,6 +41,8 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     WorkTag,
     Playlist,
     PlaylistItem,
+    TrackPlayUserCount,
+    TrackPlayGlobalCount,
   ],
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',

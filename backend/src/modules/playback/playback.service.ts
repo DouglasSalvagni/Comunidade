@@ -9,6 +9,9 @@ import * as AWS from 'aws-sdk';
 // removed duplicate imports
 import { Track } from '@/modules/catalog/entities/track.entity';
 
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+
 @Injectable()
 export class PlaybackService {
   private s3: AWS.S3;
@@ -20,6 +23,7 @@ export class PlaybackService {
     private readonly downloadRepository: Repository<Download>,
     @InjectRepository(Track)
     private readonly trackRepository: Repository<Track>,
+    @InjectQueue('play-events') private playEventsQueue: Queue,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly configService: ConfigService,
   ) {
@@ -76,22 +80,23 @@ export class PlaybackService {
     positionSeconds: number,
     userId: string,
     profileId?: string,
-  ): Promise<PlayEvent> {
+  ): Promise<{ status: string }> {
     // Verificar se o usuário tem acesso
     const hasAccess = await this.subscriptionsService.checkSubscriptionAccess(userId);
-    
+
     if (!hasAccess) {
       throw new ForbiddenException('Subscription required for playback');
     }
 
-    const playEvent = this.playEventRepository.create({
-      track: { id: trackId },
+    await this.playEventsQueue.add('process-play-event', {
+      trackId,
       eventType,
       positionSeconds,
-      profile: profileId ? { id: profileId } : null,
+      userId,
+      profileId,
     });
 
-    return this.playEventRepository.save(playEvent);
+    return { status: 'queued' };
   }
 
   async getPlayHistory(userId: string, profileId?: string, limit = 50): Promise<PlayEvent[]> {
@@ -113,7 +118,7 @@ export class PlaybackService {
   async downloadTrack(trackId: string, userId: string, profileId: string, deviceId: string): Promise<{ downloadId: string; url: string }> {
     // Verificar se o usuário tem assinatura premium (offline downloads)
     const limits = await this.subscriptionsService.getSubscriptionLimits(userId);
-    
+
     if (!limits.hdQuality || limits.offlineDownloads === 0) {
       throw new ForbiddenException('Premium subscription required for offline downloads');
     }

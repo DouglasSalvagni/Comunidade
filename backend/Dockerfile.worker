@@ -12,5 +12,5 @@ RUN npm ci && npm run build
 
 EXPOSE 3002
 
-CMD ["dumb-init", "node", "-r", "tsconfig-paths/register", "dist/src/workers/transcode.worker.js"]
+CMD ["dumb-init", "node", "-r", "tsconfig-paths/register", "dist/src/workers/worker.js"]
 

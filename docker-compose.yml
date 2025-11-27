@@ -67,11 +67,11 @@ services:
   #   restart: unless-stopped
 
   # Serviço opcional para processamento de mídia
-  media-worker:
+  worker:
     build:
       context: ./backend
       dockerfile: Dockerfile.worker
-    container_name: babytune-media-worker
+    container_name: babytune-worker
     env_file:
       - ./backend/.env
     environment:
@@ -95,16 +95,16 @@ services:
     restart: unless-stopped
 
 
-  adminer:
-    image: adminer:latest
-    container_name: little-tales-adminer
-    restart: always
-    ports:
-      - "8084:8080"
-    depends_on:
-      - postgres
-    networks:
-      - little-tales-network
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: little-tales-adminer
+  #   restart: always
+  #   ports:
+  #     - "8084:8080"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - babytune-network
 
 volumes:
   postgres_data:

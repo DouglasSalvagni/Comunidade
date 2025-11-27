@@ -40,9 +40,53 @@ const dataSource = new DataSource({
 async function run() {
   await dataSource.initialize()
   const userRepo = dataSource.getRepository(User)
+  const planRepo = dataSource.getRepository(Plan)
   const tagRepo = dataSource.getRepository(Tag)
   const workRepo = dataSource.getRepository(Work)
   const trackRepo = dataSource.getRepository(Track)
+
+  // Criar planos se a tabela estiver vazia
+  const plansCount = await planRepo.count()
+
+  if (plansCount === 0) {
+    const plansData = [
+      {
+        slug: 'plano-gratuito',
+        name: 'Gratuito',
+        description: 'Acesso limitado ao conteúdo',
+        priceCents: 0,
+        billingPeriod: 'monthly' as const,
+        features: [
+          '10 músicas por mês',
+          'Audiobooks limitados',
+          'Anúncios',
+        ],
+        isActive: true,
+      },
+      {
+        slug: 'plano-mensal',
+        name: 'Premium Mensal',
+        description: 'Acesso completo mensal',
+        priceCents: 1990,
+        billingPeriod: 'monthly' as const,
+        features: [
+          'Músicas ilimitadas',
+          'Audiobooks ilimitados',
+          'Sem anúncios',
+          'Downloads offline',
+          'Qualidade HD',
+        ],
+        isActive: true,
+      },
+    ]
+
+    for (const planData of plansData) {
+      await planRepo.save(planRepo.create(planData))
+      console.log('Seed: plano criado', planData.name)
+    }
+  } else {
+    console.log('Seed: planos já existem, pulando criação')
+  }
 
   const email = process.env.SEED_USER_EMAIL || 'user@little-tales.com'
   const password = process.env.SEED_USER_PASSWORD || 'password'
@@ -88,6 +132,6 @@ run().catch(async (err) => {
   console.error('Seed: erro', err)
   try {
     await dataSource.destroy()
-  } catch {}
+  } catch { }
   process.exit(1)
 })

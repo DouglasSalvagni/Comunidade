@@ -23,7 +23,7 @@
     "migration:create": "typeorm migration:create",
     "migration:generate": "typeorm migration:generate",
     "migration:run": "ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/database/datasource.ts",
-    "migration:revert": "typeorm migration:revert",
+    "migration:revert": "ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/database/datasource.ts",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
   },
   "dependencies": {

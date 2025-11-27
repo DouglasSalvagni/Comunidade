@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: babytune-postgres
+    container_name: little-tales-postgres
     environment:
       POSTGRES_DB: little_tales
       POSTGRES_USER: postgres
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - babytune-network
+      - little-tales-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -23,55 +23,54 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: babytune-redis
+    container_name: little-tales-redis
     ports:
       - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
-      - babytune-network
+      - little-tales-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: babytune-backend
-  #   ports:
-  #     - "3001:3001"
-  #   env_file:
-  #     - ./backend/.env
-  #   environment:
-  #     NODE_ENV: development
-  #     PORT: 3001
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/little_tales
-  #     REDIS_URL: redis://redis:6379
-  #     JWT_SECRET: little-tales-secret-key-change-in-production
-  #     JWT_EXPIRATION: 7d
-  #     CORS_ORIGIN: http://localhost:3000
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./backend:/app
-  #     - /app/node_modules
-  #     - media_uploads:/app/uploads
-  #   networks:
-  #     - babytune-network
-  #   restart: unless-stopped
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: little-tales-backend
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/little_tales
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: little-tales-secret-key-change-in-production
+      JWT_EXPIRATION: 7d
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - media_uploads:/app/uploads
+    networks:
+      - little-tales-network
+    restart: unless-stopped
 
-  # Serviço opcional para processamento de mídia
   media-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile.worker
-    container_name: babytune-media-worker
+    container_name: little-tales-media-worker
     env_file:
       - ./backend/.env
     environment:
@@ -91,9 +90,10 @@ services:
       - /app/node_modules
       - media_uploads:/app/uploads
     networks:
-      - babytune-network
+      - little-tales-network
     restart: unless-stopped
-
+    profiles:
+      - with-worker
 
   adminer:
     image: adminer:latest
@@ -112,5 +112,5 @@ volumes:
   media_uploads:
 
 networks:
-  babytune-network:
+  little-tales-network:
     driver: bridge

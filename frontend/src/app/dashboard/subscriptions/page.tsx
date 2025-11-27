@@ -1,9 +1,92 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import PlanSelector from "@/components/PlanSelector";
+import { api, Subscription, Invoice } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SubscriptionPage = () => {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [subscriptionData, invoicesData] = await Promise.all([
+          api.getCurrentSubscription(),
+          api.getInvoices(),
+        ]);
+        setSubscription(subscriptionData);
+        setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        setInvoices([]); // Garante que seja array vazio em caso de erro
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleCancelSubscription = async () => {
+    try {
+      await api.cancelSubscription();
+      setIsCancelDialogOpen(false);
+      // Recarregar assinatura
+      const data = await api.getCurrentSubscription();
+      setSubscription(data);
+    } catch (error) {
+      console.error("Erro ao cancelar assinatura:", error);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+
+    // Remove timestamp se existir, pega apenas YYYY-MM-DD
+    const dateOnly = dateString.split('T')[0];
+
+    // Parse manual para evitar timezone (formato: YYYY-MM-DD)
+    const [year, month, day] = dateOnly.split('-');
+
+    if (!year || !month || !day) {
+      return "Data inválida";
+    }
+
+    // Retorna no formato dd/MM/yyyy sem usar Date
+    return `${day}/${month}/${year}`;
+  }; const formatPrice = (cents: number) => {
+    return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      active: "Ativo",
+      canceled: "Cancelado",
+      past_due: "Vencido",
+      unpaid: "Não pago",
+    };
+    return labels[status] || status;
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Carregando assinatura...</div>;
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -11,54 +94,143 @@ const SubscriptionPage = () => {
         <p className="text-muted-foreground">Visualize e gerencie seu plano e faturamento.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Seu Plano Atual</CardTitle>
-          <CardDescription>Plano Família - Anual</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p>Status</p>
-            <Badge variant="default">Ativo</Badge>
-          </div>
-          <div className="flex justify-between items-center">
-            <p>Próxima cobrança em 15 de Julho de 2025</p>
-            <p className="font-semibold">R$ 199,90</p>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline">Cancelar Assinatura</Button>
-        </CardFooter>
-      </Card>
+      {subscription && subscription.plan ? (
+        <Card>
+          <CardHeader>
+            <CardDescription>Seu Plano Atual</CardDescription>
+            <CardTitle>{subscription.plan.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <p>Status</p>
+              <Badge variant={subscription.status === "active" ? "default" : "destructive"}>
+                {getStatusLabel(subscription.status)}
+              </Badge>
+            </div>
+            {subscription.periodEnd && (
+              <div className="flex gap-4 items-center">
+                <p>Próxima cobrança em {formatDate(subscription.periodEnd)}</p>
+                <p className="font-semibold">{formatPrice(subscription.plan.priceCents)}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            {subscription.status === "active" && subscription.plan.priceCents > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setIsCancelDialogOpen(true)}
+                className="hover:bg-red-900 hover:text-white hover:border-red-900 transition-colors"
+              >
+                Cancelar Assinatura
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nenhuma Assinatura Ativa</CardTitle>
+            <CardDescription>Escolha um plano abaixo para começar</CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar Assinatura</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos benefícios premium.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+              className="border-2 px-16 transition duration-150 hover:bg-green-600/10 hover:border-green-600/10"
+            >
+              Não
+            </Button>
+            <Button
+              onClick={handleCancelSubscription}
+              className="bg-red-600 hover:bg-red-700 px-8"
+            >
+              Sim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div>
         <h2 className="text-2xl font-bold">Mudar de Plano</h2>
         <p className="text-muted-foreground">Escolha o plano que melhor se adapta às suas necessidades.</p>
       </div>
-      <PlanSelector />
+      <PlanSelector
+        currentPlanId={subscription?.plan?.id}
+        hasPaidSubscription={subscription?.plan?.priceCents ? subscription.plan.priceCents > 0 : false}
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Faturamento</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2">Data</th>
-                <th className="text-left py-2">Descrição</th>
-                <th className="text-right py-2">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-2">15/07/2024</td>
-                <td>Plano Família - Anual</td>
-                <td className="text-right">R$ 199,90</td>
-              </tr>
-              {/* Adicionar mais linhas de histórico aqui */}
-            </tbody>
-          </table>
+          {invoices.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">Nenhuma fatura encontrada</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2">Criação</th>
+                  <th className="text-center py-2">Validade</th>
+                  <th className="text-center py-2">Status</th>
+                  <th className="text-center py-2">Valor</th>
+                  <th className="text-right py-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="border-b">
+                    <td className="text-left py-2">{formatDate(invoice.createdAt)}</td>
+                    <td className="text-center py-2">{formatDate(invoice.dueDate)}</td>
+                    <td className="text-center py-2">
+                      <Badge
+                        variant={
+                          invoice.status === 'CONFIRMED' ? 'default' :
+                            invoice.status === 'OVERDUE' ? 'destructive' :
+                              invoice.status === 'PENDING' ? 'secondary' :
+                                'outline'
+                        }
+                        className={
+                          invoice.status === 'CONFIRMED' ? 'bg-green-600 hover:bg-green-700' :
+                            invoice.status === 'PENDING' ? 'bg-cyan-600 hover:bg-cyan-700 text-white' :
+                              invoice.status === 'OVERDUE' ? 'bg-red-600 hover:bg-red-700' :
+                                invoice.status === 'REFUNDED' ? 'bg-purple-600 hover:bg-purple-700 text-white' :
+                                  'bg-gray-400 hover:bg-gray-500 text-white'
+                        }
+                      >
+                        {invoice.status === 'CONFIRMED' ? 'Pago' :
+                          invoice.status === 'PENDING' ? 'Aberta' :
+                            invoice.status === 'OVERDUE' ? 'Atrasada' :
+                              invoice.status === 'REFUNDED' ? 'Reembolsada' :
+                                'Cancelada'}
+                      </Badge>
+                    </td>
+                    <td className="text-center py-2">R$ {parseFloat(invoice.amount).toFixed(2).replace('.', ',')}</td>
+                    <td className="text-right py-2">
+                      {invoice.invoiceUrl ? (
+                        <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          Ver Fatura
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
     </div>

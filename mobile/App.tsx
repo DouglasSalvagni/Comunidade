@@ -10,21 +10,25 @@ import VerifyEmailScreen from './src/screens/VerifyEmailScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import HomeScreen from './src/screens/HomeScreen'
 import VerificationNoticeScreen from './src/screens/VerificationNoticeScreen'
+import ProfileSelectionScreen from './src/screens/ProfileSelectionScreen'
 
 function Screens() {
-  const { user, accessToken, logout } = useAuth()
-  const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'home'>('login')
+  const { user, accessToken, logout, activeProfileId } = useAuth()
+  const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'profile_selection' | 'home'>('login')
 
   return (
     <View style={styles.container}>
-      {user && accessToken && (
+      {user && accessToken && activeProfileId && (
         <HomeScreen onLogout={() => { logout(); setScreen('login') }} />
+      )}
+      {user && accessToken && !activeProfileId && (
+        <ProfileSelectionScreen onProfileSelected={() => setScreen('home')} />
       )}
       {!user && !accessToken && screen === 'login' && (
         <LoginScreen
           onRegister={() => setScreen('register')}
           onForgot={() => setScreen('forgot')}
-          onLoggedIn={() => setScreen('home')}
+          onLoggedIn={() => setScreen('profile_selection')}
           onVerificationNotice={() => setScreen('verify_notice')}
         />
       )}
@@ -32,7 +36,7 @@ function Screens() {
         <RegisterScreen onBackToLogin={() => setScreen('login')} onVerifyEmail={() => setScreen('verify_notice')} />
       )}
       {!user && !accessToken && screen === 'verify' && (
-        <VerifyEmailScreen onVerified={() => setScreen('home')} onBack={() => setScreen('login')} />
+        <VerifyEmailScreen onVerified={() => setScreen('profile_selection')} onBack={() => setScreen('login')} />
       )}
       {!user && !accessToken && screen === 'verify_notice' && (
         <VerificationNoticeScreen onBackToLogin={() => setScreen('login')} />
@@ -45,7 +49,15 @@ function Screens() {
   )
 }
 
+import * as NavigationBar from 'expo-navigation-bar'
+import { Platform } from 'react-native'
+
 export default function App() {
+  if (Platform.OS === 'android') {
+    NavigationBar.setBackgroundColorAsync('#0b1023')
+    NavigationBar.setButtonStyleAsync('light')
+  }
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

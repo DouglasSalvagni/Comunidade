@@ -77,4 +77,14 @@ export class SearchWorksDto {
   @IsOptional()
   @IsString()
   profileId?: string;
+
+  @ApiProperty({
+    description: 'Sort order (field:direction)',
+    required: false,
+    example: 'createdAt:desc',
+    enum: ['createdAt:asc', 'createdAt:desc', 'title:asc', 'title:desc']
+  })
+  @IsOptional()
+  @IsString()
+  sort?: string;
 }

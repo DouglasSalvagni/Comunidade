@@ -7,13 +7,19 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "com.wizer.babytune",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "package": "com.wizer.babytune",
@@ -28,20 +34,14 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://50e766e10a69.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://cf6e8ed7f1e4.ngrok-free.app/api/v1",
       "googleOAuth": {
-        "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com"
+        "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com",
+        "androidClientId": "1049428265578-l6t0a4l6doeqh6je3vpolkqolp1ki4jk.apps.googleusercontent.com"
       }
     },
     "plugins": [
-      "expo-web-browser",
-      [
-        "expo-video",
-        {
-          "supportsBackgroundPlayback": true,
-          "supportsPictureInPicture": true
-        }
-      ]
+      "expo-web-browser"
     ]
   }
 }

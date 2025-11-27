@@ -6,6 +6,7 @@ import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import { apiGetWorks, apiGetWork } from '../services/api'
 import { usePlayer } from '../context/PlayerContext'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Work = {
   id: string
@@ -23,6 +24,7 @@ type Work = {
 export default function CatalogScreen() {
   const { accessToken, activeProfileId } = useAuth()
   const player = usePlayer()
+  const insets = useSafeAreaInsets()
   const [works, setWorks] = useState<Work[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -71,14 +73,14 @@ export default function CatalogScreen() {
         if (!mounted) return
         setWorks(() => {
           const map = new Map<string, Work>()
-          ;(list as any).forEach((w: Work) => { map.set(w.id, w) })
+            ; (list as any).forEach((w: Work) => { map.set(w.id, w) })
           return Array.from(map.values()) as any
         })
         setPage(1)
         const meta = (r as any)?.meta
         if (meta && typeof meta.totalPages === 'number') setTotalPages(meta.totalPages)
         else setTotalPages(list.length >= limit ? 2 : 1)
-      } catch (e) {}
+      } catch (e) { }
       setLoading(false)
     }
     // reset and load first page on filter changes
@@ -118,14 +120,14 @@ export default function CatalogScreen() {
       setWorks((prev) => {
         const map = new Map<string, Work>()
         prev.forEach((w) => map.set(w.id, w))
-        ;(list as any).forEach((w: Work) => { map.set(w.id, w) })
+          ; (list as any).forEach((w: Work) => { map.set(w.id, w) })
         return Array.from(map.values()) as any
       })
       setPage(nextPage)
       const meta = (r as any)?.meta
       if (meta && typeof meta.totalPages === 'number') setTotalPages(meta.totalPages)
       else if (list.length < limit) setTotalPages(nextPage) // reached end
-    } catch (e) {}
+    } catch (e) { }
     setLoadingMore(false)
   }
 
@@ -148,7 +150,7 @@ export default function CatalogScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
       <ScrollView contentContainerStyle={styles.content} onScroll={onScroll} scrollEventThrottle={16}>
         <Text style={styles.title}>Catálogo</Text>
         <Text style={styles.subtitle}>Explore músicas e audiobooks.</Text>
@@ -224,52 +226,52 @@ export default function CatalogScreen() {
             ))
           ) : (
             <>
-          {works.map((w) => (
-            <Pressable key={w.id} style={styles.card} onPress={async () => {
-              if (!accessToken) return
-              const hasTracks = Array.isArray(w.tracks) && w.tracks.length > 0
-              if (hasTracks) {
-                await player.playWork({ ...w } as any)
-              } else {
-                try {
-                  const full = await apiGetWork(accessToken, w.id)
-                  await player.playWork({ ...(full || w) } as any)
-                } catch {}
-              }
-            }}>
-              {w.coverUrl ? (
-                <Image source={{ uri: w.coverUrl }} style={styles.cover} />
-              ) : (
-                <View style={[styles.cover, styles.coverPlaceholder]} />
-              )}
-              <View style={styles.cardBody}>
-                <Text style={styles.workType}>{w.type}</Text>
-                <Text style={styles.workTitle}>{w.title}</Text>
-                <AgeLabel {...w} />
-                <View style={styles.tagsRow}>
-                  {(w.tags || []).slice(0, 3).map((t) => (
-                    <Text key={t.id} style={styles.workTag}>{t.name}</Text>
-                  ))}
-                </View>
-              </View>
-            </Pressable>
-          ))}
-            {loadingMore && (
-              Array.from({ length: 3 }).map((_, idx) => (
-                <View key={`more-skeleton-${idx}`} style={styles.card}>
-                  <View style={styles.skelCover} />
+              {works.map((w) => (
+                <Pressable key={w.id} style={styles.card} onPress={async () => {
+                  if (!accessToken) return
+                  const hasTracks = Array.isArray(w.tracks) && w.tracks.length > 0
+                  if (hasTracks) {
+                    await player.playWork({ ...w } as any)
+                  } else {
+                    try {
+                      const full = await apiGetWork(accessToken, w.id)
+                      await player.playWork({ ...(full || w) } as any)
+                    } catch { }
+                  }
+                }}>
+                  {w.coverUrl ? (
+                    <Image source={{ uri: w.coverUrl }} style={styles.cover} />
+                  ) : (
+                    <View style={[styles.cover, styles.coverPlaceholder]} />
+                  )}
                   <View style={styles.cardBody}>
-                    <View style={[styles.skelLine, { width: 60 }]} />
-                    <View style={[styles.skelLine, { width: '80%', height: 16 }]} />
-                    <View style={[styles.skelLine, { width: 100 }]} />
+                    <Text style={styles.workType}>{w.type}</Text>
+                    <Text style={styles.workTitle}>{w.title}</Text>
+                    <AgeLabel {...w} />
                     <View style={styles.tagsRow}>
-                      <View style={styles.skelTag} />
-                      <View style={styles.skelTag} />
+                      {(w.tags || []).slice(0, 3).map((t) => (
+                        <Text key={t.id} style={styles.workTag}>{t.name}</Text>
+                      ))}
                     </View>
                   </View>
-                </View>
-              ))
-            )}
+                </Pressable>
+              ))}
+              {loadingMore && (
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <View key={`more-skeleton-${idx}`} style={styles.card}>
+                    <View style={styles.skelCover} />
+                    <View style={styles.cardBody}>
+                      <View style={[styles.skelLine, { width: 60 }]} />
+                      <View style={[styles.skelLine, { width: '80%', height: 16 }]} />
+                      <View style={[styles.skelLine, { width: 100 }]} />
+                      <View style={styles.tagsRow}>
+                        <View style={styles.skelTag} />
+                        <View style={styles.skelTag} />
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
             </>
           )}
         </View>
@@ -279,7 +281,7 @@ export default function CatalogScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 20, backgroundColor: '#0b1023' },
+  container: { flex: 1, backgroundColor: '#0b1023' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
   subtitle: { fontSize: 14, color: '#cfd3ff', marginBottom: 16 },

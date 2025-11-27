@@ -25,17 +25,30 @@ export class CatalogService {
     private readonly mediaService: MediaService,
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
-  ) {}
+  ) { }
 
   async findAll(searchDto: SearchWorksDto, userId?: string, profileId?: string): Promise<{ data: Work[]; meta: any }> {
-    const { type, agePointMonths, minMonths, maxMonths, tags, search, page = 1, limit = 20 } = searchDto as any;
+    const { type, agePointMonths, minMonths, maxMonths, tags, search, page = 1, limit = 20, sort } = searchDto as any;
 
     const queryBuilder = this.workRepository
       .createQueryBuilder('work')
       .leftJoinAndSelect('work.tracks', 'tracks')
       .leftJoinAndSelect('work.tags', 'tags')
-      .where('work.isActive = :isActive', { isActive: true })
-      .orderBy('work.createdAt', 'DESC');
+      .where('work.isActive = :isActive', { isActive: true });
+
+    // Apply sorting
+    if (sort && typeof sort === 'string') {
+      const [field, direction] = sort.split(':');
+      if (field === 'createdAt' && (direction === 'asc' || direction === 'desc')) {
+        queryBuilder.orderBy('work.createdAt', direction.toUpperCase() as 'ASC' | 'DESC');
+      } else if (field === 'title' && (direction === 'asc' || direction === 'desc')) {
+        queryBuilder.orderBy('work.title', direction.toUpperCase() as 'ASC' | 'DESC');
+      } else {
+        queryBuilder.orderBy('work.createdAt', 'DESC');
+      }
+    } else {
+      queryBuilder.orderBy('work.createdAt', 'DESC');
+    }
 
     if (type) {
       queryBuilder.andWhere('work.type = :type', { type });
@@ -114,7 +127,7 @@ export class CatalogService {
             qb.andWhere('work.recommended_min_months <= :ageMonths AND work.recommended_max_months >= :ageMonths', { ageMonths });
           }
         }
-      } catch {}
+      } catch { }
     }
 
     const [data, total] = await qb
@@ -305,7 +318,7 @@ export class CatalogService {
     if (!work) {
       throw new NotFoundException(`Work with ID ${id} not found`);
     }
-    
+
     work.isActive = !work.isActive;
     return this.workRepository.save(work);
   }
@@ -340,7 +353,7 @@ export class CatalogService {
     if (!tag) {
       throw new NotFoundException(`Tag with ID ${id} not found`);
     }
-    
+
     tag.name = name;
     tag.color = color;
     return this.tagRepository.save(tag);
@@ -351,7 +364,7 @@ export class CatalogService {
     if (!tag) {
       throw new NotFoundException(`Tag with ID ${id} not found`);
     }
-    
+
     await this.tagRepository.remove(tag);
   }
 

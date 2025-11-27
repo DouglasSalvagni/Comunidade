@@ -34,7 +34,7 @@ export class PlaybackService {
     });
   }
 
-  async getStreamingUrl(trackId: string, userId: string): Promise<{ url: string; expiresAt: Date }> {
+  async getStreamingUrl(trackId: string, userId: string, format: 'hls' | 'original' = 'hls'): Promise<{ url: string; expiresAt: Date }> {
 
     const track = await this.trackRepository.findOne({ where: { id: trackId } });
     if (!track) {
@@ -42,9 +42,10 @@ export class PlaybackService {
     }
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+    const preferOriginal = format === 'original';
     const masterKey = track.hlsMasterKey || track.hlsManifestStorageKey;
     const cdnBase = (this.configService.get<string>('CDN_BASE_URL') || '').replace(/\/$/, '');
-    if (masterKey) {
+    if (masterKey && !preferOriginal) {
       if (cdnBase) {
         return { url: `${cdnBase}/${masterKey}`, expiresAt };
       }

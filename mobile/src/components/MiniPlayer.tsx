@@ -6,9 +6,9 @@ import { usePlayer } from '../context/PlayerContext'
 type Props = { onOpen: () => void; bottomOffset?: number }
 
 export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
-  const { currentWork, currentTrack, isPlaying, togglePlay, toggleFavorite, isFavorite, stop } = usePlayer()
+  const { currentWork, currentTrack, isPlaying, togglePlay, toggleFavorite, isFavorite, stop, togglePlaylist, playlistItemId } = usePlayer()
   const translateX = useRef(new Animated.Value(0)).current
-  useEffect(() => { try { translateX.setValue(0) } catch {} }, [currentTrack?.id, currentWork?.id])
+  useEffect(() => { try { translateX.setValue(0) } catch { } }, [currentTrack?.id, currentWork?.id])
   const opacity = translateX.interpolate({ inputRange: [-260, 0, 260], outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' })
   const pan = PanResponder.create({
     onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 6,
@@ -38,6 +38,9 @@ export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
         </View>
         <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlay() }}>
           <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color={'#0b1023'} />
+        </Pressable>
+        <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlaylist() }}>
+          <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={18} color={playlistItemId ? '#A78BFA' : '#0b1023'} />
         </Pressable>
         <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite() }}>
           <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={18} color={isFavorite ? '#cc8f00' : '#0b1023'} />

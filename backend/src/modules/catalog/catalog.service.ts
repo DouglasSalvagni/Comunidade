@@ -6,6 +6,8 @@ import { Track } from './entities/track.entity';
 import { Tag } from './entities/tag.entity';
 import { Favorite } from './entities/favorite.entity';
 import { Profile } from '@/modules/profiles/entities/profile.entity';
+import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
+import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
 import { CreateWorkDto } from './dto/create-work.dto';
 import { UpdateWorkDto } from './dto/update-work.dto';
 import { SearchWorksDto } from './dto/search-works.dto';
@@ -25,6 +27,10 @@ export class CatalogService {
     private readonly mediaService: MediaService,
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
+    @InjectRepository(TrackPlayGlobalCount)
+    private readonly trackPlayGlobalCountRepository: Repository<TrackPlayGlobalCount>,
+    @InjectRepository(TrackPlayUserCount)
+    private readonly trackPlayUserCountRepository: Repository<TrackPlayUserCount>,
   ) { }
 
   async findAll(searchDto: SearchWorksDto, userId?: string, profileId?: string): Promise<{ data: Work[]; meta: any }> {
@@ -391,5 +397,87 @@ export class CatalogService {
       }
     }
     await this.workRepository.remove(work);
+  }
+
+  async getTopPlayed(page = 1, limit = 20): Promise<{ data: Work[]; meta: any }> {
+    // Query to get top played tracks globally
+    const [globalCounts, total] = await this.trackPlayGlobalCountRepository
+      .createQueryBuilder('tpgc')
+      .leftJoinAndSelect('tpgc.track', 'track')
+      .leftJoinAndSelect('track.work', 'work')
+      .leftJoinAndSelect('work.tracks', 'allTracks')
+      .leftJoinAndSelect('work.tags', 'tags')
+      .where('work.isActive = :isActive', { isActive: true })
+      .orderBy('tpgc.count', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    // Extract unique works (avoiding duplicates if work has multiple tracks)
+    const seenWorkIds = new Set<string>();
+    const works: Work[] = [];
+
+    for (const count of globalCounts) {
+      const work = count.track?.work;
+      if (work && !seenWorkIds.has(work.id)) {
+        seenWorkIds.add(work.id);
+        (work as any).playCount = count.count;
+        works.push(work);
+      }
+    }
+
+    return {
+      data: works,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getMyTopPlayed(userId: string, page = 1, limit = 20, profileId?: string): Promise<{ data: Work[]; meta: any }> {
+    // Query to get top played tracks by user/profile
+    const queryBuilder = this.trackPlayUserCountRepository
+      .createQueryBuilder('tpuc')
+      .leftJoinAndSelect('tpuc.track', 'track')
+      .leftJoinAndSelect('track.work', 'work')
+      .leftJoinAndSelect('work.tracks', 'allTracks')
+      .leftJoinAndSelect('work.tags', 'tags')
+      .where('work.isActive = :isActive', { isActive: true });
+
+    if (profileId) {
+      queryBuilder.andWhere('tpuc.profileId = :profileId', { profileId });
+    }
+
+    const [userCounts, total] = await queryBuilder
+      .orderBy('tpuc.count', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    // Extract unique works
+    const seenWorkIds = new Set<string>();
+    const works: Work[] = [];
+
+    for (const count of userCounts) {
+      const work = count.track?.work;
+      if (work && !seenWorkIds.has(work.id)) {
+        seenWorkIds.add(work.id);
+        (work as any).playCount = count.count;
+        works.push(work);
+      }
+    }
+
+    return {
+      data: works,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

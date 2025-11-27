@@ -419,6 +419,16 @@ class ApiService {
     return response.data.data;
   }
 
+  async getTopPlayed(params?: { page?: number; limit?: number }): Promise<{ data: Work[]; meta: any }> {
+    const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/works/top-played', { params });
+    return response.data.data;
+  }
+
+  async getMyTopPlayed(params?: { page?: number; limit?: number; profileId?: string }): Promise<{ data: Work[]; meta: any }> {
+    const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/works/my-top-played', { params });
+    return response.data.data;
+  }
+
   // ===== PLAYBACK =====
   async getStreamingUrl(trackId: string): Promise<{ url: string; expiresAt: string }> {
     const response = await this.client.get<ApiResponse<{ url: string; expiresAt: string }>>(`/playback/${trackId}/url`);
@@ -580,11 +590,6 @@ class ApiService {
 
   async processMedia(params: { storageKey: string; type: 'audio' | 'image'; workId?: string }): Promise<{ processedUrl: string; metadata: any }> {
     const response = await this.client.post<ApiResponse<{ processedUrl: string; metadata: any }>>('/media/process', params);
-    return response.data.data;
-  }
-
-  async getStreamingUrl(trackId: string): Promise<{ url: string }> {
-    const response = await this.client.get<ApiResponse<{ url: string }>>(`/playback/${trackId}/url`);
     return response.data.data;
   }
 }

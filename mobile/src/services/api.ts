@@ -272,3 +272,33 @@ export async function apiReorderPlaylistItems(accessToken: string, playlistId: s
     body: JSON.stringify({ itemIdsInOrder }),
   })
 }
+
+export async function apiGetTopPlayed(accessToken: string, params?: {
+  page?: number
+  limit?: number
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  const path = `/works/top-played${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetMyTopPlayed(accessToken: string, params?: {
+  page?: number
+  limit?: number
+  profileId?: string
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  if (params?.profileId) qs.set('profileId', params.profileId)
+  const path = `/works/my-top-played${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}

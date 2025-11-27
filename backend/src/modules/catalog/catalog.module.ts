@@ -10,11 +10,13 @@ import { WorkTag } from './entities/work-tag.entity';
 import { Favorite } from './entities/favorite.entity';
 import { MediaModule } from '@/modules/media/media.module';
 import { Profile } from '@/modules/profiles/entities/profile.entity';
+import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
+import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Work, Track, Chapter, Tag, WorkTag, Favorite, Profile]), MediaModule],
+  imports: [TypeOrmModule.forFeature([Work, Track, Chapter, Tag, WorkTag, Favorite, Profile, TrackPlayGlobalCount, TrackPlayUserCount]), MediaModule],
   providers: [CatalogService],
   controllers: [CatalogController, AdminCatalogController, AdminTagsController],
   exports: [CatalogService],
 })
-export class CatalogModule {}
+export class CatalogModule { }

@@ -13,7 +13,7 @@ import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
-import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork } from '../services/api'
+import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork, apiGetTopPlayed } from '../services/api'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Props = {
@@ -53,6 +53,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [suggested, setSuggested] = useState<any[]>([])
   const [recentAudiobooks, setRecentAudiobooks] = useState<any[]>([])
   const [recentMusic, setRecentMusic] = useState<any[]>([])
+  const [topPlayed, setTopPlayed] = useState<any[]>([])
   const [loadingDashboard, setLoadingDashboard] = useState(false)
   const [profileName, setProfileName] = useState('')
   const [ageLabel, setAgeLabel] = useState('')
@@ -97,6 +98,10 @@ export default function HomeScreen({ onLogout }: Props) {
         // 4. Fetch Recent Music
         const musicRes = await apiGetWorks(accessToken, { type: 'music', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
         if (mounted) setRecentMusic(musicRes.data || [])
+
+        // 5. Fetch Top Played (Global)
+        const topRes = await apiGetTopPlayed(accessToken, { limit: 10 })
+        if (mounted) setTopPlayed((topRes.data || []).slice(0, 10))
 
       } catch (err) {
         console.error('Error loading dashboard:', err)
@@ -232,6 +237,18 @@ export default function HomeScreen({ onLogout }: Props) {
                         ))}
                       </ScrollView>
                     </View>
+
+                    {/* Top 10 Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <View style={styles.topList}>
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
+                        ))}
+                      </View>
+                    </View>
                   </>
                 ) : (
                   <>
@@ -293,6 +310,33 @@ export default function HomeScreen({ onLogout }: Props) {
                             <DashboardCard key={item.id} work={item} variant="landscape" onPress={() => handlePlayWork(item)} />
                           ))}
                         </ScrollView>
+                      </View>
+                    )}
+
+                    {topPlayed.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Top 10</Text>
+                        </View>
+                        <View style={styles.topList}>
+                          {topPlayed.map((item, idx) => (
+                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
+                              <View style={styles.topIndexWrap}>
+                                <Text style={styles.topIndex}>{idx + 1}</Text>
+                              </View>
+                              {item.coverUrl ? (
+                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
+                              ) : (
+                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
+                              )}
+                              <View style={styles.topInfo}>
+                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
+                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
+                              </View>
+                              <Ionicons name="play" size={18} color="#cfd3ff" />
+                            </Pressable>
+                          ))}
+                        </View>
                       </View>
                     )}
 
@@ -476,4 +520,14 @@ const styles = StyleSheet.create({
   controlBtnDisabled: { opacity: 0.4 },
   sectionTitleSkeleton: { height: 20, width: 150, borderRadius: 4 },
   skeleton: { backgroundColor: '#1d2340', opacity: 0.6 },
+  topList: { paddingHorizontal: 20 },
+  topItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#1d2340', backgroundColor: '#0e1430', marginBottom: 10 },
+  topIndexWrap: { width: 28, alignItems: 'center' },
+  topIndex: { color: '#8b92b8', fontSize: 14, fontWeight: '700' },
+  topCover: { width: 56, height: 56, borderRadius: 12, backgroundColor: '#1f2742', marginRight: 12 },
+  topCoverPlaceholder: { backgroundColor: '#1d2340' },
+  topInfo: { flex: 1, marginRight: 12 },
+  topTitle: { color: '#e6e9ff', fontSize: 14, fontWeight: '700' },
+  topMeta: { color: '#8b92b8', fontSize: 12, marginTop: 2 },
+  topSkeleton: { height: 68, borderRadius: 14, marginBottom: 10 },
 })

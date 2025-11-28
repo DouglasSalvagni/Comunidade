@@ -87,6 +87,8 @@ export interface Track {
   title: string;
   audioUrl?: string;
   storageKey?: string;
+  hlsManifestStorageKey?: string;
+  hlsMasterKey?: string;
   duration?: number;
   orderIndex: number;
   createdAt: string;
@@ -524,7 +526,7 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminUpdateWork(id: string, data: Partial<Work>): Promise<Work> {
+  async adminUpdateWork(id: string, data: Partial<Work> & { tagIds?: string[] }): Promise<Work> {
     const response = await this.client.patch<ApiResponse<Work>>(`/admin/works/${id}`, data);
     return response.data.data;
   }

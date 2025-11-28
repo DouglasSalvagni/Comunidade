@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,41 +42,43 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Redefinir senha</CardTitle>
-          <CardDescription>Crie uma nova senha para sua conta.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-4" onSubmit={onSubmit}>
-            <div className="grid gap-2">
-              <Label>Token</Label>
-              <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole o token" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Nova senha</Label>
-              <div className="relative">
-                <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
-                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(s => !s)}>
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">Redefinir senha</CardTitle>
+            <CardDescription>Crie uma nova senha para sua conta.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-4" onSubmit={onSubmit}>
+              <div className="grid gap-2">
+                <Label>Token</Label>
+                <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole o token" />
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label>Confirmar senha</Label>
-              <div className="relative">
-                <Input type={showConfirm ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="pr-10" />
-                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowConfirm(s => !s)}>
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              <div className="grid gap-2">
+                <Label>Nova senha</Label>
+                <div className="relative">
+                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(s => !s)}>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Redefinir"}</Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+              <div className="grid gap-2">
+                <Label>Confirmar senha</Label>
+                <div className="relative">
+                  <Input type={showConfirm ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="pr-10" />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowConfirm(s => !s)}>
+                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Redefinir"}</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Suspense>
   );
 };
 

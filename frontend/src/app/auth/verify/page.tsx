@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,25 +48,27 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Verificando e-mail...</CardTitle>
-          <CardDescription>{loading ? "Processando confirmação" : (error ? "Token inválido ou expirado" : "Concluído")}</CardDescription>
-        </CardHeader>
-        {!loading && error && (
-          <CardContent>
-            <div className="grid gap-3">
-              <div className="grid gap-2">
-                <Label>E-mail</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="m@example.com" />
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl">Verificando e-mail...</CardTitle>
+            <CardDescription>{loading ? "Processando confirmação" : (error ? "Token inválido ou expirado" : "Concluído")}</CardDescription>
+          </CardHeader>
+          {!loading && error && (
+            <CardContent>
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <Label>E-mail</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="m@example.com" />
+                </div>
+                <Button onClick={onResend} className="w-full">Reenviar verificação</Button>
               </div>
-              <Button onClick={onResend} className="w-full">Reenviar verificação</Button>
-            </div>
-          </CardContent>
-        )}
-      </Card>
-    </div>
+            </CardContent>
+          )}
+        </Card>
+      </div>
+    </Suspense>
   );
 };
 

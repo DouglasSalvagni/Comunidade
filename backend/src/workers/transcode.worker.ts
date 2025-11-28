@@ -154,6 +154,10 @@ async function getDurationFromHls(outDir: string, variants: string[]): Promise<n
 async function processJob(job: Job) {
   try {
     const { storageKey } = job.data;
+    const rawSsl = process.env.DB_SSL || process.env.DATABASE_SSL;
+    const useSsl = rawSsl !== undefined
+      ? ['true', '1', 'yes', 'on'].includes(String(rawSsl).toLowerCase())
+      : process.env.NODE_ENV === 'production';
     const dsInit = new DataSource({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -175,7 +179,7 @@ async function processJob(job: Job) {
       subscribers: [],
       synchronize: false,
       logging: false,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
     });
     await dsInit.initialize();
     const trackPreRepo = dsInit.getRepository(Track);

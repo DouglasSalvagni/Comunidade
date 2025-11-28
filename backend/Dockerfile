@@ -46,4 +46,4 @@ USER node
 EXPOSE 3001
 
 # Start application
-CMD ["dumb-init", "node", "dist/main"]
+CMD ["dumb-init", "node", "dist/src/main.js"]

@@ -23,6 +23,14 @@ import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-glo
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
   url: configService.get<string>('DATABASE_URL') || 'postgresql://postgres:postgres@localhost:5433/little_tales',
+  // Allow overriding SSL via env (DB_SSL/DATABASE_SSL). Default: enabled only in production.
+  ssl: (() => {
+    const raw = configService.get<string>('DB_SSL') ?? configService.get<string>('DATABASE_SSL');
+    const shouldUseSsl = raw !== undefined
+      ? ['true', '1', 'yes', 'on'].includes(String(raw).toLowerCase())
+      : configService.get<string>('NODE_ENV') === 'production';
+    return shouldUseSsl ? { rejectUnauthorized: false } : false;
+  })(),
   entities: [
     User,
     Profile,
@@ -46,7 +54,6 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
   ],
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',
-  ssl: configService.get<string>('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
   migrations: ['dist/database/migrations/*.js'],
   migrationsRun: false,
 });

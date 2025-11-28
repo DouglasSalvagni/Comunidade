@@ -22,10 +22,15 @@ import * as path from 'path'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
 const isProd = process.env.NODE_ENV === 'production'
+const rawSsl = process.env.DB_SSL || process.env.DATABASE_SSL
+const useSsl = rawSsl !== undefined
+  ? ['true', '1', 'yes', 'on'].includes(String(rawSsl).toLowerCase())
+  : isProd
 
 const AppDataSource = new DataSource({
   type: 'postgres',
   url: dbUrl,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   entities: [
     User,
     Profile,
@@ -46,7 +51,6 @@ const AppDataSource = new DataSource({
     PlaylistItem,
   ],
   migrations: ['src/database/migrations/*.ts'],
-  ssl: isProd ? { rejectUnauthorized: false } : false,
 })
 
 export default AppDataSource

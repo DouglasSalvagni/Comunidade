@@ -18,6 +18,7 @@ COPY . .
 
 # Build the application
 RUN npm run build
+RUN npm prune --production
 
 # Production stage
 FROM node:18-alpine
@@ -30,8 +31,8 @@ WORKDIR /app
 # Copy package.json for runtime scripts if needed (though we run node dist/main)
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies (builder already pruned dev deps)
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist

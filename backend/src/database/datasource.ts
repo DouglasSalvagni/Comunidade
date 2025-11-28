@@ -26,6 +26,10 @@ const rawSsl = process.env.DB_SSL || process.env.DATABASE_SSL
 const useSsl = rawSsl !== undefined
   ? ['true', '1', 'yes', 'on'].includes(String(rawSsl).toLowerCase())
   : isProd
+const isTs = __filename.endsWith('.ts')
+const migrationsPath = isTs
+  ? 'src/database/migrations/*.ts'
+  : 'dist/src/database/migrations/*.js'
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -50,7 +54,7 @@ const AppDataSource = new DataSource({
     Playlist,
     PlaylistItem,
   ],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: [migrationsPath],
 })
 
 export default AppDataSource

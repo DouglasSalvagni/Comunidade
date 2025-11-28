@@ -10,7 +10,7 @@ import { api } from "@/services/api";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
-const ResetPasswordPage = () => {
+const ResetInner = () => {
   const router = useRouter();
   const params = useSearchParams();
   const [token, setToken] = useState("");
@@ -42,42 +42,48 @@ const ResetPasswordPage = () => {
   };
 
   return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Redefinir senha</CardTitle>
+          <CardDescription>Crie uma nova senha para sua conta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4" onSubmit={onSubmit}>
+            <div className="grid gap-2">
+              <Label>Token</Label>
+              <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole o token" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Nova senha</Label>
+              <div className="relative">
+                <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
+                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(s => !s)}>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Confirmar senha</Label>
+              <div className="relative">
+                <Input type={showConfirm ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="pr-10" />
+                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowConfirm(s => !s)}>
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Redefinir"}</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const ResetPasswordPage = () => {
+  return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Redefinir senha</CardTitle>
-            <CardDescription>Crie uma nova senha para sua conta.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="grid gap-4" onSubmit={onSubmit}>
-              <div className="grid gap-2">
-                <Label>Token</Label>
-                <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Cole o token" />
-              </div>
-              <div className="grid gap-2">
-                <Label>Nova senha</Label>
-                <div className="relative">
-                  <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
-                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(s => !s)}>
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label>Confirmar senha</Label>
-                <div className="relative">
-                  <Input type={showConfirm ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="pr-10" />
-                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowConfirm(s => !s)}>
-                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Salvando..." : "Redefinir"}</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+      <ResetInner />
     </Suspense>
   );
 };

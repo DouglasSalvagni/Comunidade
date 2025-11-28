@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 
-const VerifyEmailPage = () => {
+const VerifyInner = () => {
   const router = useRouter();
   const params = useSearchParams();
   const [token, setToken] = useState("");
@@ -48,26 +48,32 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl">Verificando e-mail...</CardTitle>
-            <CardDescription>{loading ? "Processando confirmação" : (error ? "Token inválido ou expirado" : "Concluído")}</CardDescription>
-          </CardHeader>
-          {!loading && error && (
-            <CardContent>
-              <div className="grid gap-3">
-                <div className="grid gap-2">
-                  <Label>E-mail</Label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="m@example.com" />
-                </div>
-                <Button onClick={onResend} className="w-full">Reenviar verificação</Button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Verificando e-mail...</CardTitle>
+          <CardDescription>{loading ? "Processando confirmação" : (error ? "Token inválido ou expirado" : "Concluído")}</CardDescription>
+        </CardHeader>
+        {!loading && error && (
+          <CardContent>
+            <div className="grid gap-3">
+              <div className="grid gap-2">
+                <Label>E-mail</Label>
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="m@example.com" />
               </div>
-            </CardContent>
-          )}
-        </Card>
-      </div>
+              <Button onClick={onResend} className="w-full">Reenviar verificação</Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    </div>
+  );
+};
+
+const VerifyEmailPage = () => {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <VerifyInner />
     </Suspense>
   );
 };

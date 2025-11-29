@@ -45,8 +45,8 @@ export class AuthController {
     if (result.accessToken) {
       res.cookie('accessToken', result.accessToken, {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' ? true : false,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
       });
@@ -69,8 +69,8 @@ export class AuthController {
     const result = await this.authService.login(loginDto);
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production' ? true : false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
@@ -92,8 +92,8 @@ export class AuthController {
     const result = await this.authService.refreshToken(refreshTokenDto.refreshToken);
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production' ? true : false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
@@ -109,8 +109,8 @@ export class AuthController {
     const result = await this.authService.loginWithGoogle(body.idToken);
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production' ? true : false,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
@@ -124,8 +124,8 @@ export class AuthController {
   async logout(@Res({ passthrough: true }) res: Response) {
     res.cookie('accessToken', '', {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production' ? true : false,
       maxAge: 0,
       path: '/',
     });
@@ -201,8 +201,8 @@ export class AuthController {
     if (result.accessToken) {
       res.cookie('accessToken', result.accessToken, {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' ? true : false,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
       });

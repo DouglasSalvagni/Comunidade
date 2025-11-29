@@ -46,5 +46,5 @@ USER node
 EXPOSE 3002
 
 # Start worker
-CMD ["dumb-init", "node", "dist/src/workers/worker.js"]
+CMD ["dumb-init", "node", "dist/src/workers/transcode.worker.js"]
 

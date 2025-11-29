@@ -34,7 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://babytune.com.br/api/v1",
+      "apiBaseUrl": "https://api.babytune.com.br/api/v1",
       "googleOAuth": {
         "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com",
         "androidClientId": "1049428265578-l6t0a4l6doeqh6je3vpolkqolp1ki4jk.apps.googleusercontent.com"

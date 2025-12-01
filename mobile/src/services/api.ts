@@ -150,6 +150,7 @@ export async function apiGetWorks(accessToken: string, params?: {
   minMonths?: number
   maxMonths?: number
   tags?: string
+  devThemes?: string
   page?: number
   limit?: number
   profileId?: string
@@ -161,6 +162,7 @@ export async function apiGetWorks(accessToken: string, params?: {
   if (typeof params?.minMonths === 'number') qs.set('minMonths', String(params.minMonths))
   if (typeof params?.maxMonths === 'number') qs.set('maxMonths', String(params.maxMonths))
   if (params?.tags) qs.set('tags', params.tags)
+  if (params?.devThemes) qs.set('devThemes', params.devThemes)
   if (typeof params?.page === 'number') qs.set('page', String(params.page))
   if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
   if (params?.profileId) qs.set('profileId', params.profileId)

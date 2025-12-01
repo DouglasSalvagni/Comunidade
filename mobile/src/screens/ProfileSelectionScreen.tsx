@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
 import { apiGetProfiles, apiCreateProfile } from '../services/api'
 import { validateBirthDate } from '../utils/birthDate'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Props = {
     onProfileSelected: () => void
@@ -11,6 +12,7 @@ type Props = {
 
 export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
     const { accessToken, setActiveProfileId } = useAuth()
+    const insets = useSafeAreaInsets()
     const [profiles, setProfiles] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [creating, setCreating] = useState(false)
@@ -29,7 +31,6 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
             const data = await apiGetProfiles(accessToken)
             setProfiles(Array.isArray(data) ? data : [])
         } catch (error) {
-            console.error('Error loading profiles:', error)
             setProfiles([])
         } finally {
             setLoading(false)
@@ -94,7 +95,6 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
             setActiveProfileId(profile.id)
             onProfileSelected()
         } catch (error: any) {
-            console.error('Error creating profile:', error)
             Alert.alert('Erro', error.message || 'Não foi possível criar o perfil')
         } finally {
             setCreating(false)
@@ -226,7 +226,7 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
                 ))}
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }] }>
                 <Text style={styles.footerText}>
                     Você pode trocar de perfil a qualquer momento nas configurações
                 </Text>

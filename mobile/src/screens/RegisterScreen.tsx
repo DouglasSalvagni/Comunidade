@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
@@ -45,7 +45,6 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
       await register(name.trim(), email.trim(), password)
       onVerifyEmail(email.trim())
     } catch (e: any) {
-      console.error(e)
       setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)

@@ -13,7 +13,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
   if (!res.ok) {
     const text = await res.text()
-    try { console.log('[API ERROR]', options.method || 'GET', path, res.status, text) } catch { }
+    
     try {
       const json = JSON.parse(text)
       const rawMsg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`

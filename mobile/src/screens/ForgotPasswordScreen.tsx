@@ -33,7 +33,6 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
       await forgotPassword(email.trim())
       setSent(true)
     } catch (e: any) {
-      console.error(e)
       setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -31,7 +31,6 @@ export default function VerificationNoticeScreen({ email, onBackToLogin }: Props
       await apiRequestEmailVerification(contactEmail)
       setInfo('Enviamos novamente o e-mail de confirmação.')
     } catch (e: any) {
-      console.error(e)
       setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)

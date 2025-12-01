@@ -24,7 +24,6 @@ export default function VerifyEmailScreen({ onVerified, onBack }: Props) {
       await verifyEmail(token.trim())
       onVerified()
     } catch (e: any) {
-      console.error(e)
       setError(e?.message || 'Falha ao verificar e-mail')
     } finally {
       setLoading(false)
@@ -37,7 +36,6 @@ export default function VerifyEmailScreen({ onVerified, onBack }: Props) {
       setError(null)
       await apiRequestEmailVerification(email.trim())
     } catch (e: any) {
-      console.error(e)
       setError(e?.message || 'Falha ao reenviar')
     } finally {
       setLoading(false)

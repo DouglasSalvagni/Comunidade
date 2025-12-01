@@ -104,7 +104,6 @@ export default function HomeScreen({ onLogout }: Props) {
         if (mounted) setTopPlayed((topRes.data || []).slice(0, 10))
 
       } catch (err) {
-        console.error('Error loading dashboard:', err)
       } finally {
         if (mounted) setLoadingDashboard(false)
       }

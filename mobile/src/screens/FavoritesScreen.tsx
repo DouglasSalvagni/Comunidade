@@ -44,7 +44,6 @@ export default function FavoritesScreen() {
                 setHasMore(data.length >= 20)
             }
         } catch (error) {
-            console.error('Error loading favorites:', error)
         } finally {
             setLoading(false)
             setRefreshing(false)
@@ -86,7 +85,6 @@ export default function FavoritesScreen() {
                 setFavorites(prev => prev.filter(work => work.id !== workId))
             }
         } catch (error) {
-            console.error('Error toggling favorite:', error)
         }
     }
 

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 
 type Props = {
   onBackToLogin: () => void
-  onVerifyEmail: () => void
+  onVerifyEmail: (email: string) => void
 }
 
 export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) {
@@ -17,6 +17,12 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const shift = useRef(new Animated.Value(0)).current
+
+  const friendlyError = (msg: string) => {
+    if (!msg || msg.startsWith('HTTP')) return 'Não foi possível criar a conta. Tente novamente.'
+    if (msg.includes('409') || msg.toLowerCase().includes('já existe')) return 'Este e-mail já está cadastrado.'
+    return msg
+  }
 
   async function handleSubmit() {
     try {
@@ -35,14 +41,26 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
         throw new Error(messages.join(', '))
       }
       await register(name.trim(), email.trim(), password)
-      onVerifyEmail()
+      onVerifyEmail(email.trim())
     } catch (e: any) {
       console.error(e)
-      setError(e?.message || 'Falha ao criar conta')
+      setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const showSub = Keyboard.addListener(showEvt, () => {
+      Animated.timing(shift, { toValue: -60, duration: 200, useNativeDriver: true }).start()
+    })
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      Animated.timing(shift, { toValue: 0, duration: 200, useNativeDriver: true }).start()
+    })
+    return () => { showSub.remove(); hideSub.remove() }
+  }, [shift])
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -50,7 +68,7 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
       <Text style={styles.title}>Criar conta</Text>
       <Input label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
       <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
-      <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
+      <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="********" />
       {error && <Text style={styles.error}>{error}</Text>}
       <PrimaryButton title={loading ? 'Criando...' : 'Criar conta'} onPress={handleSubmit} disabled={loading} />
       <View style={{ height: 12 }} />

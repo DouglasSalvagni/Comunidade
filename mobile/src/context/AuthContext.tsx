@@ -43,9 +43,11 @@ export function AuthProvider({ children }: { children: any }) {
   }
 
   async function register(name: string, email: string, password: string) {
-    const res = await apiRegister(name, email, password)
-    setAccessToken(res.accessToken || null)
-    setUser(res.user || null)
+    await apiRegister(name, email, password)
+    // Usuário precisa confirmar o e-mail antes de autenticar de fato,
+    // portanto não mantemos tokens/usuário aqui.
+    setAccessToken(null)
+    setUser(null)
   }
 
   async function verifyEmail(token: string) {

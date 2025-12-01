@@ -13,7 +13,7 @@ type Props = {
   onRegister: () => void
   onForgot: () => void
   onLoggedIn: () => void
-  onVerificationNotice: () => void
+  onVerificationNotice: (email: string) => void
 }
 
 WebBrowser.maybeCompleteAuthSession()
@@ -28,6 +28,13 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   const [info, setInfo] = useState<string | null>(null)
   const [gLoading, setGLoading] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
+
+  const friendlyError = (msg: string) => {
+    const normalized = msg || ''
+    if (!normalized || normalized.startsWith('HTTP')) return 'Não foi possível entrar. Verifique seus dados e tente novamente.'
+    if (normalized.toLowerCase().includes('invalid credentials') || normalized.includes('401')) return 'E-mail ou senha incorretos.'
+    return normalized
+  }
 
   async function handleSubmit() {
     try {
@@ -50,7 +57,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
         setUnverified(true)
         setError('Seu e-mail ainda não foi verificado')
       } else {
-        setError(msg || 'Falha ao entrar')
+        setError(friendlyError(msg))
       }
     } finally {
       setLoading(false)
@@ -66,7 +73,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
       setInfo('Reenviamos o e-mail de verificação. Confira sua caixa de entrada.')
     } catch (e: any) {
       console.error(e)
-      setError(e?.message || 'Falha ao reenviar e-mail')
+      setError(friendlyError(e?.message || ''))
     }
   }
 
@@ -90,7 +97,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
         setError('Google Play Services não disponível')
       } else {
         console.error(e)
-        setError(e?.message || 'Falha no login com Google')
+        setError(friendlyError(e?.message || 'Falha no login com Google'))
       }
     } finally {
       setGLoading(false)
@@ -121,7 +128,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
       <Animated.View style={{ transform: [{ translateY: shift }] }}>
         <Text style={styles.title}>Entrar</Text>
         <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
-        <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
+        <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="********" />
         {error && <Text style={styles.error}>{error}</Text>}
         {info && <Text style={styles.info}>{info}</Text>}
         <PrimaryButton title={loading ? 'Entrando...' : 'Entrar'} onPress={handleSubmit} disabled={loading} />
@@ -133,7 +140,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
           <View style={{ marginTop: 16 }}>
             <PrimaryButton title={'Reenviar e-mail de verificação'} onPress={resendVerification} />
             <View style={{ height: 12 }} />
-            <PrimaryButton title={'Ver instruções'} onPress={onVerificationNotice} />
+            <PrimaryButton title={'Ver instruções'} onPress={() => onVerificationNotice(email.trim())} />
           </View>
         )}
         <View style={styles.divider} />

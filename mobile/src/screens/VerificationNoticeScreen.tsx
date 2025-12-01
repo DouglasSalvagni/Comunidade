@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -16,17 +16,23 @@ export default function VerificationNoticeScreen({ email, onBackToLogin }: Props
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const friendlyError = (msg: string) => {
+    const normalized = msg || ''
+    if (!normalized || normalized.toLowerCase().startsWith('http')) return 'Não foi possível reenviar agora. Tente novamente.'
+    return normalized
+  }
+
   async function handleResend() {
     try {
       setLoading(true)
       setError(null)
       setInfo(null)
-      if (!contactEmail) throw new Error('E-mail não encontrado. Volte e tente novamente.')
+      if (!contactEmail) throw new Error('Não encontramos um e-mail para reenviar. Volte e tente novamente.')
       await apiRequestEmailVerification(contactEmail)
       setInfo('Enviamos novamente o e-mail de confirmação.')
     } catch (e: any) {
       console.error(e)
-      setError(e?.message || 'Não foi possível reenviar agora.')
+      setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)
     }

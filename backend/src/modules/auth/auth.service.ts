@@ -29,15 +29,15 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      throw new UnauthorizedException('E-mail ou senha incorretos.');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Conta desativada');
+      throw new UnauthorizedException('Sua conta está desativada.');
     }
 
     if (user.authProvider === 'local' && !user.emailVerified) {
-      throw new UnauthorizedException('E-mail não verificado');
+      throw new UnauthorizedException('Seu e-mail ainda não foi verificado.');
     }
 
     const payload: JwtPayload = {

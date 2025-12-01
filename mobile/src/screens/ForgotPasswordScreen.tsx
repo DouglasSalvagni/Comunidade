@@ -17,9 +17,11 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
   const shift = useRef(new Animated.Value(0)).current
 
   const friendlyError = (msg: string) => {
-    if (!msg || msg.startsWith('HTTP')) return 'Não foi possível enviar agora. Tente novamente em instantes.'
-    if (msg.includes('404')) return 'Não encontramos uma conta com este e-mail.'
-    return msg
+    const normalized = msg || ''
+    const lower = normalized.toLowerCase()
+    if (!normalized || normalized.startsWith('http')) return 'Não foi possível enviar agora. Tente novamente em instantes.'
+    if (lower.includes('404')) return 'Não encontramos uma conta com este e-mail.'
+    return normalized
   }
 
   async function handleSubmit() {

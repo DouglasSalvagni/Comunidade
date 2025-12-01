@@ -20,8 +20,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       const normalized = Array.isArray(rawMsg) ? rawMsg.join(', ') : String(rawMsg)
       throw new Error(normalized)
     } catch {
-      const friendly = text && text.startsWith('{') ? `HTTP ${res.status}` : (text || `HTTP ${res.status}`)
-      throw new Error(friendly)
+      if (text && text.startsWith('{')) {
+        const m = /"message"\s*:\s*"([^"]+)"/.exec(text)
+        const d = /"details"\s*:\s*\{[^}]*"message"\s*:\s*"([^"]+)"/.exec(text)
+        const e = /"error"\s*:\s*"([^"]+)"/.exec(text)
+        const rawMsg = (m?.[1] || d?.[1] || e?.[1] || `HTTP ${res.status}`)
+        throw new Error(rawMsg)
+      } else {
+        throw new Error(text || `HTTP ${res.status}`)
+      }
     }
   }
   const ct = res.headers.get('content-type') || ''

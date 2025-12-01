@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
@@ -19,9 +19,11 @@ export default function RegisterScreen({ onBackToLogin, onVerifyEmail }: Props) 
   const shift = useRef(new Animated.Value(0)).current
 
   const friendlyError = (msg: string) => {
-    if (!msg || msg.startsWith('HTTP')) return 'Não foi possível criar a conta. Tente novamente.'
-    if (msg.includes('409') || msg.toLowerCase().includes('já existe')) return 'Este e-mail já está cadastrado.'
-    return msg
+    const normalized = msg || ''
+    const lower = normalized.toLowerCase()
+    if (!normalized || normalized.startsWith('http')) return 'Não foi possível criar a conta. Tente novamente.'
+    if (lower.includes('409') || lower.includes('já existe')) return 'Este e-mail já está cadastrado.'
+    return normalized
   }
 
   async function handleSubmit() {

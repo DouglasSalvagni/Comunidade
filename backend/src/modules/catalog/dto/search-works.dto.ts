@@ -3,9 +3,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class SearchWorksDto {
-  @ApiProperty({ description: 'Work type', required: false, enum: ['music', 'audiobook'] })
+  @ApiProperty({ description: 'Work type', required: false, enum: ['music', 'audiobook', 'series'] })
   @IsOptional()
-  @IsIn(['music', 'audiobook'])
+  @IsIn(['music', 'audiobook', 'series'])
   type?: string;
 
   @ApiProperty({ description: 'Filter by a single age point in months', required: false, example: 72 })
@@ -37,6 +37,15 @@ export class SearchWorksDto {
   @IsOptional()
   @IsString()
   tags?: string;
+
+  @ApiProperty({
+    description: 'Comma-separated development theme names',
+    required: false,
+    example: 'Linguagem,Cognição',
+  })
+  @IsOptional()
+  @IsString()
+  devThemes?: string;
 
   @ApiProperty({
     description: 'Search term',

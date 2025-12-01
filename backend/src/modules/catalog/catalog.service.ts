@@ -4,6 +4,7 @@ import { Repository, Like, In, MoreThanOrEqual, LessThanOrEqual, Between, IsNull
 import { Work } from './entities/work.entity';
 import { Track } from './entities/track.entity';
 import { Tag } from './entities/tag.entity';
+import { DevTheme } from './entities/dev-theme.entity';
 import { Favorite } from './entities/favorite.entity';
 import { Profile } from '@/modules/profiles/entities/profile.entity';
 import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
@@ -22,6 +23,8 @@ export class CatalogService {
     private readonly trackRepository: Repository<Track>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
+    @InjectRepository(DevTheme)
+    private readonly devThemeRepository: Repository<DevTheme>,
     @InjectRepository(Favorite)
     private readonly favoriteRepository: Repository<Favorite>,
     private readonly mediaService: MediaService,
@@ -34,12 +37,13 @@ export class CatalogService {
   ) { }
 
   async findAll(searchDto: SearchWorksDto, userId?: string, profileId?: string): Promise<{ data: Work[]; meta: any }> {
-    const { type, agePointMonths, minMonths, maxMonths, tags, search, page = 1, limit = 20, sort } = searchDto as any;
+    const { type, agePointMonths, minMonths, maxMonths, tags, devThemes, search, page = 1, limit = 20, sort } = searchDto as any;
 
     const queryBuilder = this.workRepository
       .createQueryBuilder('work')
       .leftJoinAndSelect('work.tracks', 'tracks')
       .leftJoinAndSelect('work.tags', 'tags')
+      .leftJoinAndSelect('work.devThemes', 'devThemes')
       .where('work.isActive = :isActive', { isActive: true });
 
     // Apply sorting
@@ -72,6 +76,14 @@ export class CatalogService {
         .innerJoin('work.workTags', 'workTags')
         .innerJoin('workTags.tag', 'tag')
         .andWhere('tag.name IN (:...tagNames)', { tagNames: tagArray });
+    }
+
+    if (devThemes && devThemes.length > 0) {
+      const themeArray = devThemes.split(',');
+      queryBuilder
+        .innerJoin('work.workDevThemes', 'workDevThemes')
+        .innerJoin('workDevThemes.theme', 'theme')
+        .andWhere('theme.name IN (:...themeNames)', { themeNames: themeArray });
     }
 
     if (search) {
@@ -162,6 +174,7 @@ export class CatalogService {
       .createQueryBuilder('work')
       .leftJoinAndSelect('work.tracks', 'tracks')
       .leftJoinAndSelect('work.tags', 'tags')
+      .leftJoinAndSelect('work.devThemes', 'devThemes')
       .orderBy('work.createdAt', 'DESC');
 
     if (type) {
@@ -296,25 +309,33 @@ export class CatalogService {
 
   // Métodos administrativos
   async create(createWorkDto: CreateWorkDto): Promise<Work> {
-    const { tagIds, ...rest } = createWorkDto as any;
+    const { tagIds, devThemeIds, ...rest } = createWorkDto as any;
     const work = this.workRepository.create(rest as Partial<Work>);
     if (tagIds && Array.isArray(tagIds) && tagIds.length > 0) {
       const tags = await this.tagRepository.find({ where: { id: In(tagIds) } });
       (work as any).tags = tags;
     }
+    if (devThemeIds && Array.isArray(devThemeIds) && devThemeIds.length > 0) {
+      const themes = await this.devThemeRepository.find({ where: { id: In(devThemeIds) } });
+      (work as any).devThemes = themes;
+    }
     return this.workRepository.save(work);
   }
 
   async update(id: string, updateWorkDto: UpdateWorkDto): Promise<Work> {
-    const work = await this.workRepository.findOne({ where: { id }, relations: ['tags'] });
+    const work = await this.workRepository.findOne({ where: { id }, relations: ['tags', 'devThemes'] });
     if (!work) {
       throw new NotFoundException(`Work with ID ${id} not found`);
     }
-    const { tagIds, ...rest } = updateWorkDto as any;
+    const { tagIds, devThemeIds, ...rest } = updateWorkDto as any;
     Object.assign(work, rest);
     if (Array.isArray(tagIds)) {
       const tags = await this.tagRepository.find({ where: { id: In(tagIds) } });
       (work as any).tags = tags;
+    }
+    if (Array.isArray(devThemeIds)) {
+      const themes = await this.devThemeRepository.find({ where: { id: In(devThemeIds) } });
+      (work as any).devThemes = themes;
     }
     return this.workRepository.save(work);
   }
@@ -372,6 +393,33 @@ export class CatalogService {
     }
 
     await this.tagRepository.remove(tag);
+  }
+
+  async getAllDevThemes(): Promise<DevTheme[]> {
+    return this.devThemeRepository.find({ where: { isActive: true } });
+  }
+
+  async createDevTheme(name: string, description?: string): Promise<DevTheme> {
+    const theme = this.devThemeRepository.create({ name, description });
+    return this.devThemeRepository.save(theme);
+  }
+
+  async updateDevTheme(id: string, name: string, description?: string): Promise<DevTheme> {
+    const theme = await this.devThemeRepository.findOne({ where: { id } });
+    if (!theme) {
+      throw new NotFoundException(`Theme with ID ${id} not found`);
+    }
+    theme.name = name;
+    theme.description = description;
+    return this.devThemeRepository.save(theme);
+  }
+
+  async deleteDevTheme(id: string): Promise<void> {
+    const theme = await this.devThemeRepository.findOne({ where: { id } });
+    if (!theme) {
+      throw new NotFoundException(`Theme with ID ${id} not found`);
+    }
+    await this.devThemeRepository.remove(theme);
   }
 
   async deleteWork(id: string): Promise<void> {

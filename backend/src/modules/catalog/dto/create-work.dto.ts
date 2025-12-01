@@ -65,6 +65,18 @@ export class CreateWorkDto {
   tagIds?: string[];
 
   @ApiProperty({
+    description: 'Development Theme IDs to associate with the work',
+    required: false,
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  devThemeIds?: string[];
+
+  @ApiProperty({
     description: 'Cover image URL',
     required: false,
     example: 'https://example.com/cover.jpg',

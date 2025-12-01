@@ -226,7 +226,7 @@ export default function CatalogScreen() {
             </View>
 
             <Text style={styles.filterLabel}>Temas de Desenvolvimento</Text>
-            <View style={styles.tagsWrap}>
+            <View style={[styles.tagsWrap, styles.tagsSpacing]}>
               {computedThemes.map((theme) => {
                 const active = devThemeFilters.includes(theme.id)
                 return (
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
   subtitle: { fontSize: 14, color: '#cfd3ff', marginBottom: 16 },
   filters: { marginBottom: 16 },
-  filterLabel: { fontSize: 14, color: '#e6e9ff', marginBottom: 8, marginTop: 8 },
+  filterLabel: { fontSize: 14, color: '#e6e9ff', marginBottom: 8, marginTop: 16 },
   segmentedRow: { flexDirection: 'row', gap: 8 },
   searchRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 8 },
   iconButton: { width: 44, height: 50, borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827' },
@@ -328,6 +328,7 @@ const styles = StyleSheet.create({
   segmentedTextActive: { color: '#A78BFA', fontWeight: '600' },
   ageRow: { flexDirection: 'row', gap: 8 },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tagsSpacing: { marginTop: 8 },
   tagItem: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#111827' },
   tagItemActive: { borderColor: '#ffd66b', backgroundColor: '#0e1430' },
   tagText: { color: '#cfd3ff', fontSize: 12 },

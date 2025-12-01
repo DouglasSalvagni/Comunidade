@@ -236,3 +236,46 @@ export class AdminTagsController {
     return this.catalogService.deleteTag(id);
   }
 }
+
+@ApiTags('Admin - Dev Themes')
+@Controller('admin/dev-themes')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
+export class AdminDevThemesController {
+  constructor(private readonly catalogService: CatalogService) { }
+
+  @Get()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all development themes (Admin)' })
+  @ApiResponse({ status: 200, description: 'Themes retrieved successfully.' })
+  async findAll() {
+    return this.catalogService.getAllDevThemes();
+  }
+
+  @Post()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create new development theme (Admin)' })
+  @ApiResponse({ status: 201, description: 'Theme created successfully.' })
+  async create(@Body() body: { name: string; description?: string }) {
+    return this.catalogService.createDevTheme(body.name, body.description);
+  }
+
+  @Patch(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update development theme (Admin)' })
+  @ApiResponse({ status: 200, description: 'Theme updated successfully.' })
+  @ApiResponse({ status: 404, description: 'Theme not found.' })
+  async update(@Param('id') id: string, @Body() body: { name: string; description?: string }) {
+    return this.catalogService.updateDevTheme(id, body.name, body.description);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete development theme (Admin)' })
+  @ApiResponse({ status: 204, description: 'Theme deleted successfully.' })
+  @ApiResponse({ status: 404, description: 'Theme not found.' })
+  async remove(@Param('id') id: string) {
+    return this.catalogService.deleteDevTheme(id);
+  }
+}

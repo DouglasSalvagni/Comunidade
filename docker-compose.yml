@@ -95,16 +95,16 @@ services:
     restart: unless-stopped
 
 
-  # adminer:
-  #   image: adminer:latest
-  #   container_name: little-tales-adminer
-  #   restart: always
-  #   ports:
-  #     - "8084:8080"
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - babytune-network
+  adminer:
+    image: adminer:latest
+    container_name: little-tales-adminer
+    restart: always
+    ports:
+      - "8084:8080"
+    depends_on:
+      - postgres
+    networks:
+      - babytune-network
 
 volumes:
   postgres_data:

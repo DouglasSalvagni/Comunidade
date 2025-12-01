@@ -34,10 +34,13 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://cf6e8ed7f1e4.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://294d57213763.ngrok-free.app/api/v1",
       "googleOAuth": {
         "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com",
         "androidClientId": "1049428265578-l6t0a4l6doeqh6je3vpolkqolp1ki4jk.apps.googleusercontent.com"
+      },
+      "eas": {
+        "projectId": "85836d0c-194e-4a81-abed-b3a2c3dee380"
       }
     },
     "plugins": [

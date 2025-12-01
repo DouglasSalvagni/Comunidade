@@ -154,6 +154,10 @@ async function getDurationFromHls(outDir: string, variants: string[]): Promise<n
 async function processJob(job: Job) {
   try {
     const { storageKey } = job.data;
+    const rawSsl = process.env.DB_SSL || process.env.DATABASE_SSL;
+    const useSsl = rawSsl !== undefined
+      ? ['true', '1', 'yes', 'on'].includes(String(rawSsl).toLowerCase())
+      : process.env.NODE_ENV === 'production';
     const dsInit = new DataSource({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -175,7 +179,7 @@ async function processJob(job: Job) {
       subscribers: [],
       synchronize: false,
       logging: false,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
     });
     await dsInit.initialize();
     const trackPreRepo = dsInit.getRepository(Track);
@@ -235,12 +239,18 @@ async function processJob(job: Job) {
   }
 }
 
-console.log('[WORKER_LOG] Connecting to Redis...');
-const redisConfig = { host: process.env.REDIS_HOST || 'redis', port: parseInt(process.env.REDIS_PORT || '6379') };
-console.log('[WORKER_LOG] Redis config:', redisConfig);
-const queue = new (Bull as any)('transcode', { redis: redisConfig });
-console.log('[WORKER_LOG] Connected to Redis and queue created.');
-queue.process('audio', async (job: Job) => {
-  console.log('[WORKER_LOG] Job received by processor:', { jobId: job.id, storageKey: job.data.storageKey });
-  await processJob(job);
-});
+export async function bootstrapTranscodeWorker() {
+  console.log('[WORKER_LOG] Connecting to Redis...');
+  const redisConfig = { host: process.env.REDIS_HOST || 'redis', port: parseInt(process.env.REDIS_PORT || '6379') };
+  console.log('[WORKER_LOG] Redis config:', redisConfig);
+  const queue = new (Bull as any)('transcode', { redis: redisConfig });
+  console.log('[WORKER_LOG] Connected to Redis and queue created.');
+  queue.process('audio', async (job: Job) => {
+    console.log('[WORKER_LOG] Job received by processor:', { jobId: job.id, storageKey: job.data.storageKey });
+    await processJob(job);
+  });
+}
+
+if (require.main === module) {
+  bootstrapTranscodeWorker();
+}

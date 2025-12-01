@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const DashboardPage = () => {
   const [favorites, setFavorites] = useState<Work[]>([]);
   const [suggested, setSuggested] = useState<Work[]>([]);
+  const [topPlayed, setTopPlayed] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,9 @@ const DashboardPage = () => {
         setFavorites(Array.isArray((fav as any)) ? (fav as any) : (Array.isArray((fav as any)?.data) ? (fav as any).data : []));
         const sug = await api.getSuggestedWorks({ profileId: pid, page: 1, limit: 12 });
         setSuggested(Array.isArray((sug as any)) ? (sug as any) : (Array.isArray((sug as any)?.data) ? (sug as any).data : []));
+        const top = await api.getTopPlayed({ page: 1, limit: 10 });
+        const topData = Array.isArray((top as any)?.data) ? (top as any).data : (Array.isArray(top as any) ? top as any : []);
+        setTopPlayed((topData || []).slice(0, 10));
       } catch (e: any) { toast.error(e?.message || "Falha ao carregar dashboard"); }
       setLoading(false);
     };
@@ -83,6 +87,11 @@ const DashboardPage = () => {
       case "series":
         return <Tv className="w-4 h-4" />;
     }
+  };
+
+  const getPrimaryTrack = (work: Work) => {
+    if (!Array.isArray(work.tracks) || work.tracks.length === 0) return undefined;
+    return [...work.tracks].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))[0];
   };
 
   return (
@@ -167,6 +176,66 @@ const DashboardPage = () => {
           <p className="text-muted-foreground">
             Nenhuma sugestão disponível para o perfil selecionado.
           </p>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Top 10</h2>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <Card key={`top-skeleton-${idx}`} className="flex items-center gap-3 p-3">
+                <Skeleton className="w-8 h-5" />
+                <Skeleton className="w-14 h-14 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-1/3" />
+                </div>
+                <Skeleton className="w-10 h-10 rounded-full" />
+              </Card>
+            ))}
+          </div>
+        ) : topPlayed.length > 0 ? (
+          <div className="space-y-3">
+            {topPlayed.map((item, idx) => {
+              const cover = item.coverUrl || fallbackAudio.src;
+              const track = getPrimaryTrack(item);
+              return (
+                <Card key={item.id || idx} className="flex items-center gap-4 p-3 border border-border/60 bg-card/80 backdrop-blur">
+                  <div className="w-8 text-center text-sm font-semibold text-muted-foreground">{idx + 1}</div>
+                  <div
+                    className="h-14 w-14 rounded-lg bg-muted/60 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${cover})` }}
+                  />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="capitalize">
+                        {item.type === "music" ? "Musica" : item.type === "audiobook" ? "Audiobook" : "Serie"}
+                      </Badge>
+                      {typeof (item as any).playCount === "number" && (
+                        <Badge variant="outline" className="text-xs">Reproducoes: {(item as any).playCount}</Badge>
+                      )}
+                    </div>
+                    <p className="font-semibold truncate">{item.title}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {item.tracks?.length ? `${item.tracks.length} faixa${item.tracks.length > 1 ? "s" : ""}` : "Sem faixas cadastradas"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="ghost" disabled={!track} onClick={() => track && handlePlay(track, item)} title="Reproduzir">
+                      <Play className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" disabled={!track} onClick={() => track && handleAddToPlaylist(track, item)} title="Adicionar a playlist">
+                      <ListPlus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Nenhuma reproducao suficiente para formar um top 10 ainda.</p>
         )}
       </div>
     </div>

@@ -124,15 +124,6 @@ CREATE TABLE favorites (
     UNIQUE(profile_id, work_id)
 );
 
--- Tabela de eventos de playback
-CREATE TABLE play_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    track_id UUID NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-    event_type VARCHAR(20) CHECK (event_type IN ('play', 'pause', 'complete', 'seek')),
-    position_seconds INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Tabela de downloads offline
 CREATE TABLE downloads (
@@ -161,9 +152,6 @@ CREATE INDEX idx_work_tags_tag_id ON work_tags(tag_id);
 CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_favorites_profile_id ON favorites(profile_id);
 CREATE INDEX idx_favorites_work_id ON favorites(work_id);
-CREATE INDEX idx_play_events_profile_id ON play_events(profile_id);
-CREATE INDEX idx_play_events_track_id ON play_events(track_id);
-CREATE INDEX idx_play_events_created_at ON play_events(created_at);
 CREATE INDEX idx_downloads_profile_id ON downloads(profile_id);
 CREATE INDEX idx_downloads_track_id ON downloads(track_id);
 

@@ -22,7 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiTags('Catalog')
 @Controller('works')
 export class CatalogController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: CatalogService) { }
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -80,6 +80,28 @@ export class CatalogController {
     return this.catalogService.getFavorites(req.user.userId, page, limit, profileId);
   }
 
+  @Get('top-played')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get top played works globally' })
+  @ApiResponse({ status: 200, description: 'Top played works retrieved successfully.' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  async getTopPlayed(@Query('page') page = 1, @Query('limit') limit = 20) {
+    return this.catalogService.getTopPlayed(Number(page) || 1, Number(limit) || 20);
+  }
+
+  @Get('my-top-played')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my top played works' })
+  @ApiResponse({ status: 200, description: 'User top played works retrieved successfully.' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  async getMyTopPlayed(@Request() req, @Query('page') page = 1, @Query('limit') limit = 20, @Query('profileId') profileId?: string) {
+    return this.catalogService.getMyTopPlayed(req.user.userId, Number(page) || 1, Number(limit) || 20, profileId);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get work details' })
@@ -106,7 +128,7 @@ export class CatalogController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminCatalogController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: CatalogService) { }
 
   @Get()
   @ApiBearerAuth()
@@ -177,7 +199,7 @@ export class AdminCatalogController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 export class AdminTagsController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: CatalogService) { }
 
   @Get()
   @ApiBearerAuth()

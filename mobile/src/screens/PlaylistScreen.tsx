@@ -36,7 +36,6 @@ export default function PlaylistScreen() {
                         const work = await apiGetWork(accessToken, item.track.workId)
                         return { ...item, track: { ...item.track, work } }
                     } catch (error) {
-                        console.error('Error fetching work for track:', item.track.id, error)
                     }
                 }
                 return item
@@ -70,7 +69,6 @@ export default function PlaylistScreen() {
             const enriched = await enrichPlaylistItems(Array.isArray(playlistItems) ? playlistItems : [])
             setItems(enriched)
         } catch (error) {
-            console.error('Error loading playlist:', error)
             setItems([])
         } finally {
             setLoading(false)
@@ -109,7 +107,6 @@ export default function PlaylistScreen() {
             await apiRemovePlaylistItem(accessToken, playlistId, itemId)
             setItems(prev => prev.filter(i => i.id !== itemId))
         } catch (error) {
-            console.error('Error removing item:', error)
         }
     }
 
@@ -122,7 +119,6 @@ export default function PlaylistScreen() {
             const itemIdsInOrder = data.map(i => i.id)
             await apiReorderPlaylistItems(accessToken, playlistId, itemIdsInOrder)
         } catch (error) {
-            console.error('Error reordering playlist:', error)
             loadPlaylist()
         }
     }

@@ -25,7 +25,6 @@ export default function ResetPasswordScreen({ onBack }: Props) {
       await resetPassword(token.trim(), newPassword)
       onBack()
     } catch (e: any) {
-      console.error(e)
       setError(e?.message || 'Falha ao redefinir')
     } finally {
       setLoading(false)

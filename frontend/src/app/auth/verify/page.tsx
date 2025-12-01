@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { toast } from "sonner";
 
-const VerifyEmailPage = () => {
+const VerifyInner = () => {
   const router = useRouter();
   const params = useSearchParams();
   const [token, setToken] = useState("");
@@ -66,6 +67,14 @@ const VerifyEmailPage = () => {
         )}
       </Card>
     </div>
+  );
+};
+
+const VerifyEmailPage = () => {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <VerifyInner />
+    </Suspense>
   );
 };
 

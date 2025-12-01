@@ -8,7 +8,8 @@ import {
   apiCreatePlaylist,
   apiGetPlaylistItems,
   apiAddPlaylistItem,
-  apiRemovePlaylistItem
+  apiRemovePlaylistItem,
+  apiRecordPlaybackEvent
 } from '../services/api'
 import { Platform } from 'react-native'
 
@@ -95,7 +96,6 @@ export function PlayerProvider({ children }: { children: any }) {
         })
         isAudioConfigured.current = true
       } catch (error) {
-        console.error('Error configuring audio mode:', error)
       }
     }
     configureAudio()
@@ -199,7 +199,6 @@ export function PlayerProvider({ children }: { children: any }) {
           await soundRef.current.unloadAsync()
         }
       } catch (error) {
-        console.error('Error unloading sound:', error)
       }
       soundRef.current = null
     }
@@ -351,7 +350,6 @@ export function PlayerProvider({ children }: { children: any }) {
       const res = await apiGetStreamingUrl(accessToken, track.id, 'original')
       const url = (res as any)?.url || ''
       if (!url) {
-        console.error('No streaming URL returned')
         isLoadingTrack.current = false
         return
       }
@@ -382,6 +380,17 @@ export function PlayerProvider({ children }: { children: any }) {
       setDuration(effectiveDuration)
 
       setIsPlaying(true)
+
+      // Report 'play' event for new track
+      if (accessToken) {
+        apiRecordPlaybackEvent(accessToken, {
+          trackId: track.id,
+          eventType: 'play',
+          positionSeconds: 0,
+          profileId: activeProfileId || undefined
+        })
+          .catch(() => { })
+      }
     } catch (error) {
       console.error('Error playing track:', error)
       setIsPlaying(false)

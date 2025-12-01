@@ -1,53 +1,50 @@
-# Estágio de build
-FROM node:18 AS builder
+# Build stage
+FROM node:18-alpine AS builder
 
-# Instalar dependências do sistema necessárias
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
-# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de configuração
+# Copy configuration files
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instalar dependências
-RUN npm ci --only=development
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
-# Copiar código fonte
+# Copy source code
 COPY . .
 
-# Build da aplicação
+# Build the application
 RUN npm run build
+RUN npm prune --production
 
-# Estágio de produção
-FROM node:18
+# Production stage
+FROM node:18-alpine
 
-# Instalar dependências do sistema para runtime
-RUN apt-get update && apt-get install -y dumb-init && rm -rf /var/lib/apt/lists/* \
-    && groupadd -g 1001 nodejs \
-    && useradd -m -u 1001 -g nodejs nestjs
+# Install runtime dependencies
+RUN apk add --no-cache dumb-init
 
-# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar package.json
+# Copy package.json for runtime scripts if needed (though we run node dist/main)
 COPY package*.json ./
 
-# Instalar apenas dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies (builder already pruned dev deps)
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copiar arquivos buildados do estágio anterior
+# Copy built assets from builder
 COPY --from=builder /app/dist ./dist
 
-# Criar diretório para uploads
-RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
+# Create uploads directory
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
 
-# Mudar para usuário não-root
-USER nestjs
+# Use non-root user (node user comes with the image)
+USER node
 
-# Expor porta
+# Expose port
 EXPOSE 3001
 
-# Comando para iniciar a aplicação
-CMD ["dumb-init", "node", "dist/main"]
+# Start application
+CMD ["dumb-init", "node", "dist/src/main.js"]

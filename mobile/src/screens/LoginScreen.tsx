@@ -6,14 +6,13 @@ import { useAuth } from '../context/AuthContext'
 import { apiRequestEmailVerification } from '../services/api'
 import * as WebBrowser from 'expo-web-browser'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
-import Constants from 'expo-constants'
-import appConfig from '../../app.json'
+import { AntDesign } from '@expo/vector-icons'
 
 type Props = {
   onRegister: () => void
   onForgot: () => void
   onLoggedIn: () => void
-  onVerificationNotice: () => void
+  onVerificationNotice: (email: string) => void
 }
 
 WebBrowser.maybeCompleteAuthSession()
@@ -27,7 +26,26 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   const [unverified, setUnverified] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
   const [gLoading, setGLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
+
+  const friendlyError = (msg: string) => {
+    const normalized = (msg || '').toString()
+    const lower = normalized.toLowerCase()
+    const plain = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const invalidCreds =
+      plain.includes('invalid credentials') ||
+      plain.includes('senha') ||
+      plain.includes('password') ||
+      plain.includes('credencial') ||
+      plain.includes('credenciais')
+    const unverifiedMatch = plain.includes('nao verificado') || plain.includes('não verificado')
+    if (!normalized || normalized.startsWith('http')) return 'Não foi possível entrar agora. Tente novamente.'
+    if (invalidCreds) return 'E-mail ou senha incorretos.'
+    if (unverifiedMatch) return 'Seu e-mail ainda não foi verificado.'
+    if (plain.includes('token') || plain.includes('idtoken') || plain.includes('oauth')) return 'Não foi possível entrar agora. Tente novamente.'
+    return normalized || 'Não foi possível entrar agora. Tente novamente.'
+  }
 
   async function handleSubmit() {
     try {
@@ -44,13 +62,20 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
       await login(email.trim(), password)
       onLoggedIn()
     } catch (e: any) {
-      console.error(e)
-      const msg = e?.message || ''
-      if (msg.includes('E-mail não verificado')) {
+      const msg = (e?.message || '').toString()
+      const plain = msg.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      const unverifiedMatch = plain.includes('nao verificado') || plain.includes('não verificado')
+      const invalidCreds =
+        plain.includes('invalid credentials') ||
+        plain.includes('senha') ||
+        plain.includes('password') ||
+        plain.includes('credencial')
+      if (unverifiedMatch) {
         setUnverified(true)
         setError('Seu e-mail ainda não foi verificado')
       } else {
-        setError(msg || 'Falha ao entrar')
+        setUnverified(false)
+        setError(friendlyError(msg))
       }
     } finally {
       setLoading(false)
@@ -59,14 +84,16 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
 
   async function resendVerification() {
     try {
+      setResendLoading(true)
       setInfo(null)
       const emailValid = /\S+@\S+\.\S+/.test(email.trim())
       if (!emailValid) throw new Error('E-mail inválido')
       await apiRequestEmailVerification(email.trim())
       setInfo('Reenviamos o e-mail de verificação. Confira sua caixa de entrada.')
     } catch (e: any) {
-      console.error(e)
-      setError(e?.message || 'Falha ao reenviar e-mail')
+      setError(friendlyError(e?.message || 'Não foi possível reenviar agora.'))
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -74,23 +101,22 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
     try {
       setGLoading(true)
       setError(null)
-      await GoogleSignin.signOut() // Ensure we clear previous session to allow account selection
+      await GoogleSignin.signOut()
       await GoogleSignin.hasPlayServices()
       const userInfo = await GoogleSignin.signIn()
       const idToken = userInfo.data?.idToken
-      if (!idToken) throw new Error('idToken não recebido')
+      if (!idToken) throw new Error('Não foi possível concluir o login com Google. Tente novamente.')
       await googleOAuth(idToken)
       onLoggedIn()
     } catch (e: any) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED) {
-        // user cancelled the login flow
+        // usuário cancelou
       } else if (e.code === statusCodes.IN_PROGRESS) {
-        // operation (e.g. sign in) is in progress already
+        // operação já em andamento
       } else if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         setError('Google Play Services não disponível')
       } else {
-        console.error(e)
-        setError(e?.message || 'Falha no login com Google')
+        setError('Não foi possível entrar com Google. Tente novamente.')
       }
     } finally {
       setGLoading(false)
@@ -121,7 +147,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
       <Animated.View style={{ transform: [{ translateY: shift }] }}>
         <Text style={styles.title}>Entrar</Text>
         <Input label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="seu@email.com" />
-        <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="••••••" />
+        <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="********" />
         {error && <Text style={styles.error}>{error}</Text>}
         {info && <Text style={styles.info}>{info}</Text>}
         <PrimaryButton title={loading ? 'Entrando...' : 'Entrar'} onPress={handleSubmit} disabled={loading} />
@@ -131,13 +157,21 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
         </View>
         {unverified && (
           <View style={{ marginTop: 16 }}>
-            <PrimaryButton title={'Reenviar e-mail de verificação'} onPress={resendVerification} />
-            <View style={{ height: 12 }} />
-            <PrimaryButton title={'Ver instruções'} onPress={onVerificationNotice} />
+            <PrimaryButton
+              title={resendLoading ? 'Reenviando...' : 'Reenviar e-mail de verificação'}
+              onPress={resendVerification}
+              disabled={resendLoading}
+            />
           </View>
         )}
         <View style={styles.divider} />
-        <PrimaryButton variant={'outline'} title={gLoading ? 'Abrindo Google...' : 'Entrar com Google'} onPress={handleGoogleLogin} disabled={gLoading} />
+        <PrimaryButton
+          variant={'outline'}
+          title={gLoading ? 'Abrindo Google...' : 'Entrar com Google'}
+          onPress={handleGoogleLogin}
+          disabled={gLoading}
+          rightIcon={<AntDesign name="google" size={18} color="#DB4437" />}
+        />
       </Animated.View>
     </KeyboardAvoidingView>
   )

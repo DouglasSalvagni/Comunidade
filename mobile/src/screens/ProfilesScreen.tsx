@@ -139,7 +139,6 @@ export default function ProfilesScreen({ onBack }: Props) {
   }
 
   async function addNew() {
-    console.log('[ProfilesScreen] addNew clicked')
     const nameOk = (newName || '').trim().length >= 2
     const { iso, error } = validateBirthDate(newBirthDate)
     if (!accessToken) { setErrorMsg('Sessão inválida'); return }
@@ -149,16 +148,13 @@ export default function ProfilesScreen({ onBack }: Props) {
     try {
       setSaving(true)
       const payload = { name: newName.trim(), birthDate: iso }
-      console.log('[ProfilesScreen] payload', payload)
       const created = await apiCreateProfile(accessToken, payload)
-      console.log('[ProfilesScreen] created profile', created)
       setItems((prev) => [...prev, created])
       setNewName('')
       setNewBirthDate('')
       setErrorMsg('')
       setSaving(false)
     } catch (e: any) {
-      console.log('[ProfilesScreen] create profile error', e)
       const m = String(e?.message || '')
       setErrorMsg(m || 'Falha ao criar perfil')
       setSaving(false)

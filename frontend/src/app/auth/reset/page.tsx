@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { api } from "@/services/api";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
-const ResetPasswordPage = () => {
+const ResetInner = () => {
   const router = useRouter();
   const params = useSearchParams();
   const [token, setToken] = useState("");
@@ -76,6 +77,14 @@ const ResetPasswordPage = () => {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const ResetPasswordPage = () => {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+      <ResetInner />
+    </Suspense>
   );
 };
 

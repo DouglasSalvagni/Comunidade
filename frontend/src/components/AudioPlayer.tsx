@@ -59,7 +59,7 @@ const AudioPlayer = () => {
       const moved = [order[i - 1], order[i]];
       order[i - 1] = moved[1];
       order[i] = moved[0];
-      api.reorderPlaylistItems(playlistId, order.filter(Boolean) as string[]).catch(() => {});
+      api.reorderPlaylistItems(playlistId, order.filter(Boolean) as string[]).catch(() => { });
     }
   };
 
@@ -76,7 +76,7 @@ const AudioPlayer = () => {
       const moved = [order[i], order[i + 1]];
       order[i] = moved[1];
       order[i + 1] = moved[0];
-      api.reorderPlaylistItems(playlistId, order.filter(Boolean) as string[]).catch(() => {});
+      api.reorderPlaylistItems(playlistId, order.filter(Boolean) as string[]).catch(() => { });
     }
   };
 
@@ -93,7 +93,7 @@ const AudioPlayer = () => {
       if (playlistId) {
         const t = prev[i];
         const itemId = playlistMap[t.id];
-        if (itemId) api.removePlaylistItem(playlistId, itemId).catch(() => {});
+        if (itemId) api.removePlaylistItem(playlistId, itemId).catch(() => { });
         const { [t.id]: _, ...rest } = playlistMap;
         setPlaylistMap(rest);
       }
@@ -136,7 +136,7 @@ const AudioPlayer = () => {
       const w = candidates[Math.floor(Math.random() * candidates.length)];
       const track = w.tracks[0];
       setNowTrack({ id: track.id, title: track.title || w.title, duration: track.duration, coverUrl: w.coverUrl } as any);
-    } catch {}
+    } catch { }
   };
 
   const toggleMute = () => {
@@ -179,7 +179,17 @@ const AudioPlayer = () => {
           hls.loadSource(url);
           hls.attachMedia(el);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            el.play().then(() => {
+              setIsPlaying(true);
+              // Report play event
+              const profileId = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') || undefined : undefined;
+              api.recordPlaybackEvent({
+                trackId: currentTrack.id,
+                eventType: 'play',
+                positionSeconds: 0,
+                profileId
+              }).catch(err => console.error('[PLAY EVENT] Error:', err));
+            }).catch(() => setIsPlaying(false));
           });
           hls.on(Hls.Events.LEVEL_LOADED, (_evt, data: any) => {
             const d = data?.details;
@@ -192,7 +202,17 @@ const AudioPlayer = () => {
           });
         } else {
           el.src = url;
-          el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          el.play().then(() => {
+            setIsPlaying(true);
+            // Report play event
+            const profileId = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') || undefined : undefined;
+            api.recordPlaybackEvent({
+              trackId: currentTrack.id,
+              eventType: 'play',
+              positionSeconds: 0,
+              profileId
+            }).catch(err => console.error('[PLAY EVENT] Error:', err));
+          }).catch(() => setIsPlaying(false));
         }
         setPosition(0);
       } catch (e: any) {
@@ -276,7 +296,7 @@ const AudioPlayer = () => {
       setPlaylist([]);
       setCurrentIndex(0);
       const el = audioRef.current;
-      try { el?.pause(); } catch {}
+      try { el?.pause(); } catch { }
       setNowTrack(null);
       setPlaylistId(null);
       setPlaylistMap({});
@@ -299,7 +319,7 @@ const AudioPlayer = () => {
           setPlaylistMap(map);
           setPlaylist(tracks);
           setCurrentIndex(0);
-        } catch {}
+        } catch { }
       };
       reload();
     };
@@ -329,7 +349,7 @@ const AudioPlayer = () => {
         setPlaylistMap(map);
         setPlaylist(tracks);
         setCurrentIndex(0);
-      } catch {}
+      } catch { }
     };
     load();
   }, []);

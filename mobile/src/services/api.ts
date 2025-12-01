@@ -13,15 +13,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
   if (!res.ok) {
     const text = await res.text()
-    try { console.log('[API ERROR]', options.method || 'GET', path, res.status, text) } catch { }
+    
     try {
       const json = JSON.parse(text)
       const rawMsg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`
       const normalized = Array.isArray(rawMsg) ? rawMsg.join(', ') : String(rawMsg)
       throw new Error(normalized)
     } catch {
-      const friendly = text && text.startsWith('{') ? `HTTP ${res.status}` : (text || `HTTP ${res.status}`)
-      throw new Error(friendly)
+      if (text && text.startsWith('{')) {
+        const m = /"message"\s*:\s*"([^"]+)"/.exec(text)
+        const d = /"details"\s*:\s*\{[^}]*"message"\s*:\s*"([^"]+)"/.exec(text)
+        const e = /"error"\s*:\s*"([^"]+)"/.exec(text)
+        const rawMsg = (m?.[1] || d?.[1] || e?.[1] || `HTTP ${res.status}`)
+        throw new Error(rawMsg)
+      } else {
+        throw new Error(text || `HTTP ${res.status}`)
+      }
     }
   }
   const ct = res.headers.get('content-type') || ''
@@ -189,6 +196,19 @@ export async function apiGetStreamingUrl(accessToken: string, trackId: string, f
   })
 }
 
+export async function apiRecordPlaybackEvent(accessToken: string, data: {
+  trackId: string;
+  eventType: 'play' | 'pause' | 'complete' | 'seek';
+  positionSeconds?: number;
+  profileId?: string;
+}) {
+  return request<void>('/playback/events', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(data),
+  })
+}
+
 export async function apiToggleFavorite(accessToken: string, workId: string, profileId?: string) {
   const qs = new URLSearchParams()
   if (profileId) qs.set('profileId', profileId)
@@ -257,5 +277,35 @@ export async function apiReorderPlaylistItems(accessToken: string, playlistId: s
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ itemIdsInOrder }),
+  })
+}
+
+export async function apiGetTopPlayed(accessToken: string, params?: {
+  page?: number
+  limit?: number
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  const path = `/works/top-played${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetMyTopPlayed(accessToken: string, params?: {
+  page?: number
+  limit?: number
+  profileId?: string
+}): Promise<{ data: any[]; meta: any }> {
+  const qs = new URLSearchParams()
+  if (typeof params?.page === 'number') qs.set('page', String(params.page))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  if (params?.profileId) qs.set('profileId', params.profileId)
+  const path = `/works/my-top-played${qs.toString() ? `?${qs.toString()}` : ''}`
+  return request<{ data: any[]; meta: any }>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
 }

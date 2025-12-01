@@ -16,6 +16,14 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
   const [sent, setSent] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
 
+  const friendlyError = (msg: string) => {
+    const normalized = msg || ''
+    const lower = normalized.toLowerCase()
+    if (!normalized || normalized.startsWith('http')) return 'Não foi possível enviar agora. Tente novamente em instantes.'
+    if (lower.includes('404')) return 'Não encontramos uma conta com este e-mail.'
+    return normalized
+  }
+
   async function handleSubmit() {
     try {
       setLoading(true)
@@ -25,12 +33,23 @@ export default function ForgotPasswordScreen({ onBack }: Props) {
       await forgotPassword(email.trim())
       setSent(true)
     } catch (e: any) {
-      console.error(e)
-      setError(e?.message || 'Falha ao enviar')
+      setError(friendlyError(e?.message || ''))
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const showSub = Keyboard.addListener(showEvt, () => {
+      Animated.timing(shift, { toValue: -60, duration: 200, useNativeDriver: true }).start()
+    })
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      Animated.timing(shift, { toValue: 0, duration: 200, useNativeDriver: true }).start()
+    })
+    return () => { showSub.remove(); hideSub.remove() }
+  }, [shift])
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>

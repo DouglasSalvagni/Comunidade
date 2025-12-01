@@ -1,16 +1,50 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy configuration files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
 FROM node:18-alpine
 
+# Install runtime dependencies including ffmpeg
 RUN apk add --no-cache ffmpeg dumb-init
 
 WORKDIR /app
 
+# Copy package.json
 COPY package*.json ./
-COPY tsconfig.json ./
-COPY . .
 
-RUN npm ci && npm run build
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
 
+# Copy built assets from builder
+COPY --from=builder /app/dist ./dist
+
+# Create uploads directory (worker might need to process files here)
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+
+# Use non-root user
+USER node
+
+# Expose port (optional for worker, but good practice if it exposes metrics)
 EXPOSE 3002
 
-CMD ["dumb-init", "node", "-r", "tsconfig-paths/register", "dist/src/workers/transcode.worker.js"]
+# Start worker
+CMD ["dumb-init", "node", "dist/src/workers/transcode.worker.js"]
 

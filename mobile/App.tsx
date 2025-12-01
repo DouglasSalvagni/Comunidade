@@ -15,6 +15,7 @@ import ProfileSelectionScreen from './src/screens/ProfileSelectionScreen'
 function Screens() {
   const { user, accessToken, logout, activeProfileId } = useAuth()
   const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'profile_selection' | 'home'>('login')
+  const [pendingEmail, setPendingEmail] = useState<string>('')
 
   return (
     <View style={styles.container}>
@@ -29,17 +30,23 @@ function Screens() {
           onRegister={() => setScreen('register')}
           onForgot={() => setScreen('forgot')}
           onLoggedIn={() => setScreen('profile_selection')}
-          onVerificationNotice={() => setScreen('verify_notice')}
+          onVerificationNotice={(email) => { setPendingEmail(email); setScreen('verify_notice') }}
         />
       )}
       {!user && !accessToken && screen === 'register' && (
-        <RegisterScreen onBackToLogin={() => setScreen('login')} onVerifyEmail={() => setScreen('verify_notice')} />
+        <RegisterScreen
+          onBackToLogin={() => setScreen('login')}
+          onVerifyEmail={(email) => { setPendingEmail(email); setScreen('verify_notice') }}
+        />
       )}
       {!user && !accessToken && screen === 'verify' && (
         <VerifyEmailScreen onVerified={() => setScreen('profile_selection')} onBack={() => setScreen('login')} />
       )}
       {!user && !accessToken && screen === 'verify_notice' && (
-        <VerificationNoticeScreen onBackToLogin={() => setScreen('login')} />
+        <VerificationNoticeScreen
+          email={pendingEmail}
+          onBackToLogin={() => { setPendingEmail(''); setScreen('login') }}
+        />
       )}
       {!user && !accessToken && screen === 'forgot' && (
         <ForgotPasswordScreen onBack={() => setScreen('login')} />

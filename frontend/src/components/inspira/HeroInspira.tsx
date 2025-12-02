@@ -190,10 +190,12 @@ export const HeroInspira: React.FC = () => {
               Um palco mágico onde músicas e contos de ninar se encontram para encantar as noites dos pequenos.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-brand-orange hover:bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_25px_rgba(251,146,60,0.4)] flex items-center justify-center gap-2 transition-colors">
-                <Play className="w-5 h-5 fill-current" />
-                Ouvir Agora
-              </motion.button>
+              <a href="#preview">
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-brand-orange hover:bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_25px_rgba(251,146,60,0.4)] flex items-center justify-center gap-2 transition-colors">
+                  <Play className="w-5 h-5 fill-current" />
+                  Ouvir Agora
+                </motion.button>
+              </a>
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-colors">
                 <Sparkles className="w-5 h-5" />
                 Conhecer Personagens
@@ -240,7 +242,7 @@ export const HeroInspira: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 z-20">
+      <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" className="fill-brand-dark block">
           <path fillOpacity="1" d="M0,160L48,176C96,192,192,224,288,229.3C384,235,480,213,576,181.3C672,149,768,107,864,112C960,117,1056,171,1152,186.7C1248,203,1344,181,1392,170.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
         </svg>

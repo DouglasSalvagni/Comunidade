@@ -11,7 +11,9 @@ export const FooterInspira: React.FC = () => {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <Image src={logo} alt="Logo Ninaro" className="h-32 w-auto" />
+              <a href="/">
+                <Image src={logo} alt="Logo Ninaro" className="h-32 w-auto" />
+              </a>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Criando momentos mágicos através do som. Ajudamos crianças a explorar novos mundos sem sair de casa.
@@ -20,19 +22,17 @@ export const FooterInspira: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6">Explorar</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-brand-teal">Histórias</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Músicas</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Personagens</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Blog</a></li>
+              <li><a href="/#features" className="hover:text-brand-teal">Histórias</a></li>
+              <li><a href="/#preview" className="hover:text-brand-teal">Músicas</a></li>
+              <li><a href="/#pricing" className="hover:text-brand-teal">Planos</a></li>
+              <li><a href="/#footer" className="hover:text-brand-teal">Sobre</a></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold mb-6">Suporte</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-brand-teal">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Para Escolas</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Privacidade</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Termos de Uso</a></li>
+              <li><a href="/privacy" className="hover:text-brand-teal">Política de Privacidade</a></li>
+              <li><a href="/terms" className="hover:text-brand-teal">Termos de Uso</a></li>
             </ul>
           </div>
           <div>

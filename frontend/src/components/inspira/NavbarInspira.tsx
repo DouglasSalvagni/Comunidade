@@ -18,10 +18,10 @@ export const NavbarInspira: React.FC = () => {
   }, []);
 
   const navLinks = [
-    { name: "Histórias", href: "#features" },
-    { name: "Músicas", href: "#preview" },
-    { name: "Planos", href: "#pricing" },
-    { name: "Sobre", href: "#footer" },
+    { name: "Histórias", href: "/#features" },
+    { name: "Músicas", href: "/#preview" },
+    { name: "Planos", href: "/#pricing" },
+    { name: "Sobre", href: "/#footer" },
   ];
 
   return (
@@ -32,12 +32,14 @@ export const NavbarInspira: React.FC = () => {
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Image 
-            src={logo} 
-            alt="Logo" 
-            className={`w-auto transition-all duration-300 ${isScrolled ? "h-10" : "h-20"}`} 
-            priority 
-          />
+          <a href="/">
+            <Image 
+              src={logo} 
+              alt="Logo" 
+              className={`w-auto transition-all duration-300 ${isScrolled ? "h-10" : "h-20"}`} 
+              priority 
+            />
+          </a>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
@@ -46,9 +48,9 @@ export const NavbarInspira: React.FC = () => {
               {link.name}
             </a>
           ))}
-          <button className="bg-brand-orange hover:bg-orange-500 text-white px-6 py-2 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg">
+          <a href="/auth/login" className="bg-brand-orange hover:bg-orange-500 text-white px-6 py-2 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg">
             Entrar
-          </button>
+          </a>
         </div>
 
         <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -75,7 +77,7 @@ export const NavbarInspira: React.FC = () => {
                   {link.name}
                 </a>
               ))}
-              <button className="bg-brand-orange text-white px-6 py-3 rounded-full font-bold w-full mt-2">Entrar</button>
+              <a href="/auth/login" className="bg-brand-orange text-white px-6 py-3 rounded-full font-bold w-full mt-2 text-center block">Entrar</a>
             </div>
           </motion.div>
         )}

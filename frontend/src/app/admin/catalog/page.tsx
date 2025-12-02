@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api, Tag, Work } from "@/services/api";
+import { api, Tag, Work, DevTheme } from "@/services/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -30,6 +30,8 @@ const AdminCatalogPage = () => {
   const [ageLabel, setAgeLabel] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [devThemes, setDevThemes] = useState<DevTheme[]>([]);
+  const [selectedDevThemeIds, setSelectedDevThemeIds] = useState<string[]>([]);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,6 +46,7 @@ const AdminCatalogPage = () => {
   const [editMaxMonths, setEditMaxMonths] = useState<string>("");
   const [editAgeLabel, setEditAgeLabel] = useState<string>("");
   const [editSelectedTagIds, setEditSelectedTagIds] = useState<string[]>([]);
+  const [editSelectedDevThemeIds, setEditSelectedDevThemeIds] = useState<string[]>([]);
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [editThumbInputKey, setEditThumbInputKey] = useState(0);
   const [removeId, setRemoveId] = useState<string | null>(null);
@@ -51,11 +54,13 @@ const AdminCatalogPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [tagsList, worksList] = await Promise.all([
+        const [tagsList, themesList, worksList] = await Promise.all([
           api.adminGetTags(),
+          api.adminGetDevThemes(),
           api.adminGetWorks(),
         ]);
         setTags(tagsList);
+        setDevThemes(themesList);
         setWorks(Array.isArray((worksList as any)?.data) ? (worksList as any).data : (Array.isArray(worksList as any) ? (worksList as any) : []));
       } catch (e: any) {
         toast.error(e?.message || "Falha ao carregar catálogo");
@@ -153,6 +158,7 @@ const AdminCatalogPage = () => {
                 recommendedMaxMonths: Number(maxMonths || 0),
                 recommendedAgeLabel: ageLabel || undefined,
                 tagIds: selectedTagIds,
+                devThemeIds: selectedDevThemeIds,
                 coverUrl,
               });
               await api.adminCreateTrack(workData.id, {
@@ -226,6 +232,19 @@ const AdminCatalogPage = () => {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Temas de Desenvolvimento</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {devThemes.map((theme) => (
+                  <div key={theme.id} className="flex items-center space-x-2">
+                    <Checkbox id={`theme-${theme.id}`} checked={selectedDevThemeIds.includes(theme.id)} onCheckedChange={(v) => {
+                      setSelectedDevThemeIds((prev) => v ? [...prev, theme.id] : prev.filter(id => id !== theme.id));
+                    }} />
+                    <Label htmlFor={`theme-${theme.id}`}>{theme.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="file">Arquivo da Obra</Label>
               <Input key={audioInputKey} id="file" type="file" accept="audio/*" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
             </div>
@@ -283,8 +302,9 @@ const AdminCatalogPage = () => {
                       setEditMinMonths(String(work.recommendedMinMonths ?? ""));
                       setEditMaxMonths(String(work.recommendedMaxMonths ?? ""));
                       setEditAgeLabel(work.recommendedAgeLabel || "");
-                      setEditSelectedTagIds((work.tags || []).map(t => t.id));
-                    }}>
+                    setEditSelectedTagIds((work.tags || []).map(t => t.id));
+                    setEditSelectedDevThemeIds((work.devThemes || []).map(t => t.id));
+                  }}>
                       Editar
                     </Button>
                     <Button
@@ -315,7 +335,7 @@ const AdminCatalogPage = () => {
       <Dialog open={!!editingWork} onOpenChange={(open) => {
         if (!open) setEditingWork(null);
       }}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Obra</DialogTitle>
           </DialogHeader>
@@ -415,6 +435,19 @@ const AdminCatalogPage = () => {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Temas de Desenvolvimento</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {devThemes.map((theme) => (
+                  <div key={theme.id} className="flex items-center space-x-2">
+                    <Checkbox id={`edit-theme-${theme.id}`} checked={editSelectedDevThemeIds.includes(theme.id)} onCheckedChange={(v) => {
+                      setEditSelectedDevThemeIds((prev) => v ? [...prev, theme.id] : prev.filter(id => id !== theme.id));
+                    }} />
+                    <Label htmlFor={`edit-theme-${theme.id}`}>{theme.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="editThumbnail">Imagem Thumbnail (opcional)</Label>
               <Input key={editThumbInputKey} id="editThumbnail" type="file" accept="image/*" onChange={(e) => setEditThumbnailFile(e.target.files?.[0] || null)} />
             </div>
@@ -445,6 +478,7 @@ const AdminCatalogPage = () => {
                   recommendedMaxMonths: editMaxMonths ? Number(editMaxMonths) : undefined,
                   recommendedAgeLabel: editAgeLabel || undefined,
                   tagIds: editSelectedTagIds,
+                  devThemeIds: editSelectedDevThemeIds,
                 };
                 if (coverUrl) payload.coverUrl = coverUrl;
                 const updated = await api.adminUpdateWork(editingWork.id, payload);

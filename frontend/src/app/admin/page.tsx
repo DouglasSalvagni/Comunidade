@@ -34,6 +34,19 @@ const AdminDashboardPage = () => {
         </Card>
         <Card>
           <CardHeader>
+            <CardTitle>Temas de Desenvolvimento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Cadastrar, editar e remover temas de desenvolvimento.
+            </p>
+            <Link href="/admin/dev-themes" className="text-sm font-medium text-primary hover:underline mt-4 block">
+              Acessar
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <CardTitle>Gerenciar Usuários</CardTitle>
           </CardHeader>
           <CardContent>

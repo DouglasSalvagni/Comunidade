@@ -75,6 +75,7 @@ export interface Work {
   isActive: boolean;
   isFavorite?: boolean;
   tags?: Tag[];
+  devThemes?: DevTheme[];
   tracks?: Track[];
   createdAt: string;
   updatedAt: string;
@@ -94,14 +95,23 @@ export interface Track {
   createdAt: string;
 }
 
-// Interface para tag
-export interface Tag {
-  id: string;
-  name: string;
-  color: string;
-  isActive: boolean;
-  createdAt: string;
-}
+  // Interface para tag
+  export interface Tag {
+    id: string;
+    name: string;
+    color: string;
+    isActive: boolean;
+    createdAt: string;
+  }
+
+  // Interface para tema de desenvolvimento
+  export interface DevTheme {
+    id: string;
+    name: string;
+    description?: string;
+    isActive: boolean;
+    createdAt: string;
+  }
 
 // Interface para favorito
 export interface Favorite {
@@ -380,6 +390,7 @@ class ApiService {
     type?: 'music' | 'audiobook' | 'series';
     age?: string;
     tags?: string;
+    devThemes?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -526,7 +537,7 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminUpdateWork(id: string, data: Partial<Work> & { tagIds?: string[] }): Promise<Work> {
+  async adminUpdateWork(id: string, data: Partial<Work> & { tagIds?: string[]; devThemeIds?: string[] }): Promise<Work> {
     const response = await this.client.patch<ApiResponse<Work>>(`/admin/works/${id}`, data);
     return response.data.data;
   }
@@ -583,6 +594,25 @@ class ApiService {
 
   async adminDeleteTag(id: string): Promise<void> {
     await this.client.delete(`/admin/tags/${id}`);
+  }
+
+  async adminGetDevThemes(): Promise<DevTheme[]> {
+    const response = await this.client.get<ApiResponse<DevTheme[]>>('/admin/dev-themes');
+    return response.data.data;
+  }
+
+  async adminCreateDevTheme(data: { name: string; description?: string }): Promise<DevTheme> {
+    const response = await this.client.post<ApiResponse<DevTheme>>('/admin/dev-themes', data);
+    return response.data.data;
+  }
+
+  async adminUpdateDevTheme(id: string, data: { name: string; description?: string }): Promise<DevTheme> {
+    const response = await this.client.patch<ApiResponse<DevTheme>>(`/admin/dev-themes/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteDevTheme(id: string): Promise<void> {
+    await this.client.delete(`/admin/dev-themes/${id}`);
   }
 
   async getUploadUrl(params: { fileName: string; fileType: string; fileSize: number }): Promise<{ uploadUrl: string; storageKey: string; expiresAt: string }> {

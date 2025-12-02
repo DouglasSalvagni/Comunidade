@@ -203,7 +203,18 @@ export class InitialSchema1700000000000 implements MigrationInterface {
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_subscriptions_user_id" ON "subscriptions" ("user_id")`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_subscriptions_status" ON "subscriptions" ("status")`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_works_type" ON "works" ("type")`);
-    await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_works_age" ON "works" ("recommended_age")`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'works' AND column_name = 'recommended_age'
+        ) THEN
+          CREATE INDEX IF NOT EXISTS "idx_works_age" ON "works" ("recommended_age");
+        END IF;
+      END
+      $$;
+    `);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_works_active" ON "works" ("is_active")`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_tracks_work_id" ON "tracks" ("work_id")`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_chapters_work_id" ON "chapters" ("work_id")`);
@@ -220,43 +231,111 @@ export class InitialSchema1700000000000 implements MigrationInterface {
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_works_title_trgm" ON "works" USING gin ("title" gin_trgm_ops)`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_works_description_trgm" ON "works" USING gin ("description" gin_trgm_ops)`);
 
-    // Triggers
+    // Triggers (idempotentes)
     await queryRunner.query(`
-      CREATE TRIGGER update_users_updated_at
-      BEFORE UPDATE ON "users"
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at' AND tgrelid = 'users'::regclass
+        ) THEN
+          CREATE TRIGGER update_users_updated_at
+          BEFORE UPDATE ON "users"
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`
-      CREATE TRIGGER update_profiles_updated_at
-      BEFORE UPDATE ON "profiles"
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_profiles_updated_at' AND tgrelid = 'profiles'::regclass
+        ) THEN
+          CREATE TRIGGER update_profiles_updated_at
+          BEFORE UPDATE ON "profiles"
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`
-      CREATE TRIGGER update_subscriptions_updated_at
-      BEFORE UPDATE ON "subscriptions"
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_subscriptions_updated_at' AND tgrelid = 'subscriptions'::regclass
+        ) THEN
+          CREATE TRIGGER update_subscriptions_updated_at
+          BEFORE UPDATE ON "subscriptions"
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`
-      CREATE TRIGGER update_works_updated_at
-      BEFORE UPDATE ON "works"
-      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_trigger WHERE tgname = 'update_works_updated_at' AND tgrelid = 'works'::regclass
+        ) THEN
+          CREATE TRIGGER update_works_updated_at
+          BEFORE UPDATE ON "works"
+          FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        END IF;
+      END
+      $$;
     `);
 
-    // Seed initial data (idempotent)
+    // Seed inicial idempotente com suporte a coluna slug
     await queryRunner.query(`
-      INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
-      SELECT 'Gratuito', 'Acesso limitado ao conteudo', 0, 'monthly', '["10 musicas por mes", "Audiobooks limitados", "Anuncios"]'
-      WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Gratuito');
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'slug'
+        ) THEN
+          INSERT INTO "plans" ("slug", "name", "description", "price_cents", "billing_period", "features")
+          SELECT 'plano-gratuito', 'Gratuito', 'Acesso limitado ao conteudo', 0, 'monthly', '["10 musicas por mes", "Audiobooks limitados", "Anuncios"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "slug" = 'plano-gratuito' OR "name" = 'Gratuito');
+        ELSE
+          INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
+          SELECT 'Gratuito', 'Acesso limitado ao conteudo', 0, 'monthly', '["10 musicas por mes", "Audiobooks limitados", "Anuncios"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Gratuito');
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`
-      INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
-      SELECT 'Premium Mensal', 'Acesso completo mensal', 1990, 'monthly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD"]'
-      WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Premium Mensal');
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'slug'
+        ) THEN
+          INSERT INTO "plans" ("slug", "name", "description", "price_cents", "billing_period", "features")
+          SELECT 'plano-mensal', 'Premium Mensal', 'Acesso completo mensal', 1990, 'monthly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "slug" = 'plano-mensal' OR "name" = 'Premium Mensal');
+        ELSE
+          INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
+          SELECT 'Premium Mensal', 'Acesso completo mensal', 1990, 'monthly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Premium Mensal');
+        END IF;
+      END
+      $$;
     `);
     await queryRunner.query(`
-      INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
-      SELECT 'Premium Anual', 'Acesso completo anual com desconto', 19900, 'yearly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD", "2 meses gratis"]'
-      WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Premium Anual');
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'slug'
+        ) THEN
+          INSERT INTO "plans" ("slug", "name", "description", "price_cents", "billing_period", "features")
+          SELECT 'plano-anual', 'Premium Anual', 'Acesso completo anual com desconto', 19900, 'yearly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD", "2 meses gratis"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "slug" = 'plano-anual' OR "name" = 'Premium Anual');
+        ELSE
+          INSERT INTO "plans" ("name", "description", "price_cents", "billing_period", "features")
+          SELECT 'Premium Anual', 'Acesso completo anual com desconto', 19900, 'yearly', '["Musicas ilimitadas", "Audiobooks ilimitados", "Sem anuncios", "Downloads offline", "Qualidade HD", "2 meses gratis"]'
+          WHERE NOT EXISTS (SELECT 1 FROM "plans" WHERE "name" = 'Premium Anual');
+        END IF;
+      END
+      $$;
     `);
 
     await queryRunner.query(`
@@ -276,7 +355,7 @@ export class InitialSchema1700000000000 implements MigrationInterface {
 
     await queryRunner.query(`
       INSERT INTO "users" ("email", "password_hash", "name", "role", "is_active")
-      VALUES ('admin@little-tales.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador', 'admin', true)
+      VALUES ('douglassalvagni@gmail.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador', 'admin', true)
       ON CONFLICT ("email") DO NOTHING;
     `);
   }

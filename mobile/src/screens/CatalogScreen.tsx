@@ -17,6 +17,7 @@ type Work = {
   recommendedMaxMonths?: number
   recommendedAgeLabel?: string
   tags?: { id: string; name: string }[]
+  devThemes?: { id: string; name: string }[]
   tracks?: { id: string; title?: string; workId: string }[]
   isFavorite?: boolean
 }
@@ -33,6 +34,7 @@ export default function CatalogScreen() {
   const [minAge, setMinAge] = useState('')
   const [maxAge, setMaxAge] = useState('')
   const [tagFilters, setTagFilters] = useState<string[]>([])
+  const [devThemeFilters, setDevThemeFilters] = useState<string[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [limit] = useState(5)
@@ -45,6 +47,12 @@ export default function CatalogScreen() {
     return Array.from(map.values())
   }, [works])
 
+  const computedThemes = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>()
+    works.forEach((w) => (w.devThemes || []).forEach((t) => { if (!map.has(t.id)) map.set(t.id, t) }))
+    return Array.from(map.values())
+  }, [works])
+
   useEffect(() => {
     let mounted = true
     async function loadInitial() {
@@ -53,6 +61,9 @@ export default function CatalogScreen() {
       try {
         const selectedTagNames = tagFilters
           .map((id) => computedTags.find((t) => t.id === id)?.name)
+          .filter((n): n is string => !!n)
+        const selectedThemeNames = devThemeFilters
+          .map((id) => computedThemes.find((t) => t.id === id)?.name)
           .filter((n): n is string => !!n)
         const params: any = { page: 1, limit }
         if (activeProfileId) params.profileId = activeProfileId
@@ -68,6 +79,7 @@ export default function CatalogScreen() {
           params.maxMonths = toMonths(maxNum)
         }
         if (selectedTagNames.length > 0) params.tags = selectedTagNames.join(',')
+        if (selectedThemeNames.length > 0) params.devThemes = selectedThemeNames.join(',')
         const r = await apiGetWorks(accessToken, params)
         const list = Array.isArray(r?.data) ? r.data : []
         if (!mounted) return
@@ -89,7 +101,7 @@ export default function CatalogScreen() {
     setWorks([])
     loadInitial()
     return () => { mounted = false }
-  }, [accessToken, activeProfileId, searchTerm, typeFilter, minAge, maxAge, ageUnit, tagFilters])
+  }, [accessToken, activeProfileId, searchTerm, typeFilter, minAge, maxAge, ageUnit, tagFilters, devThemeFilters])
 
   async function loadMoreIfNeeded() {
     if (loading || loadingMore) return
@@ -99,6 +111,9 @@ export default function CatalogScreen() {
     try {
       const selectedTagNames = tagFilters
         .map((id) => computedTags.find((t) => t.id === id)?.name)
+        .filter((n): n is string => !!n)
+      const selectedThemeNames = devThemeFilters
+        .map((id) => computedThemes.find((t) => t.id === id)?.name)
         .filter((n): n is string => !!n)
       const nextPage = page + 1
       const params: any = { page: nextPage, limit }
@@ -115,6 +130,7 @@ export default function CatalogScreen() {
         params.maxMonths = toMonths(maxNum)
       }
       if (selectedTagNames.length > 0) params.tags = selectedTagNames.join(',')
+      if (selectedThemeNames.length > 0) params.devThemes = selectedThemeNames.join(',')
       const r = await apiGetWorks(accessToken, params)
       const list = Array.isArray(r?.data) ? r.data : []
       setWorks((prev) => {
@@ -142,6 +158,10 @@ export default function CatalogScreen() {
 
   function toggleTag(tagId: string) {
     setTagFilters((prev) => prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId])
+  }
+
+  function toggleTheme(themeId: string) {
+    setDevThemeFilters((prev) => prev.includes(themeId) ? prev.filter((id) => id !== themeId) : [...prev, themeId])
   }
 
   function AgeLabel(w: Work) {
@@ -200,6 +220,18 @@ export default function CatalogScreen() {
                 return (
                   <Pressable key={tag.id} style={[styles.tagItem, active && styles.tagItemActive]} onPress={() => toggleTag(tag.id)}>
                     <Text style={[styles.tagText, active && styles.tagTextActive]}>{tag.name}</Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+
+            <Text style={styles.filterLabel}>Temas de Desenvolvimento</Text>
+            <View style={[styles.tagsWrap, styles.tagsSpacing]}>
+              {computedThemes.map((theme) => {
+                const active = devThemeFilters.includes(theme.id)
+                return (
+                  <Pressable key={theme.id} style={[styles.tagItem, active && styles.tagItemActive]} onPress={() => toggleTheme(theme.id)}>
+                    <Text style={[styles.tagText, active && styles.tagTextActive]}>{theme.name}</Text>
                   </Pressable>
                 )
               })}
@@ -286,7 +318,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
   subtitle: { fontSize: 14, color: '#cfd3ff', marginBottom: 16 },
   filters: { marginBottom: 16 },
-  filterLabel: { fontSize: 14, color: '#e6e9ff', marginBottom: 8, marginTop: 8 },
+  filterLabel: { fontSize: 14, color: '#e6e9ff', marginBottom: 8, marginTop: 16 },
   segmentedRow: { flexDirection: 'row', gap: 8 },
   searchRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 8 },
   iconButton: { width: 44, height: 50, borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827' },
@@ -296,6 +328,7 @@ const styles = StyleSheet.create({
   segmentedTextActive: { color: '#A78BFA', fontWeight: '600' },
   ageRow: { flexDirection: 'row', gap: 8 },
   tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tagsSpacing: { marginTop: 8 },
   tagItem: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#111827' },
   tagItemActive: { borderColor: '#ffd66b', backgroundColor: '#0e1430' },
   tagText: { color: '#cfd3ff', fontSize: 12 },

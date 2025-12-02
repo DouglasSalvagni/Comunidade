@@ -79,4 +79,9 @@ export class UpdateWorkDto {
   @IsOptional()
   @IsArray()
   tagIds?: string[];
+
+  @ApiProperty({ description: 'Development Theme IDs to set on work', required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  devThemeIds?: string[];
 }

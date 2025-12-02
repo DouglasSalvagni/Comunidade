@@ -12,6 +12,8 @@ import { Track } from './track.entity';
 import { Chapter } from './chapter.entity';
 import { Tag } from './tag.entity';
 import { WorkTag } from './work-tag.entity';
+import { DevTheme } from './dev-theme.entity';
+import { WorkDevTheme } from './work-dev-theme.entity';
 import { Favorite } from './favorite.entity';
 
 @Entity('works')
@@ -61,6 +63,9 @@ export class Work {
   @OneToMany(() => WorkTag, (workTag) => workTag.work)
   workTags: WorkTag[];
 
+  @OneToMany(() => WorkDevTheme, (workDevTheme) => workDevTheme.work)
+  workDevThemes: WorkDevTheme[];
+
   @OneToMany(() => Favorite, (favorite) => favorite.work)
   favorites: Favorite[];
 
@@ -71,4 +76,12 @@ export class Work {
     inverseJoinColumn: { name: 'tag_id', referencedColumnName: 'id' },
   })
   tags: Tag[];
+
+  @ManyToMany(() => DevTheme, (theme) => theme.works)
+  @JoinTable({
+    name: 'work_dev_themes',
+    joinColumn: { name: 'work_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'theme_id', referencedColumnName: 'id' },
+  })
+  devThemes: DevTheme[];
 }

@@ -16,6 +16,8 @@ import { Favorite } from '@/modules/catalog/entities/favorite.entity'
 import { PlayEvent } from '@/modules/playback/entities/play-event.entity'
 import { Download } from '@/modules/playback/entities/download.entity'
 import { WorkTag } from '@/modules/catalog/entities/work-tag.entity'
+import { DevTheme } from '@/modules/catalog/entities/dev-theme.entity'
+import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity'
 import { Playlist } from '@/modules/playlists/entities/playlist.entity'
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity'
 import * as path from 'path'
@@ -42,6 +44,7 @@ const AppDataSource = new DataSource({
     Track,
     Chapter,
     Tag,
+    DevTheme,
     Plan,
     Subscription,
     GatewayMeta,
@@ -51,6 +54,7 @@ const AppDataSource = new DataSource({
     PlayEvent,
     Download,
     WorkTag,
+    WorkDevTheme,
     Playlist,
     PlaylistItem,
   ],

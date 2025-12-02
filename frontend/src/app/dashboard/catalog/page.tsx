@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Music, BookOpen, Tv, Filter, Star, Play, ListPlus } from "lucide-react";
 import fallbackAudio from "@/assets/fallback-audio.jpg";
-import { api, Work, Tag, Track } from "@/services/api";
+import { api, Work, Tag, Track, DevTheme } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
@@ -35,6 +35,7 @@ const CatalogPage = () => {
   const [maxAge, setMaxAge] = useState<string>("");
   const [ageUnit, setAgeUnit] = useState<"years" | "months">("years");
   const [tagFilters, setTagFilters] = useState<string[]>([]);
+  const [devThemeFilters, setDevThemeFilters] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [profileKey, setProfileKey] = useState(0);
 
@@ -44,12 +45,21 @@ const CatalogPage = () => {
     return Array.from(map.values());
   }, [works]);
 
+  const computedThemes: DevTheme[] = useMemo(() => {
+    const map = new Map<string, DevTheme>();
+    works.forEach((w) => (w.devThemes || []).forEach((t) => { if (!map.has(t.id)) map.set(t.id, t); }));
+    return Array.from(map.values());
+  }, [works]);
+
   useEffect(() => {
     const fetchWorks = async () => {
       setLoading(true);
       try {
         const selectedTagNames = tagFilters
           .map((id) => computedTags.find((t) => t.id === id)?.name)
+          .filter((n): n is string => !!n);
+        const selectedThemeNames = devThemeFilters
+          .map((id) => computedThemes.find((t) => t.id === id)?.name)
           .filter((n): n is string => !!n);
         const params: any = { page: 1, limit: 50 };
         const pid = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') || undefined : undefined;
@@ -66,13 +76,14 @@ const CatalogPage = () => {
           params.maxMonths = toMonths(maxNum);
         }
         if (selectedTagNames.length > 0) params.tags = selectedTagNames.join(",");
+        if (selectedThemeNames.length > 0) params.devThemes = selectedThemeNames.join(",");
         const r = await api.getWorks(params);
         setWorks(Array.isArray((r as any)?.data) ? (r as any).data : (Array.isArray(r as any) ? (r as any) : []));
       } catch {}
       setLoading(false);
     };
     fetchWorks();
-  }, [searchTerm, typeFilter, tagFilters, minAge, maxAge, ageUnit, profileKey]);
+  }, [searchTerm, typeFilter, tagFilters, devThemeFilters, minAge, maxAge, ageUnit, profileKey]);
 
   useEffect(() => {
     const onProfileChange = () => setProfileKey(k => k + 1);
@@ -136,6 +147,14 @@ const CatalogPage = () => {
     );
   };
 
+  const handleThemeChange = (themeId: string) => {
+    setDevThemeFilters((prev) =>
+      prev.includes(themeId)
+        ? prev.filter((id) => id !== themeId)
+        : [...prev, themeId]
+    );
+  };
+
   const getIcon = (type: Work["type"]) => {
     switch (type) {
       case "music":
@@ -193,6 +212,21 @@ const CatalogPage = () => {
                 onCheckedChange={() => handleTagChange(tag.id)}
               />
               <Label htmlFor={`tag-${tag.id}`}>{tag.name}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label>Temas de Desenvolvimento</Label>
+        <div className="space-y-2">
+          {computedThemes.map((theme) => (
+            <div key={theme.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={`theme-${theme.id}`}
+                checked={devThemeFilters.includes(theme.id)}
+                onCheckedChange={() => handleThemeChange(theme.id)}
+              />
+              <Label htmlFor={`theme-${theme.id}`}>{theme.name}</Label>
             </div>
           ))}
         </div>

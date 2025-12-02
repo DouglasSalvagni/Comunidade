@@ -15,6 +15,8 @@ import { Favorite } from '@/modules/catalog/entities/favorite.entity';
 import { PlayEvent } from '@/modules/playback/entities/play-event.entity';
 import { Download } from '@/modules/playback/entities/download.entity';
 import { WorkTag } from '@/modules/catalog/entities/work-tag.entity';
+import { DevTheme } from '@/modules/catalog/entities/dev-theme.entity';
+import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity';
 import { Playlist } from '@/modules/playlists/entities/playlist.entity';
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity';
 import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
@@ -38,6 +40,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     Track,
     Chapter,
     Tag,
+    DevTheme,
     Plan,
     Subscription,
     GatewayMeta,
@@ -47,6 +50,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     PlayEvent,
     Download,
     WorkTag,
+    WorkDevTheme,
     Playlist,
     PlaylistItem,
     TrackPlayUserCount,

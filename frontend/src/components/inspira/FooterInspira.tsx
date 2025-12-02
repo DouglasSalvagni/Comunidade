@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
-import { Music, Instagram, Twitter, Facebook } from "lucide-react";
+import { Instagram, Twitter, Facebook } from "lucide-react";
+import Image from "next/image";
+import logo from "@/assets/logoninaro.webp";
 
 export const FooterInspira: React.FC = () => {
   return (
@@ -9,10 +11,7 @@ export const FooterInspira: React.FC = () => {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-brand-teal rounded-full flex items-center justify-center">
-                <Music className="text-brand-dark w-4 h-4" />
-              </div>
-              <span className="text-xl font-bold">SOUNDI</span>
+              <Image src={logo} alt="Logo Ninaro" className="h-32 w-auto" />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Criando momentos mágicos através do som. Ajudamos crianças a explorar novos mundos sem sair de casa.
@@ -52,7 +51,7 @@ export const FooterInspira: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Soundi Inc. Feito com magia ✨</p>
+          <p>&copy; {new Date().getFullYear()} Ninaro Inc. Feito com magia ✨</p>
         </div>
       </div>
     </footer>

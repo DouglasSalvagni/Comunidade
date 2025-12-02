@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Music, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import logo from "@/assets/logo-horizontal.webp";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const NavbarInspira: React.FC = () => {
@@ -30,10 +32,12 @@ export const NavbarInspira: React.FC = () => {
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-brand-teal to-brand-blue rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(45,212,191,0.5)]">
-            <Music className="text-white w-5 h-5" />
-          </div>
-          <span className="text-2xl font-bold tracking-wide">SOUNDI</span>
+          <Image 
+            src={logo} 
+            alt="Logo" 
+            className={`w-auto transition-all duration-300 ${isScrolled ? "h-10" : "h-20"}`} 
+            priority 
+          />
         </div>
 
         <div className="hidden md:flex items-center gap-8">

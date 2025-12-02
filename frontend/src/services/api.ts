@@ -582,6 +582,19 @@ class ApiService {
     return response.data.data;
   }
 
+  async adminAddLandingSample(id: string): Promise<void> {
+    await this.client.post(`/admin/works/${id}/landing-sample`);
+  }
+
+  async adminRemoveLandingSample(id: string): Promise<void> {
+    await this.client.delete(`/admin/works/${id}/landing-sample`);
+  }
+
+  async adminGetWork(id: string): Promise<Work & { isLandingSample: boolean }> {
+    const response = await this.client.get<ApiResponse<Work & { isLandingSample: boolean }>>(`/admin/works/${id}`);
+    return response.data.data;
+  }
+
   async adminCreateTag(data: { name: string; color: string }): Promise<Tag> {
     const response = await this.client.post<ApiResponse<Tag>>('/admin/tags', data);
     return response.data.data;

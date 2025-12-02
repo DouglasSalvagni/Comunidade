@@ -199,23 +199,22 @@ const DashboardPage = () => {
         ) : topPlayed.length > 0 ? (
           <div className="space-y-3">
             {topPlayed.map((item, idx) => {
-              const cover = item.coverUrl || fallbackAudio.src;
+              const fallbackSrc = typeof fallbackAudio === "string" ? fallbackAudio : (fallbackAudio as any)?.src;
+              const cover = item.coverUrl || fallbackSrc;
               const track = getPrimaryTrack(item);
               return (
                 <Card key={item.id || idx} className="flex items-center gap-4 p-3 border border-border/60 bg-card/80 backdrop-blur">
                   <div className="w-8 text-center text-sm font-semibold text-muted-foreground">{idx + 1}</div>
                   <div
                     className="h-14 w-14 rounded-lg bg-muted/60 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${cover})` }}
+                    style={{ backgroundImage: `url("${cover}")` }}
                   />
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="capitalize">
                         {item.type === "music" ? "Musica" : item.type === "audiobook" ? "Audiobook" : "Serie"}
                       </Badge>
-                      {typeof (item as any).playCount === "number" && (
-                        <Badge variant="outline" className="text-xs">Reproducoes: {(item as any).playCount}</Badge>
-                      )}
+                      
                     </div>
                     <p className="font-semibold truncate">{item.title}</p>
                     <p className="text-sm text-muted-foreground truncate">

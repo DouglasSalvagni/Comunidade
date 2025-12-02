@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar'
+import * as SystemUI from 'expo-system-ui'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StyleSheet, View } from 'react-native'
 import { useState } from 'react'
@@ -60,6 +61,7 @@ import * as NavigationBar from 'expo-navigation-bar'
 import { Platform } from 'react-native'
 
 export default function App() {
+  SystemUI.setBackgroundColorAsync('#0b1023')
   if (Platform.OS === 'android') {
     NavigationBar.setBackgroundColorAsync('#0b1023')
     NavigationBar.setButtonStyleAsync('light')

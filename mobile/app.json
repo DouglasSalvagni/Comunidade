@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Ninaro",
+    "slug": "ninaro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0b1023"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +25,7 @@
       "package": "com.wizer.babytune",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0b1023"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false

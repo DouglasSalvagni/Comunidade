@@ -17,6 +17,8 @@ import { Favorite } from '@/modules/catalog/entities/favorite.entity';
 import { PlayEvent } from '@/modules/playback/entities/play-event.entity';
 import { Download } from '@/modules/playback/entities/download.entity';
 import { WorkTag } from '@/modules/catalog/entities/work-tag.entity';
+import { DevTheme } from '@/modules/catalog/entities/dev-theme.entity';
+import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity';
 import * as crypto from 'crypto';
 import { Track } from '@/modules/catalog/entities/track.entity';
 import { Work } from '@/modules/catalog/entities/work.entity';
@@ -168,12 +170,14 @@ async function processJob(job: Job) {
         Track,
         Chapter,
         Tag,
+        DevTheme,
         Plan,
         Subscription,
         Favorite,
         PlayEvent,
         Download,
         WorkTag,
+        WorkDevTheme,
       ],
       migrations: [],
       subscribers: [],

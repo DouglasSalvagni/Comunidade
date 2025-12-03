@@ -34,7 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://api.ninaro/api/v1",
+      "apiBaseUrl": "https://api.ninaro.com.br/api/v1",
       "googleOAuth": {
         "expoClientId": "138589572018-68n1bddpfb6rb7v26affl73ve50rl9qj.apps.googleusercontent.com",
         "androidClientId": "138589572018-kng4c67j63jbsv2uga5kl7mqj7pm3jmg.apps.googleusercontent.com"

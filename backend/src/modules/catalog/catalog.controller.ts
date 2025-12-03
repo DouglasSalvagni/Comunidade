@@ -39,11 +39,12 @@ export class CatalogController {
   }
 
   @Get('landing-samples')
-  @ApiOperation({ summary: 'Public landing samples (up to 3 works with tag lp-sample)' })
+  @ApiOperation({ summary: 'Public landing samples (up to 3 works from auxiliary table)' })
   @ApiResponse({ status: 200, description: 'Landing samples retrieved successfully.' })
   async getLandingSamples(@Query('limit') limit = 3) {
-    const { data } = await this.catalogService.findAll({ tags: 'lp-sample', limit: Math.min(3, Number(limit) || 3), page: 1 } as any);
-    const items = (data || [])
+    const works = await this.catalogService.getLandingSamplesFromTable(Math.min(3, Number(limit) || 3));
+    
+    const items = (works || [])
       .map((w) => {
         const t = (w.tracks || [])
           .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
@@ -152,7 +153,23 @@ export class AdminCatalogController {
   @ApiResponse({ status: 200, description: 'Work retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'Work not found.' })
   async findOneAdmin(@Param('id') id: string) {
-    return this.catalogService.findOne(id);
+    const work = await this.catalogService.findOne(id);
+    const isLandingSample = await this.catalogService.isLandingSample(id);
+    return { ...work, isLandingSample };
+  }
+
+  @Post(':id/landing-sample')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add work to landing samples (Admin)' })
+  async addLandingSample(@Param('id') id: string) {
+    return this.catalogService.addLandingSample(id);
+  }
+
+  @Delete(':id/landing-sample')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove work from landing samples (Admin)' })
+  async removeLandingSample(@Param('id') id: string) {
+    return this.catalogService.removeLandingSample(id);
   }
 
   @Patch(':id')

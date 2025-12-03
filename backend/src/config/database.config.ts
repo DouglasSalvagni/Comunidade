@@ -17,6 +17,7 @@ import { Download } from '@/modules/playback/entities/download.entity';
 import { WorkTag } from '@/modules/catalog/entities/work-tag.entity';
 import { DevTheme } from '@/modules/catalog/entities/dev-theme.entity';
 import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity';
+import { WorkLandingSample } from '@/modules/catalog/entities/work-landing-sample.entity';
 import { Playlist } from '@/modules/playlists/entities/playlist.entity';
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity';
 import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
@@ -51,6 +52,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     Download,
     WorkTag,
     WorkDevTheme,
+    WorkLandingSample,
     Playlist,
     PlaylistItem,
     TrackPlayUserCount,

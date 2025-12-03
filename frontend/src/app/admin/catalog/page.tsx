@@ -49,6 +49,7 @@ const AdminCatalogPage = () => {
   const [editSelectedDevThemeIds, setEditSelectedDevThemeIds] = useState<string[]>([]);
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [editThumbInputKey, setEditThumbInputKey] = useState(0);
+  const [editIsLandingSample, setEditIsLandingSample] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -294,7 +295,7 @@ const AdminCatalogPage = () => {
                     <Switch checked={work.isActive} onCheckedChange={() => handleToggleStatus(work.id)} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="mr-2" onClick={() => {
+                    <Button variant="outline" size="sm" className="mr-2" onClick={async () => {
                       setEditingWork(work);
                       setEditTitle(work.title || "");
                       setEditDescription(work.description || "");
@@ -302,9 +303,16 @@ const AdminCatalogPage = () => {
                       setEditMinMonths(String(work.recommendedMinMonths ?? ""));
                       setEditMaxMonths(String(work.recommendedMaxMonths ?? ""));
                       setEditAgeLabel(work.recommendedAgeLabel || "");
-                    setEditSelectedTagIds((work.tags || []).map(t => t.id));
-                    setEditSelectedDevThemeIds((work.devThemes || []).map(t => t.id));
-                  }}>
+                      setEditSelectedTagIds((work.tags || []).map(t => t.id));
+                      setEditSelectedDevThemeIds((work.devThemes || []).map(t => t.id));
+                      
+                      try {
+                        const fullWork = await api.adminGetWork(work.id);
+                        setEditIsLandingSample(fullWork.isLandingSample);
+                      } catch {
+                        setEditIsLandingSample(false);
+                      }
+                    }}>
                       Editar
                     </Button>
                     <Button
@@ -391,47 +399,40 @@ const AdminCatalogPage = () => {
                   </div>
                 ))}
               </div>
-              <div className="pt-2">
-                <Button variant={tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'default' : 'outline'} size="sm" onClick={async () => {
-                  try {
-                    if (editingWork) {
-                      const hasHls = (editingWork.tracks || []).some(t => !!(t.hlsMasterKey || t.hlsManifestStorageKey));
-                      if (!hasHls) {
-                        toast.error('Esta obra ainda não está processada em HLS. Processe o áudio antes de ativar na Landing.');
-                        return;
+              <div className="pt-2 flex items-center space-x-2">
+                <Switch
+                  id="landing-sample-toggle"
+                  checked={editIsLandingSample}
+                  onCheckedChange={async (checked) => {
+                    if (!editingWork) return;
+                    try {
+                      if (checked) {
+                         // Check if HLS is ready
+                        const hasHls = (editingWork.tracks || []).some(t => !!(t.hlsMasterKey || t.hlsManifestStorageKey));
+                        if (!hasHls) {
+                          toast.error('Esta obra ainda não está processada em HLS. Processe o áudio antes de ativar na Landing.');
+                          return;
+                        }
+                        // Check limit
+                        const currentSamples = await api.getLandingSamples(100);
+                        if (currentSamples.length >= 3) {
+                           toast.error('Limite de 3 amostras na landing atingido');
+                           return;
+                        }
+                        await api.adminAddLandingSample(editingWork.id);
+                        setEditIsLandingSample(true);
+                        toast.success('Adicionado à Landing Page');
+                      } else {
+                        await api.adminRemoveLandingSample(editingWork.id);
+                        setEditIsLandingSample(false);
+                        toast.success('Removido da Landing Page');
                       }
+                    } catch (e: any) {
+                      toast.error(e?.message || "Erro ao atualizar status de amostra");
                     }
-                    const all = await api.adminGetTags();
-                    let sampleTag = all.find(t => t.name === 'lp-sample');
-                    if (!sampleTag) {
-                      sampleTag = await api.adminCreateTag({ name: 'lp-sample', color: '#22c55e' });
-                      setTags((prev) => {
-                        const exists = prev.some(t => t.id === sampleTag!.id);
-                        return exists ? prev : [...prev, sampleTag!];
-                      });
-                    }
-                    const current = await api.adminGetWorks({ tags: 'lp-sample', limit: 50 });
-                    const alreadyCount = (current?.data || []).filter(w => w.id !== editingWork?.id).length;
-                    const hasTag = editSelectedTagIds.includes(sampleTag.id);
-                    if (!hasTag && alreadyCount >= 3) {
-                      toast.error('Limite de 3 amostras na landing atingido');
-                      return;
-                    }
-                    const nextIds = (prev => {
-                      const exists = prev.includes(sampleTag!.id);
-                      return exists ? prev.filter(id => id !== sampleTag!.id) : [...prev, sampleTag!.id];
-                    })(editSelectedTagIds);
-                    setEditSelectedTagIds(nextIds);
-                    if (editingWork) {
-                      const willActivate = nextIds.includes(sampleTag!.id);
-                      const updated = await api.adminUpdateWork(editingWork.id, { tagIds: nextIds, isActive: willActivate ? true : undefined });
-                      setWorks((prev) => prev.map(w => w.id === updated.id ? { ...w, ...updated } : w));
-                    }
-                  } catch (e: any) {
-                    toast.error(e?.message || 'Falha ao alternar amostra da landing');
-                  }
-                }}>{tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'Remover da Landing' : 'Ativar na Landing'}</Button>
-                <span className="ml-3 text-xs px-2 py-1 rounded bg-green-100 text-green-700 align-middle">{tags.find(t=>t.name==='lp-sample') && editSelectedTagIds.includes((tags.find(t=>t.name==='lp-sample')||{id:''}).id) ? 'Na Landing' : 'Fora da Landing'}</span>
+                  }}
+                />
+                <Label htmlFor="landing-sample-toggle">Música de Amostra (Landing Page)</Label>
               </div>
             </div>
             <div className="space-y-2">

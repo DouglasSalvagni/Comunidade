@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
-import { Music, Instagram, Twitter, Facebook } from "lucide-react";
+import { Instagram, Twitter, Facebook } from "lucide-react";
+import Image from "next/image";
+import logo from "@/assets/logoninaro.webp";
 
 export const FooterInspira: React.FC = () => {
   return (
@@ -9,10 +11,9 @@ export const FooterInspira: React.FC = () => {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-brand-teal rounded-full flex items-center justify-center">
-                <Music className="text-brand-dark w-4 h-4" />
-              </div>
-              <span className="text-xl font-bold">SOUNDI</span>
+              <a href="/">
+                <Image src={logo} alt="Logo Ninaro" className="h-32 w-auto" />
+              </a>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Criando momentos mágicos através do som. Ajudamos crianças a explorar novos mundos sem sair de casa.
@@ -21,19 +22,17 @@ export const FooterInspira: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6">Explorar</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-brand-teal">Histórias</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Músicas</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Personagens</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Blog</a></li>
+              <li><a href="/#features" className="hover:text-brand-teal">Histórias</a></li>
+              <li><a href="/#preview" className="hover:text-brand-teal">Músicas</a></li>
+              <li><a href="/#pricing" className="hover:text-brand-teal">Planos</a></li>
+              <li><a href="/#footer" className="hover:text-brand-teal">Sobre</a></li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold mb-6">Suporte</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-brand-teal">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Para Escolas</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Privacidade</a></li>
-              <li><a href="#" className="hover:text-brand-teal">Termos de Uso</a></li>
+              <li><a href="/privacy" className="hover:text-brand-teal">Política de Privacidade</a></li>
+              <li><a href="/terms" className="hover:text-brand-teal">Termos de Uso</a></li>
             </ul>
           </div>
           <div>
@@ -52,7 +51,7 @@ export const FooterInspira: React.FC = () => {
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Soundi Inc. Feito com magia ✨</p>
+          <p>&copy; {new Date().getFullYear()} Ninaro Inc. Feito com magia ✨</p>
         </div>
       </div>
     </footer>

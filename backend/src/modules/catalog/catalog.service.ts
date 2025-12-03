@@ -5,6 +5,7 @@ import { Work } from './entities/work.entity';
 import { Track } from './entities/track.entity';
 import { Tag } from './entities/tag.entity';
 import { DevTheme } from './entities/dev-theme.entity';
+import { WorkLandingSample } from './entities/work-landing-sample.entity';
 import { Favorite } from './entities/favorite.entity';
 import { Profile } from '@/modules/profiles/entities/profile.entity';
 import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
@@ -25,6 +26,8 @@ export class CatalogService {
     private readonly tagRepository: Repository<Tag>,
     @InjectRepository(DevTheme)
     private readonly devThemeRepository: Repository<DevTheme>,
+    @InjectRepository(WorkLandingSample)
+    private readonly workLandingSampleRepository: Repository<WorkLandingSample>,
     @InjectRepository(Favorite)
     private readonly favoriteRepository: Repository<Favorite>,
     private readonly mediaService: MediaService,
@@ -527,5 +530,32 @@ export class CatalogService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getLandingSamplesFromTable(limit = 3): Promise<Work[]> {
+    const samples = await this.workLandingSampleRepository.find({
+      relations: ['work', 'work.tracks', 'work.tags'],
+      order: { orderIndex: 'ASC', createdAt: 'DESC' },
+      take: limit,
+    });
+    return samples.map(s => s.work ? s.work : null).filter(w => w && w.isActive) as Work[];
+  }
+
+  async addLandingSample(workId: string): Promise<WorkLandingSample> {
+    const exists = await this.workLandingSampleRepository.findOne({ where: { workId } });
+    if (exists) return exists;
+
+    const count = await this.workLandingSampleRepository.count();
+    const sample = this.workLandingSampleRepository.create({ workId, orderIndex: count });
+    return this.workLandingSampleRepository.save(sample);
+  }
+
+  async removeLandingSample(workId: string): Promise<void> {
+    await this.workLandingSampleRepository.delete({ workId });
+  }
+
+  async isLandingSample(workId: string): Promise<boolean> {
+    const count = await this.workLandingSampleRepository.count({ where: { workId } });
+    return count > 0;
   }
 }

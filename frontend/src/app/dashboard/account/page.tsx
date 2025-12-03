@@ -90,7 +90,7 @@ const AccountPage = () => {
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input value={user?.email || ""} readOnly />
+              <Input value={user?.email || ""} disabled className="bg-muted text-muted-foreground" />
             </div>
             <div className="flex gap-2">
               <Button onClick={onSave} disabled={saving || !name}>Salvar</Button>

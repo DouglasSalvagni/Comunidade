@@ -117,8 +117,27 @@ export class SubscriptionsController {
   @ApiResponse({ status: 404, description: 'No active subscription found.' })
   async cancelSubscription(@Request() req) {
     await this.subscriptionsService.cancelSubscription(req.user.userId);
+
+    // Retorna a assinatura atualizada para o cliente (compatível com o formato esperado pelo frontend)
+    let subscription = await this.subscriptionsService.getCurrentSubscription(req.user.userId);
+    if (!subscription) {
+      subscription = await this.subscriptionsService.createFreeSubscription(req.user.userId);
+    }
+
     return {
       message: 'Assinatura cancelada com sucesso',
+      subscription: {
+        id: subscription.id,
+        plan: subscription.plan ? {
+          id: subscription.plan.id,
+          name: subscription.plan.name,
+          priceCents: subscription.plan.priceCents,
+          billingPeriod: subscription.plan.billingPeriod,
+        } : null,
+        status: subscription.status,
+        periodStart: subscription.periodStart,
+        periodEnd: subscription.periodEnd,
+      },
     };
   }
 

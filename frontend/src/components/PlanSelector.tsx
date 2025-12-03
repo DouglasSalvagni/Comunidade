@@ -51,12 +51,21 @@ const PlanSelector = ({ currentPlanId, hasPaidSubscription = false }: PlanSelect
       try {
         // Se for plano grátis, funciona como cancelamento
         if (selectedPlan.priceCents === 0) {
-          await api.cancelSubscription();
-          setIsDialogOpen(false);
-          setSelectedPlan(null);
-          // Recarrega a página para atualizar dados
-          window.location.reload();
-          return;
+          try {
+            await api.cancelSubscription();
+            setIsDialogOpen(false);
+            setSelectedPlan(null);
+            console.log('Assinatura marcada para expiração.');
+            // Aguarda 3s para dar tempo do webhook processar, depois recarrega
+            setTimeout(() => window.location.reload(), 3000);
+            return;
+          } catch (err: any) {
+            console.error('Erro ao cancelar assinatura (plano grátis):', err);
+            console.log(err?.message || 'Erro ao cancelar assinatura');
+            setIsErrorDialogOpen(true);
+            setIsDialogOpen(false);
+            return;
+          }
         }
 
         // Se for plano pago, abre checkout do ASAAS em nova aba

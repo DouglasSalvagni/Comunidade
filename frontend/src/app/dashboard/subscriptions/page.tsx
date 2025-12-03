@@ -20,6 +20,8 @@ const SubscriptionPage = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,13 +46,18 @@ const SubscriptionPage = () => {
 
   const handleCancelSubscription = async () => {
     try {
-      await api.cancelSubscription();
+      console.log('Iniciando cancelamento de assinatura...');
+      setIsCancelling(true);
+      const resp = await api.cancelSubscription();
       setIsCancelDialogOpen(false);
-      // Recarregar assinatura
-      const data = await api.getCurrentSubscription();
-      setSubscription(data);
-    } catch (error) {
-      console.error("Erro ao cancelar assinatura:", error);
+      // Aguarda 3s para dar tempo do webhook processar, depois recarrega
+      setTimeout(() => window.location.reload(), 3000);
+    } catch (error: any) {
+      console.error('Erro ao cancelar assinatura:', error);
+      console.log('Erro ao cancelar assinatura:', error?.message || error);
+      setIsErrorDialogOpen(true);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -76,6 +83,7 @@ const SubscriptionPage = () => {
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       active: "Ativo",
+      expiring: "Cancelado",
       canceled: "Cancelado",
       past_due: "Vencido",
       unpaid: "Não pago",
@@ -107,11 +115,21 @@ const SubscriptionPage = () => {
                 {getStatusLabel(subscription.status)}
               </Badge>
             </div>
-            {subscription.periodEnd && (
-              <div className="flex gap-4 items-center">
-                <p>Próxima cobrança em {formatDate(subscription.periodEnd)}</p>
-                <p className="font-semibold">{formatPrice(subscription.plan.priceCents)}</p>
+            {subscription.status === 'expiring' ? (
+              <div className="text-sm text-muted-foreground">
+                {subscription.periodEnd ? (
+                  <p>Seu plano seguirá ativo até {formatDate(subscription.periodEnd)}. Você não receberá cobranças novamente.</p>
+                ) : (
+                  <p>Plano será cancelado em breve.</p>
+                )}
               </div>
+            ) : (
+              subscription.periodEnd && (
+                <div className="flex gap-4 items-center">
+                  <p>Próxima cobrança em {formatDate(subscription.periodEnd)}</p>
+                  <p className="font-semibold">{formatPrice(subscription.plan.priceCents)}</p>
+                </div>
+              )
             )}
           </CardContent>
           <CardFooter>
@@ -121,7 +139,7 @@ const SubscriptionPage = () => {
                 onClick={() => setIsCancelDialogOpen(true)}
                 className="hover:bg-red-900 hover:text-white hover:border-red-900 transition-colors"
               >
-                Cancelar Assinatura
+                {isCancelling ? 'Cancelando...' : 'Cancelar Assinatura'}
               </Button>
             )}
           </CardFooter>
@@ -156,6 +174,25 @@ const SubscriptionPage = () => {
               className="bg-red-600 hover:bg-red-700 px-8"
             >
               Sim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Erro</DialogTitle>
+            <DialogDescription>
+              Não foi possível cancelar sua assinatura no momento. Tente novamente mais tarde.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setIsErrorDialogOpen(false)}
+              className="bg-blue-600 hover:bg-blue-700 px-8"
+            >
+              Entendi
             </Button>
           </DialogFooter>
         </DialogContent>

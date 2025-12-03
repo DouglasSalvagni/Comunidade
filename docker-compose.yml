@@ -97,7 +97,7 @@ services:
 
   adminer:
     image: adminer:latest
-    container_name: little-tales-adminer
+    container_name: babytune-adminer
     restart: always
     ports:
       - "8084:8080"

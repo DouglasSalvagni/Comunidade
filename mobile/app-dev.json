@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.wizer.ninaro.android",
+      "package": "com.wizer.babytune",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b1023"
@@ -36,11 +36,8 @@
     "extra": {
       "apiBaseUrl": "http://localhost:3003/api/v1",
       "googleOAuth": {
-        "expoClientId": "138589572018-68n1bddpfb6rb7v26affl73ve50rl9qj.apps.googleusercontent.com",
-        "androidClientId": "138589572018-kng4c67j63jbsv2uga5kl7mqj7pm3jmg.apps.googleusercontent.com"
-      },
-      "eas": {
-        "projectId": "ae27d378-c772-4518-8bb5-8fe917771767"
+        "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com",
+        "androidClientId": "1049428265578-l6t0a4l6doeqh6je3vpolkqolp1ki4jk.apps.googleusercontent.com"
       }
     },
     "plugins": [

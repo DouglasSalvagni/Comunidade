@@ -10,3 +10,6 @@
 ### Roda o projeto
 - `$env:JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"`
 - `npx expo run:android`
+
+### Obter/Criar credenciais (SHA-1)
+- `npx eas credentials -p android`

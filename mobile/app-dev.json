@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.wizer.babytune",
+      "package": "com.wizer.ninaro.dev",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b1023"
@@ -34,10 +34,9 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:3003/api/v1",
+      "apiBaseUrl": "https://api.ninaro.com.br/api/v1",
       "googleOAuth": {
-        "expoClientId": "1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com",
-        "androidClientId": "1049428265578-l6t0a4l6doeqh6je3vpolkqolp1ki4jk.apps.googleusercontent.com"
+        "expoClientId": "138589572018-b1fd0tscl9f3g6dhjjqnni6q5p9qmi1m.apps.googleusercontent.com"
       }
     },
     "plugins": [

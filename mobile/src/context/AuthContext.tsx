@@ -65,9 +65,14 @@ export function AuthProvider({ children }: { children: any }) {
   }
 
   async function googleOAuth(idToken: string) {
-    const res = await apiGoogleOAuth(idToken)
-    setAccessToken(res.accessToken || null)
-    setUser(res.user || null)
+    try {
+      const res = await apiGoogleOAuth(idToken)
+      setAccessToken(res.accessToken || null)
+      setUser(res.user || null)
+    } catch (e: any) {
+      try { console.error('[Mobile][Auth] googleOAuth falhou', { message: e?.message }) } catch {}
+      throw e
+    }
   }
 
   async function refreshProfile() {

@@ -7,6 +7,7 @@ import { apiRequestEmailVerification } from '../services/api'
 import * as WebBrowser from 'expo-web-browser'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { AntDesign } from '@expo/vector-icons'
+import appConfig from '../../app.json'
 
 type Props = {
   onRegister: () => void
@@ -109,6 +110,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
       await googleOAuth(idToken)
       onLoggedIn()
     } catch (e: any) {
+      try { console.error('[Mobile][GoogleLogin] erro', { code: e?.code, message: e?.message }) } catch {}
       if (e.code === statusCodes.SIGN_IN_CANCELLED) {
         // usuário cancelou
       } else if (e.code === statusCodes.IN_PROGRESS) {
@@ -124,9 +126,10 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   }
 
   useEffect(() => {
+    const webClientId = (appConfig as any)?.expo?.extra?.googleOAuth?.expoClientId
     GoogleSignin.configure({
-      webClientId: '1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com',
-      offlineAccess: true,
+      webClientId,
+      offlineAccess: false,
     })
   }, [])
 

@@ -57,6 +57,9 @@ export default function ContentCard({ work, onToggleFavorite, onPlay, onAddToPla
           <span className="capitalize">{work.type}</span>
         </div>
         <h3 className="font-semibold text-lg flex-grow">{work.title}</h3>
+        {!!(work as any).artistName && (
+          <div className="text-sm text-muted-foreground mt-1">{(work as any).artistName}</div>
+        )}
         {showTags && (
           <div className="flex flex-wrap gap-2 mt-2">
             {(work.tags || []).map((tag) => (

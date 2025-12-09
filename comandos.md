@@ -21,6 +21,8 @@
 - `eas build -p android --profile preview`
 - `eas build -p android --profile production`
 
+- `eas build --profile development --platform android`
+
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`
 - `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-frontend.tar" ninaro-frontend:v1.0.0`

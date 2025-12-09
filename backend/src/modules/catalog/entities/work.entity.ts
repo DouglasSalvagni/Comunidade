@@ -45,6 +45,9 @@ export class Work {
   @Column({ name: 'duration_seconds', nullable: true })
   durationSeconds: number;
 
+  @Column({ name: 'artist_name', nullable: true })
+  artistName: string;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

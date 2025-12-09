@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, Image, Animated, PanResponder } from
 import { useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
+import appConfig from '../../app.json'
 
 type Props = { onOpen: () => void; bottomOffset?: number }
 
@@ -34,7 +35,7 @@ export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
         )}
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>{currentWork.title || ''}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>{(currentWork as any).artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
         </View>
         <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlay() }}>
           <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color={'#0b1023'} />

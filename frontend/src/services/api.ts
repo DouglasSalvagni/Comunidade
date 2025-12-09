@@ -67,6 +67,7 @@ export interface Work {
   title: string;
   description?: string;
   type: 'music' | 'audiobook' | 'series';
+  artistName?: string;
   recommendedMinMonths?: number;
   recommendedMaxMonths?: number;
   recommendedAgeLabel?: string;

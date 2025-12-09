@@ -53,6 +53,15 @@ export class CreateWorkDto {
   recommendedAgeLabel?: string;
 
   @ApiProperty({
+    description: 'Artist name',
+    required: false,
+    example: 'Toquinho',
+  })
+  @IsOptional()
+  @IsString()
+  artistName?: string;
+
+  @ApiProperty({
     description: 'Tag IDs to associate with the work',
     required: false,
     type: [String],

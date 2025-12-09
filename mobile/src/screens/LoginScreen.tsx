@@ -5,8 +5,9 @@ import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import { apiRequestEmailVerification } from '../services/api'
 import * as WebBrowser from 'expo-web-browser'
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
+import { GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse } from '@react-native-google-signin/google-signin'
 import { AntDesign } from '@expo/vector-icons'
+import appConfig from '../../app.json'
 
 type Props = {
   onRegister: () => void
@@ -28,6 +29,15 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   const [gLoading, setGLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
+  const [logs, setLogs] = useState<string[]>([])
+  const appendLog = (msg: string, data?: any) => {
+    const ts = new Date().toISOString()
+    let line = `[${ts}] ${msg}`
+    if (data !== undefined) {
+      try { line += ` ${JSON.stringify(data)}` } catch {}
+    }
+    setLogs(prev => [...prev, line])
+  }
 
   const friendlyError = (msg: string) => {
     const normalized = (msg || '').toString()
@@ -101,22 +111,52 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
     try {
       setGLoading(true)
       setError(null)
+      appendLog('Iniciando Google Sign-In')
       await GoogleSignin.signOut()
+      appendLog('GoogleSignin.signOut concluído')
       await GoogleSignin.hasPlayServices()
-      const userInfo = await GoogleSignin.signIn()
-      const idToken = userInfo.data?.idToken
-      if (!idToken) throw new Error('Não foi possível concluir o login com Google. Tente novamente.')
-      await googleOAuth(idToken)
-      onLoggedIn()
-    } catch (e: any) {
-      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
-        // usuário cancelou
-      } else if (e.code === statusCodes.IN_PROGRESS) {
-        // operação já em andamento
-      } else if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        setError('Google Play Services não disponível')
+      appendLog('Play Services disponível')
+      const response = await GoogleSignin.signIn()
+      appendLog('GoogleSignin.signIn retornou', { type: (response as any)?.type })
+      if (isSuccessResponse(response)) {
+        const { idToken, serverAuthCode, user } = response.data || {}
+        appendLog('Resposta de sucesso', { hasIdToken: !!idToken, serverAuthCodePresent: !!serverAuthCode })
+        appendLog('Dados do usuário', { name: user?.name, email: user?.email, id: user?.id })
+        if (!idToken) throw new Error('Resposta de sucesso sem idToken')
+        appendLog('idToken obtido (truncado)', idToken?.slice(0, 24) + '...')
+        appendLog('Chamando backend via contexto googleOAuth')
+        try {
+          await googleOAuth(idToken)
+          appendLog('Backend respondeu OK e contexto atualizado', { loggedIn: true })
+          onLoggedIn()
+        } catch (be: any) {
+          appendLog('Backend retornou erro', { message: be?.message })
+          setError(`Falha na validação no servidor: ${String(be?.message || 'erro desconhecido')}`)
+        }
       } else {
-        setError('Não foi possível entrar com Google. Tente novamente.')
+        appendLog('Sign-In cancelado pelo usuário ou sem credenciais salvas')
+        setError('Login Google cancelado ou sem credenciais')
+      }
+    } catch (e: any) {
+      try { console.error('[Mobile][GoogleLogin] erro', { code: e?.code, message: e?.message }) } catch {}
+      if (isErrorWithCode(e)) {
+        appendLog('Erro do Google Sign-In', { code: e.code, message: e.message, userInfo: (e as any)?.userInfo })
+        switch (e.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            setError('Login Google cancelado pelo usuário')
+            break
+          case statusCodes.IN_PROGRESS:
+            setError('Operação de login já em andamento')
+            break
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            setError('Google Play Services não disponível ou desatualizado')
+            break
+          default:
+            setError(`Falha no Google Sign-In (${e.code})`)
+        }
+      } else {
+        appendLog('Erro inesperado (fora do módulo)', { message: e?.message })
+        setError('Erro inesperado ao entrar com Google')
       }
     } finally {
       setGLoading(false)
@@ -124,10 +164,13 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   }
 
   useEffect(() => {
+    const webClientId = (appConfig as any)?.expo?.extra?.googleOAuth?.expoClientId
+    appendLog('Configurando GoogleSignin', { webClientIdPresent: !!webClientId })
     GoogleSignin.configure({
-      webClientId: '1049428265578-ns10palgcam2ed039dginpat3osecn7i.apps.googleusercontent.com',
-      offlineAccess: true,
+      webClientId,
+      offlineAccess: false,
     })
+    appendLog('GoogleSignin.configure concluído')
   }, [])
 
   useEffect(() => {

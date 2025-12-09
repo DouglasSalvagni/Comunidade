@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
 import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork, apiGetTopPlayed } from '../services/api'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import appConfig from '../../app.json'
 
 type Props = {
   onLogout: () => void
@@ -413,7 +414,7 @@ export default function HomeScreen({ onLogout }: Props) {
                 )}
               </View>
               <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
-              <Text style={styles.playerSubtitle} numberOfLines={2}>{currentWork.title || ''}</Text>
+              <Text style={styles.playerSubtitle} numberOfLines={2}>{(currentWork as any).artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
 
               <View
                 style={styles.progressBar}

@@ -48,6 +48,15 @@ export class UpdateWorkDto {
   recommendedAgeLabel?: string;
 
   @ApiProperty({
+    description: 'Artist name',
+    required: false,
+    example: 'Toquinho',
+  })
+  @IsOptional()
+  @IsString()
+  artistName?: string;
+
+  @ApiProperty({
     description: 'Cover image URL',
     required: false,
     example: 'https://example.com/cover.jpg',

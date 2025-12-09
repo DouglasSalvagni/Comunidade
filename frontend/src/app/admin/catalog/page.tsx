@@ -28,6 +28,7 @@ const AdminCatalogPage = () => {
   const [minMonths, setMinMonths] = useState<string>("");
   const [maxMonths, setMaxMonths] = useState<string>("");
   const [ageLabel, setAgeLabel] = useState<string>("");
+  const [artistName, setArtistName] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [devThemes, setDevThemes] = useState<DevTheme[]>([]);
@@ -45,6 +46,7 @@ const AdminCatalogPage = () => {
   const [editMinMonths, setEditMinMonths] = useState<string>("");
   const [editMaxMonths, setEditMaxMonths] = useState<string>("");
   const [editAgeLabel, setEditAgeLabel] = useState<string>("");
+  const [editArtistName, setEditArtistName] = useState<string>("");
   const [editSelectedTagIds, setEditSelectedTagIds] = useState<string[]>([]);
   const [editSelectedDevThemeIds, setEditSelectedDevThemeIds] = useState<string[]>([]);
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
@@ -158,6 +160,7 @@ const AdminCatalogPage = () => {
                 recommendedMinMonths: Number(minMonths || 0),
                 recommendedMaxMonths: Number(maxMonths || 0),
                 recommendedAgeLabel: ageLabel || undefined,
+                artistName: artistName || undefined,
                 tagIds: selectedTagIds,
                 devThemeIds: selectedDevThemeIds,
                 coverUrl,
@@ -169,7 +172,7 @@ const AdminCatalogPage = () => {
               await api.processMedia({ storageKey, type: "audio", workId: workData.id });
               const refreshed = await api.adminGetWorks();
               setWorks(Array.isArray((refreshed as any)?.data) ? (refreshed as any).data : (Array.isArray(refreshed as any) ? (refreshed as any) : []));
-              setTitle(""); setDescription(""); setType(""); setMinMonths(""); setMaxMonths(""); setAgeLabel(""); setSelectedTagIds([]); setAudioFile(null); setThumbnailFile(null);
+              setTitle(""); setDescription(""); setType(""); setMinMonths(""); setMaxMonths(""); setAgeLabel(""); setArtistName(""); setSelectedTagIds([]); setAudioFile(null); setThumbnailFile(null);
               setAudioInputKey((k) => k + 1);
               setThumbInputKey((k) => k + 1);
               setUploading(false);
@@ -187,6 +190,10 @@ const AdminCatalogPage = () => {
             <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
               <Textarea id="description" placeholder="Digite a descrição" value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="artistName">Artista (opcional)</Label>
+              <Input id="artistName" placeholder="Digite o nome do artista" value={artistName} onChange={(e) => setArtistName(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -303,6 +310,7 @@ const AdminCatalogPage = () => {
                       setEditMinMonths(String(work.recommendedMinMonths ?? ""));
                       setEditMaxMonths(String(work.recommendedMaxMonths ?? ""));
                       setEditAgeLabel(work.recommendedAgeLabel || "");
+                      setEditArtistName((work as any).artistName || "");
                       setEditSelectedTagIds((work.tags || []).map(t => t.id));
                       setEditSelectedDevThemeIds((work.devThemes || []).map(t => t.id));
                       
@@ -355,6 +363,10 @@ const AdminCatalogPage = () => {
             <div className="space-y-2">
               <Label htmlFor="editDescription">Descrição</Label>
               <Textarea id="editDescription" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editArtistName">Artista (opcional)</Label>
+              <Input id="editArtistName" value={editArtistName} onChange={(e) => setEditArtistName(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -478,6 +490,7 @@ const AdminCatalogPage = () => {
                   recommendedMinMonths: editMinMonths ? Number(editMinMonths) : undefined,
                   recommendedMaxMonths: editMaxMonths ? Number(editMaxMonths) : undefined,
                   recommendedAgeLabel: editAgeLabel || undefined,
+                  artistName: editArtistName || undefined,
                   tagIds: editSelectedTagIds,
                   devThemeIds: editSelectedDevThemeIds,
                 };

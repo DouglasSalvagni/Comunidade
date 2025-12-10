@@ -451,9 +451,20 @@ export function PlayerProvider({ children }: { children: any }) {
     if (!soundRef.current || isLoadingTrack.current) return
     try {
       const clamped = Math.max(0, Math.min(duration || seconds, seconds))
-      const status = await soundRef.current.playFromPositionAsync(clamped * 1000)
+
+      // Check current playback state before seeking
+      const statusBefore = await soundRef.current.getStatusAsync()
+      const wasPlaying = statusBefore.isLoaded && statusBefore.isPlaying
+
+      // Set position without auto-playing
+      await soundRef.current.setPositionAsync(clamped * 1000)
       setPosition(clamped)
       lastTick.current = Date.now()
+
+      // Only resume playback if it was playing before
+      if (wasPlaying) {
+        await soundRef.current.playAsync()
+      }
     } catch (error) {
       console.error('Error seeking:', error)
     }

@@ -6,7 +6,7 @@ import MiniPlayer from '../components/MiniPlayer'
 import DashboardCard from '../components/DashboardCard'
 import DashboardCardSkeleton from '../components/DashboardCardSkeleton'
 import CuriosityAnimation from '../components/CuriosityAnimation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
 import CatalogScreen from './CatalogScreen'
@@ -50,6 +50,18 @@ export default function HomeScreen({ onLogout }: Props) {
   const [playerVisible, setPlayerVisible] = useState(false)
   const [progressBarWidth, setProgressBarWidth] = useState(1)
 
+  // Use refs for ALL dragging state to ensure synchronous access and avoid flicker
+  const isDraggingRef = useRef(false)
+  const dragProgressRef = useRef<number | null>(null)
+  // pendingSeek holds the target progress after releasing, until player position catches up
+  const pendingSeekRef = useRef<number | null>(null)
+  // Track initial touch position to detect actual dragging vs tapping
+  const touchStartXRef = useRef<number | null>(null)
+  const hasDraggedRef = useRef(false)
+  // Counter to force re-render when drag progress changes
+  const [, setRenderTrigger] = useState(0)
+  const forceRender = () => setRenderTrigger(n => n + 1)
+
   // Dashboard Data
   const [favorites, setFavorites] = useState<any[]>([])
   const [suggested, setSuggested] = useState<any[]>([])
@@ -63,6 +75,18 @@ export default function HomeScreen({ onLogout }: Props) {
   useEffect(() => {
     if (!currentTrack) setPlayerVisible(false)
   }, [currentTrack])
+
+  // Clear pending seek when player position catches up
+  useEffect(() => {
+    if (pendingSeekRef.current !== null && duration > 0) {
+      const targetPos = pendingSeekRef.current * duration
+      const tolerance = Math.max(1, duration * 0.02) // 2% tolerance or 1 second minimum
+      if (Math.abs(position - targetPos) < tolerance) {
+        pendingSeekRef.current = null
+        forceRender()
+      }
+    }
+  }, [position, duration])
 
   useEffect(() => {
     let mounted = true
@@ -126,14 +150,106 @@ export default function HomeScreen({ onLogout }: Props) {
       })
   }, [currentWork])
 
-  const progress = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0
+  // Calculate progress: Priority: dragging > pending seek > player position
+  const getProgress = () => {
+    if (isDraggingRef.current && dragProgressRef.current !== null) {
+      return dragProgressRef.current
+    }
+    if (pendingSeekRef.current !== null) {
+      return pendingSeekRef.current
+    }
+    return duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0
+  }
+  const progress = getProgress()
 
-  const handleSeek = (event: any) => {
+  // Store progressBarWidth and offset in refs for synchronous access in handlers
+  const progressBarWidthRef = useRef(progressBarWidth)
+  const progressBarOffsetXRef = useRef(0)
+  progressBarWidthRef.current = progressBarWidth
+
+  const calculateProgressFromEvent = (event: any) => {
+    // Use pageX for more accurate positioning
+    const pageX = event?.nativeEvent?.pageX ?? 0
+    const offsetX = progressBarOffsetXRef.current
+    const width = progressBarWidthRef.current
+
+    if (width <= 0) return 0
+
+    // Calculate relative position within the bar
+    const relativeX = pageX - offsetX
+    const progress = relativeX / width
+
+    return Math.min(1, Math.max(0, progress))
+  }
+
+  // Minimum distance required to start dragging (prevents tap from being treated as drag)
+  const DRAG_THRESHOLD = 5
+
+  const handleSeekStart = (event: any) => {
     if (!duration || duration <= 0) return
-    const x = event?.nativeEvent?.locationX || 0
-    const ratio = progressBarWidth ? Math.min(1, Math.max(0, x / progressBarWidth)) : 0
-    const newPos = ratio * duration
-    seekTo(newPos)
+    touchStartXRef.current = event?.nativeEvent?.pageX ?? 0
+    hasDraggedRef.current = false
+    // Don't start dragging yet - wait for movement
+  }
+
+  const handleSeekMove = (event: any) => {
+    if (!duration || duration <= 0) return
+
+    const currentX = event?.nativeEvent?.pageX ?? 0
+    const startX = touchStartXRef.current
+
+    // Check if we've moved enough to start dragging
+    if (!hasDraggedRef.current && startX !== null) {
+      const distance = Math.abs(currentX - startX)
+      if (distance >= DRAG_THRESHOLD) {
+        // Start dragging
+        hasDraggedRef.current = true
+        isDraggingRef.current = true
+        // Clear any pending seek when starting new drag
+        pendingSeekRef.current = null
+      }
+    }
+
+    if (isDraggingRef.current) {
+      dragProgressRef.current = calculateProgressFromEvent(event)
+      forceRender()
+    }
+  }
+
+  const handleSeekEnd = (event: any) => {
+    touchStartXRef.current = null
+
+    // Only seek if we actually dragged
+    if (!isDraggingRef.current || !hasDraggedRef.current) {
+      isDraggingRef.current = false
+      hasDraggedRef.current = false
+      return
+    }
+
+    const finalProgress = calculateProgressFromEvent(event)
+    const newPos = finalProgress * duration
+
+    // Set pending seek to maintain visual position until player catches up
+    pendingSeekRef.current = finalProgress
+    isDraggingRef.current = false
+    dragProgressRef.current = null
+    hasDraggedRef.current = false
+
+    // Seek to new position
+    if (duration && duration > 0) {
+      seekTo(newPos)
+    }
+    forceRender()
+  }
+
+  // Cancel drag if touch is terminated unexpectedly
+  const handleSeekTerminate = () => {
+    isDraggingRef.current = false
+    dragProgressRef.current = null
+    hasDraggedRef.current = false
+    touchStartXRef.current = null
+    // Don't clear pendingSeek - keep showing last known good position
+    forceRender()
   }
 
   const handlePlayWork = async (work: any) => {
@@ -172,10 +288,10 @@ export default function HomeScreen({ onLogout }: Props) {
         <View style={{ flex: 1 }}>
           <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
             {tab === 'home' ? (
-              <Image 
-                source={require('../../assets/logo.png')} 
-                style={styles.headerLogo} 
-                resizeMode="contain" 
+              <Image
+                source={require('../../assets/logo.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
               />
             ) : (
               <Text style={styles.title}>{(() => {
@@ -427,14 +543,31 @@ export default function HomeScreen({ onLogout }: Props) {
               <Text style={styles.playerSubtitle} numberOfLines={2}>{(currentWork as any).artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
 
               <View
-                style={styles.progressBar}
-                onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width)}
+                style={styles.progressBarContainer}
+                onLayout={(e) => {
+                  setProgressBarWidth(e.nativeEvent.layout.width)
+                  // Capture absolute X position for accurate touch calculations
+                  e.currentTarget.measureInWindow((x) => {
+                    progressBarOffsetXRef.current = x
+                  })
+                }}
                 onStartShouldSetResponder={() => true}
-                onResponderGrant={handleSeek}
-                onResponderMove={handleSeek}
-                onResponderRelease={handleSeek}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={handleSeekStart}
+                onResponderMove={handleSeekMove}
+                onResponderRelease={handleSeekEnd}
+                onResponderTerminate={handleSeekTerminate}
+                onResponderTerminationRequest={() => false}
               >
-                <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                </View>
+                <View
+                  style={[
+                    styles.progressThumb,
+                    { left: `${progress * 100}%` }
+                  ]}
+                />
               </View>
               <View style={styles.progressTimes}>
                 <Text style={styles.progressText}>{formatTime(position)}</Text>
@@ -519,8 +652,10 @@ const styles = StyleSheet.create({
   playerCoverPlaceholder: { backgroundColor: '#1f2742' },
   playerTitle: { color: '#e6e9ff', fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   playerSubtitle: { color: '#cfd3ff', fontSize: 18, textAlign: 'center', marginBottom: 40 },
+  progressBarContainer: { width: '100%', height: 24, justifyContent: 'center', position: 'relative' },
   progressBar: { height: 6, borderRadius: 6, backgroundColor: '#1f2742', overflow: 'hidden', width: '100%' },
   progressFill: { height: '100%', backgroundColor: '#A78BFA' },
+  progressThumb: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#A78BFA', borderWidth: 2, borderColor: '#ffffff', top: 0, transform: [{ translateX: -12 }], shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 },
   progressTimes: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, width: '100%' },
   progressText: { color: '#94a3b8', fontSize: 14 },
   playerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 20, marginBottom: 40 },

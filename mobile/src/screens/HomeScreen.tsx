@@ -5,6 +5,7 @@ import BottomNav from '../components/BottomNav'
 import MiniPlayer from '../components/MiniPlayer'
 import DashboardCard from '../components/DashboardCard'
 import DashboardCardSkeleton from '../components/DashboardCardSkeleton'
+import CuriosityAnimation from '../components/CuriosityAnimation'
 import { useEffect, useMemo, useState } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
@@ -170,16 +171,24 @@ export default function HomeScreen({ onLogout }: Props) {
       ) : (
         <View style={{ flex: 1 }}>
           <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-            <Text style={styles.title}>{(() => {
-              switch (tab) {
-                case 'home': return 'Início'
-                case 'settings': return 'Mais'
-                default: return 'Mais'
-              }
-            })()}</Text>
+            {tab === 'home' ? (
+              <Image 
+                source={require('../../assets/logo.png')} 
+                style={styles.headerLogo} 
+                resizeMode="contain" 
+              />
+            ) : (
+              <Text style={styles.title}>{(() => {
+                switch (tab) {
+                  case 'home': return 'Início'
+                  case 'settings': return 'Mais'
+                  default: return 'Mais'
+                }
+              })()}</Text>
+            )}
             <Text style={styles.subtitle}>
               {tab === 'home'
-                ? `Bem-vindo, ${profileName || user?.name || 'Visitante'}`
+                ? `Bem-vindo, ${profileName || user?.name || 'Visitante'}!`
                 : (user?.name || user?.email)
               }
             </Text>
@@ -188,6 +197,7 @@ export default function HomeScreen({ onLogout }: Props) {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {tab === 'home' && (
               <View style={styles.dashboard}>
+                <CuriosityAnimation />
                 {loadingDashboard ? (
                   <>
                     {/* Favoritos Skeleton */}
@@ -307,7 +317,7 @@ export default function HomeScreen({ onLogout }: Props) {
                         </View>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
                           {recentMusic.map((item) => (
-                            <DashboardCard key={item.id} work={item} variant="landscape" onPress={() => handlePlayWork(item)} />
+                            <DashboardCard key={item.id} work={item} variant="square" onPress={() => handlePlayWork(item)} />
                           ))}
                         </ScrollView>
                       </View>
@@ -530,4 +540,5 @@ const styles = StyleSheet.create({
   topTitle: { color: '#e6e9ff', fontSize: 14, fontWeight: '700' },
   topMeta: { color: '#8b92b8', fontSize: 12, marginTop: 2 },
   topSkeleton: { height: 68, borderRadius: 14, marginBottom: 10 },
+  headerLogo: { width: 200, height: 46, marginBottom: 8, alignSelf: 'center' },
 })

@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, ActivityIndicator } from 'react-native'
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
 import { PlayerProvider } from './src/context/PlayerContext'
@@ -14,9 +14,17 @@ import VerificationNoticeScreen from './src/screens/VerificationNoticeScreen'
 import ProfileSelectionScreen from './src/screens/ProfileSelectionScreen'
 
 function Screens() {
-  const { user, accessToken, logout, activeProfileId } = useAuth()
+  const { user, accessToken, logout, activeProfileId, isLoading } = useAuth()
   const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'profile_selection' | 'home'>('login')
   const [pendingEmail, setPendingEmail] = useState<string>('')
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#A78BFA" />
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>

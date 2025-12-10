@@ -3,7 +3,6 @@
 ## Mobile
 
 ### Limpar Cache
-
 - `npx expo prebuild --clean --platform android --no-install`
 - `cd android; .\gradlew.bat clean`
 

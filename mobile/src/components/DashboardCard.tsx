@@ -5,6 +5,7 @@ type Work = {
     title: string
     type: 'music' | 'audiobook' | 'series'
     coverUrl?: string
+    coverThumbUrl?: string
     recommendedMinMonths?: number
     recommendedMaxMonths?: number
     recommendedAgeLabel?: string
@@ -35,8 +36,8 @@ export default function DashboardCard({ work, onPress, variant = 'square' }: Pro
 
     return (
         <Pressable style={[styles.card, getCardStyle()]} onPress={onPress}>
-            {work.coverUrl ? (
-                <Image source={{ uri: work.coverUrl }} style={[styles.cover, getCoverStyle()]} />
+            {(work.coverThumbUrl || work.coverUrl) ? (
+                <Image source={{ uri: work.coverThumbUrl || work.coverUrl! }} style={[styles.cover, getCoverStyle()]} />
             ) : (
                 <View style={[styles.cover, getCoverStyle(), styles.coverPlaceholder]} />
             )}

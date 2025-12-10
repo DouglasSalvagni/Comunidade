@@ -13,6 +13,7 @@ type Work = {
   title: string
   type: 'music' | 'audiobook' | 'series'
   coverUrl?: string
+  coverThumbUrl?: string
   recommendedMinMonths?: number
   recommendedMaxMonths?: number
   recommendedAgeLabel?: string
@@ -271,8 +272,8 @@ export default function CatalogScreen() {
                     } catch { }
                   }
                 }}>
-                  {w.coverUrl ? (
-                    <Image source={{ uri: w.coverUrl }} style={styles.cover} />
+                  {(w.coverThumbUrl || w.coverUrl) ? (
+                    <Image source={{ uri: w.coverThumbUrl || w.coverUrl! }} style={styles.cover} />
                   ) : (
                     <View style={[styles.cover, styles.coverPlaceholder]} />
                   )}

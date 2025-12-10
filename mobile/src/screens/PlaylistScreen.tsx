@@ -135,8 +135,8 @@ export default function PlaylistScreen() {
                     onLongPress={drag}
                     disabled={isActive}
                 >
-                    {work?.coverUrl ? (
-                        <Image source={{ uri: work.coverUrl }} style={styles.thumbnail} />
+                    {(work?.coverThumbUrl || work?.coverUrl) ? (
+                        <Image source={{ uri: work?.coverThumbUrl || work?.coverUrl! }} style={styles.thumbnail} />
                     ) : (
                         <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
                             <Ionicons name="musical-notes" size={20} color="#3b4466" />

@@ -94,8 +94,8 @@ export default function FavoritesScreen() {
 
     const renderWork = ({ item }: { item: any }) => (
         <Pressable style={styles.card} onPress={() => handlePlay(item)}>
-            {item.coverUrl ? (
-                <Image source={{ uri: item.coverUrl }} style={styles.cover} />
+            {(item.coverThumbUrl || item.coverUrl) ? (
+                <Image source={{ uri: item.coverThumbUrl || item.coverUrl }} style={styles.cover} />
             ) : (
                 <View style={[styles.cover, styles.coverPlaceholder]}>
                     <Ionicons name="musical-notes" size={32} color="#3b4466" />

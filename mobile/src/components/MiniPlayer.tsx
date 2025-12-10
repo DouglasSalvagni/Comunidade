@@ -28,8 +28,8 @@ export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
   return (
     <Animated.View style={[styles.wrap, { bottom: (bottomOffset || 70) + 8 }, { transform: [{ translateX }], opacity }]} {...pan.panHandlers}>
       <Pressable style={styles.container} onPress={onOpen}>
-        {currentWork.coverUrl ? (
-          <Image source={{ uri: currentWork.coverUrl }} style={styles.cover} />
+        {(currentWork.coverThumbUrl || currentWork.coverUrl) ? (
+          <Image source={{ uri: (currentWork as any).coverThumbUrl || currentWork.coverUrl }} style={styles.cover} />
         ) : (
           <View style={[styles.cover, styles.coverPlaceholder]} />
         )}

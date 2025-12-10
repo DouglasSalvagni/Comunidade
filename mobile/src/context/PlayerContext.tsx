@@ -14,7 +14,7 @@ import {
 import { Platform } from 'react-native'
 
 type PlayerTrack = { id: string; title?: string; workId: string; work?: any }
-type PlayerWork = { id: string; title?: string; coverUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
+type PlayerWork = { id: string; title?: string; coverUrl?: string; coverThumbUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
 
 type PlayerContextValue = {
   currentTrack: PlayerTrack | null

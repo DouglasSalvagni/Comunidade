@@ -134,6 +134,7 @@ const AdminCatalogPage = () => {
                 withCredentials: false,
               });
               let coverUrl: string | undefined = undefined;
+              let coverThumbUrl: string | undefined = undefined;
               if (thumbnailFile) {
                 const { uploadUrl: thumbUrl, storageKey: thumbKey } = await api.getUploadUrl({
                   fileName: thumbnailFile.name,
@@ -152,6 +153,7 @@ const AdminCatalogPage = () => {
                 });
                 const processed = await api.processMedia({ storageKey: thumbKey, type: "image" });
                 coverUrl = processed.processedUrl;
+                coverThumbUrl = (processed as any)?.metadata?.thumbUrl;
               }
               const workData = await api.adminCreateWork({
                 title,
@@ -164,6 +166,7 @@ const AdminCatalogPage = () => {
                 tagIds: selectedTagIds,
                 devThemeIds: selectedDevThemeIds,
                 coverUrl,
+                coverThumbUrl,
               });
               await api.adminCreateTrack(workData.id, {
                 title,
@@ -471,6 +474,7 @@ const AdminCatalogPage = () => {
               if (!editingWork) return;
               try {
                 let coverUrl: string | undefined = undefined;
+                let coverThumbUrl: string | undefined = undefined;
                 if (editThumbnailFile) {
                   const { uploadUrl: thumbUrl, storageKey: thumbKey } = await api.getUploadUrl({
                     fileName: editThumbnailFile.name,
@@ -480,6 +484,7 @@ const AdminCatalogPage = () => {
                   await axios.put(thumbUrl, editThumbnailFile, { headers: { "Content-Type": editThumbnailFile.type || "image/jpeg" }, withCredentials: false });
                   const processed = await api.processMedia({ storageKey: thumbKey, type: "image" });
                   coverUrl = processed.processedUrl;
+                  coverThumbUrl = (processed as any)?.metadata?.thumbUrl;
                   setEditThumbInputKey((k) => k + 1);
                   setEditThumbnailFile(null);
                 }
@@ -495,6 +500,7 @@ const AdminCatalogPage = () => {
                   devThemeIds: editSelectedDevThemeIds,
                 };
                 if (coverUrl) payload.coverUrl = coverUrl;
+                if (coverThumbUrl) payload.coverThumbUrl = coverThumbUrl;
                 const updated = await api.adminUpdateWork(editingWork.id, payload);
                 setWorks((prev) => prev.map(w => w.id === updated.id ? { ...w, ...updated } : w));
                 toast.success("Obra atualizada");

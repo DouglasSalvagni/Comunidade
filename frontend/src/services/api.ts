@@ -62,21 +62,22 @@ export interface Plan {
 }
 
 // Interface para obra
-export interface Work {
-  id: string;
-  title: string;
-  description?: string;
-  type: 'music' | 'audiobook' | 'series';
-  artistName?: string;
-  recommendedMinMonths?: number;
-  recommendedMaxMonths?: number;
-  recommendedAgeLabel?: string;
-  coverUrl?: string;
-  duration?: number;
-  isActive: boolean;
-  isFavorite?: boolean;
-  tags?: Tag[];
-  devThemes?: DevTheme[];
+  export interface Work {
+    id: string;
+    title: string;
+    description?: string;
+    type: 'music' | 'audiobook' | 'series';
+    artistName?: string;
+    recommendedMinMonths?: number;
+    recommendedMaxMonths?: number;
+    recommendedAgeLabel?: string;
+    coverUrl?: string;
+    coverThumbUrl?: string;
+    duration?: number;
+    isActive: boolean;
+    isFavorite?: boolean;
+    tags?: Tag[];
+    devThemes?: DevTheme[];
   tracks?: Track[];
   createdAt: string;
   updatedAt: string;

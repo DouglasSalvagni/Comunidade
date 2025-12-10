@@ -331,6 +331,8 @@ export class CatalogService {
       throw new NotFoundException(`Work with ID ${id} not found`);
     }
     const { tagIds, devThemeIds, ...rest } = updateWorkDto as any;
+    const prevCoverUrl = work.coverUrl;
+    const prevCoverThumbUrl = (work as any).coverThumbUrl;
     Object.assign(work, rest);
     if (Array.isArray(tagIds)) {
       const tags = await this.tagRepository.find({ where: { id: In(tagIds) } });
@@ -339,6 +341,20 @@ export class CatalogService {
     if (Array.isArray(devThemeIds)) {
       const themes = await this.devThemeRepository.find({ where: { id: In(devThemeIds) } });
       (work as any).devThemes = themes;
+    }
+    const coverChanged = prevCoverUrl && rest.coverUrl && rest.coverUrl !== prevCoverUrl;
+    const thumbChanged = prevCoverThumbUrl && rest.coverThumbUrl && rest.coverThumbUrl !== prevCoverThumbUrl;
+    const baseForDelete = coverChanged ? prevCoverUrl : (thumbChanged ? prevCoverThumbUrl : null);
+    if (baseForDelete) {
+      const oldKey = this.mediaService.getStorageKeyFromUrl(baseForDelete);
+      if (oldKey) {
+        const dir = oldKey.split('/').slice(0, -1).join('/');
+        const key600 = `${dir}/cover_600.jpg`;
+        const key300 = `${dir}/cover_300.jpg`;
+        try { await this.mediaService.deleteMedia(key600); } catch { }
+        try { await this.mediaService.deleteMedia(key300); } catch { }
+        try { await this.mediaService.deletePrefix(dir); } catch { }
+      }
     }
     return this.workRepository.save(work);
   }

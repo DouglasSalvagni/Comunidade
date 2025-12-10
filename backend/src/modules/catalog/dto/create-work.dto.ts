@@ -95,6 +95,15 @@ export class CreateWorkDto {
   coverUrl?: string;
 
   @ApiProperty({
+    description: 'Cover thumbnail URL',
+    required: false,
+    example: 'https://example.com/cover-thumb.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  coverThumbUrl?: string;
+
+  @ApiProperty({
     description: 'Duration in seconds',
     required: false,
     example: 1800,

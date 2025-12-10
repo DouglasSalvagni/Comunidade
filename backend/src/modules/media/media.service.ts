@@ -7,6 +7,7 @@ import { Queue } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Track } from '@/modules/catalog/entities/track.entity';
+import * as Sharp from 'sharp';
 
 @Injectable()
 export class MediaService {
@@ -70,6 +71,30 @@ export class MediaService {
       }
       return { processedUrl: this.getCdnUrl(storageKey), metadata: { queued: true } };
     }
+
+    if (type === 'image') {
+      const original = await this.s3.getObject({ Bucket: this.bucket, Key: storageKey }).promise();
+      const buf = original.Body as Buffer;
+
+      const cover600 = await (Sharp as any)(buf).resize(600, 600, { fit: 'cover' }).jpeg({ quality: 75 }).toBuffer();
+      const thumb300 = await (Sharp as any)(buf).resize(300, 300, { fit: 'cover' }).jpeg({ quality: 75 }).toBuffer();
+
+      const dir = storageKey.split('/').slice(0, -1).join('/');
+      const key600 = `${dir}/cover_600.jpg`;
+      const key300 = `${dir}/cover_300.jpg`;
+
+      const cache = 'public,max-age=2592000,immutable';
+      await this.s3.upload({ Bucket: this.bucket, Key: key600, Body: cover600, ContentType: 'image/jpeg', CacheControl: cache }).promise();
+      await this.s3.upload({ Bucket: this.bucket, Key: key300, Body: thumb300, ContentType: 'image/jpeg', CacheControl: cache }).promise();
+
+      try { await this.s3.deleteObject({ Bucket: this.bucket, Key: storageKey }).promise(); } catch { }
+
+      return {
+        processedUrl: this.getCdnUrl(key600),
+        metadata: { queued: false, thumbUrl: this.getCdnUrl(key300), deletedOriginal: true },
+      };
+    }
+
     return { processedUrl: this.getCdnUrl(storageKey), metadata: { queued: false } };
   }
 

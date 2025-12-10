@@ -42,6 +42,9 @@ export class Work {
   @Column({ name: 'cover_url', nullable: true })
   coverUrl: string;
 
+  @Column({ name: 'cover_thumb_url', nullable: true })
+  coverThumbUrl: string;
+
   @Column({ name: 'duration_seconds', nullable: true })
   durationSeconds: number;
 

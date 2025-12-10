@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator, BackHandler } from 'react-native'
+import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import BottomNav from '../components/BottomNav'
@@ -61,6 +62,40 @@ export default function HomeScreen({ onLogout }: Props) {
   // Counter to force re-render when drag progress changes
   const [, setRenderTrigger] = useState(0)
   const forceRender = () => setRenderTrigger(n => n + 1)
+
+  // Handle hardware back button (Android)
+  useEffect(() => {
+    const backAction = () => {
+      // 1. If player is open, close it
+      if (playerVisible) {
+        setPlayerVisible(false)
+        return true // Prevent default behavior
+      }
+      
+      // 2. If inside settings sub-menus, go back to settings menu
+      if (tab === 'settings' && settingsView !== 'menu') {
+        setSettingsView('menu')
+        return true
+      }
+
+      // 3. If in any tab other than Home, go to Home
+      if (tab !== 'home') {
+        setTab('home')
+        return true
+      }
+
+      // 4. If in Home tab, exit app (minimize)
+      BackHandler.exitApp()
+      return true
+    }
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    )
+
+    return () => backHandler.remove()
+  }, [playerVisible, tab, settingsView])
 
   // Dashboard Data
   const [favorites, setFavorites] = useState<any[]>([])
@@ -523,13 +558,17 @@ export default function HomeScreen({ onLogout }: Props) {
       />
       {
         playerVisible && currentTrack && currentWork && (
-          <View style={styles.playerOverlay}>
+          <Animated.View 
+            style={styles.playerOverlay}
+            entering={SlideInDown.duration(400)}
+            exiting={SlideOutDown.duration(400)}
+          >
             <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
             <View style={styles.playerCard}>
               <View style={styles.playerHeader}>
                 <Text style={styles.playerNow}>Tocando agora</Text>
-                <Pressable onPress={() => setPlayerVisible(false)} hitSlop={10}>
-                  <Ionicons name="close" size={22} color="#cfd3ff" />
+                <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>
+                  <Ionicons name="chevron-down" size={32} color="#cfd3ff" />
                 </Pressable>
               </View>
               <View style={styles.playerCoverWrap}>
@@ -614,7 +653,7 @@ export default function HomeScreen({ onLogout }: Props) {
                 </Pressable>
               </View>
             </View>
-          </View>
+          </Animated.View>
         )
       }
     </View >

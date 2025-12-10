@@ -84,7 +84,7 @@ const CURIOSITIES: Curiosity[] = [
     },
     {
         text: 'Estudos mostram que o uso de audiolivros pode aumentar as habilidades de compreensão auditiva e compreensão de texto em contextos educativos.',
-        source: 'Educational Psychology Review (revisão citada em Learning Through Listening, 2025)',
+        source: 'Educational Psychology Review (2025)',
         link: 'https://ecc-cornerstone.com/2025/05/01/learning-through-listening-exploring-the-legitimacy-of-audiobooks-in-education/'
     },
     {

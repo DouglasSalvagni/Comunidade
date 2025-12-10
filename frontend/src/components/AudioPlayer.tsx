@@ -355,13 +355,13 @@ const AudioPlayer = () => {
   }, []);
 
   return (
-    <div ref={playerRef} className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-lg border-t p-4">
+    <div ref={playerRef} className="fixed bottom-0 left-0 right-0 bg-sidebar/80 backdrop-blur-xl border-t border-sidebar-border p-4 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] text-sidebar-foreground">
       {/* Mobile Layout */}
       <div className="md:hidden">
         <div className="flex items-center gap-4">
-          <Image src={currentTrack?.coverUrl || fallbackAudio} alt={currentTrack ? currentTrack.title : 'Sem faixa'} width={56} height={56} className="w-14 h-14 rounded-md bg-muted object-cover" />
-          <div className="flex-1">
-            <h3 className="font-semibold">{currentTrack ? currentTrack.title : 'Sem faixa'}</h3>
+          <Image src={currentTrack?.coverUrl || fallbackAudio} alt={currentTrack ? currentTrack.title : 'Sem faixa'} width={56} height={56} className="w-14 h-14 rounded-md bg-sidebar-accent object-cover border border-sidebar-border" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate text-sidebar-foreground">{currentTrack ? currentTrack.title : 'Sem faixa'}</h3>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -461,11 +461,11 @@ const AudioPlayer = () => {
 
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center gap-4 w-full">
-        <Image src={currentTrack?.coverUrl || fallbackAudio} alt={currentTrack ? currentTrack.title : 'Sem faixa'} width={64} height={64} className="w-16 h-16 rounded-md bg-muted object-cover" />
+        <Image src={currentTrack?.coverUrl || fallbackAudio} alt={currentTrack ? currentTrack.title : 'Sem faixa'} width={64} height={64} className="w-16 h-16 rounded-md bg-sidebar-accent object-cover border border-sidebar-border" />
         <div className="flex-1">
-          <h3 className="font-semibold">{currentTrack ? currentTrack.title : 'Sem faixa'}</h3>
+          <h3 className="font-semibold text-sidebar-foreground">{currentTrack ? currentTrack.title : 'Sem faixa'}</h3>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs">{formatTime(position)}</span>
+            <span className="text-xs text-sidebar-foreground/70">{formatTime(position)}</span>
             <Slider
               value={[position]}
               max={Number.isFinite(duration) ? Math.max(duration, 1) : Math.max(position, 1)}
@@ -479,25 +479,25 @@ const AudioPlayer = () => {
                 if (el) el.currentTime = val;
               }}
             />
-            <span className="text-xs">{formatTime(duration || 0)}</span>
+            <span className="text-xs text-sidebar-foreground/70">{formatTime(duration || 0)}</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <SkipBack className={`w-6 h-6 ${currentTrack ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} onClick={currentTrack ? prevTrack : undefined} />
-          <div className={`w-10 h-10 ${currentTrack ? 'bg-primary text-primary-foreground cursor-pointer' : 'bg-muted text-muted-foreground cursor-not-allowed'} rounded-full flex items-center justify-center`} onClick={currentTrack ? async () => {
+          <SkipBack className={`w-6 h-6 ${currentTrack ? 'cursor-pointer text-sidebar-foreground hover:text-sidebar-primary' : 'opacity-50 cursor-not-allowed text-sidebar-foreground/50'}`} onClick={currentTrack ? prevTrack : undefined} />
+          <div className={`w-10 h-10 ${currentTrack ? 'bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 cursor-pointer' : 'bg-sidebar-accent text-sidebar-foreground/50 cursor-not-allowed'} rounded-full flex items-center justify-center transition-colors`} onClick={currentTrack ? async () => {
             const el = audioRef.current;
             if (!el) return;
             if (isPlaying) { el.pause(); setIsPlaying(false); } else { await el.play(); setIsPlaying(true); }
           } : undefined}>
             {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
           </div>
-          <SkipForward className={`w-6 h-6 ${currentTrack ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} onClick={currentTrack ? nextTrack : undefined} />
+          <SkipForward className={`w-6 h-6 ${currentTrack ? 'cursor-pointer text-sidebar-foreground hover:text-sidebar-primary' : 'opacity-50 cursor-not-allowed text-sidebar-foreground/50'}`} onClick={currentTrack ? nextTrack : undefined} />
         </div>
         <div className="flex items-center gap-2 w-28">
           {isMuted || volume === 0 ? (
-            <VolumeX className="w-5 h-5 cursor-pointer" onClick={toggleMute} />
+            <VolumeX className="w-5 h-5 cursor-pointer text-sidebar-foreground hover:text-sidebar-primary" onClick={toggleMute} />
           ) : (
-            <Volume2 className="w-5 h-5 cursor-pointer" onClick={toggleMute} />
+            <Volume2 className="w-5 h-5 cursor-pointer text-sidebar-foreground hover:text-sidebar-primary" onClick={toggleMute} />
           )}
           <Slider
             value={[volume]}
@@ -517,7 +517,7 @@ const AudioPlayer = () => {
               variant="outline"
               size="icon"
               aria-label="Playlist"
-              className={`${pulsePlaylistBtn ? 'bg-yellow-50 text-yellow-600 ring-2 ring-yellow-400 shadow-[0_0_16px_2px_rgba(250,204,21,0.6)] scale-110' : ''} transition-all duration-300 transform`}
+              className={`${pulsePlaylistBtn ? 'bg-yellow-50 text-yellow-600 ring-2 ring-yellow-400 shadow-[0_0_16px_2px_rgba(250,204,21,0.6)] scale-110' : 'bg-transparent border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} transition-all duration-300 transform`}
             >
               <List className="w-5 h-5" />
             </Button>

@@ -35,8 +35,9 @@
     },
     "extra": {
       "apiBaseUrl": "https://56a92d009b1d.ngrok-free.app/api/v1",
+      "siteBaseUrl": "http://ninaro.com.br",
       "googleOAuth": {
-        "expoClientId": "138589572018-68n1bddpfb6rb7v26affl73ve50rl9qj.apps.googleusercontent.com"
+        "expoClientId": "138589572018-4htk4o9k84oembmlhq91acib0tnkstcp.apps.googleusercontent.com"
       },
       "eas": {
         "projectId": "480e540c-b41d-4cbf-9896-efb3a5b34755"

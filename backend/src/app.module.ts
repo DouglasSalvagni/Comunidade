@@ -14,6 +14,7 @@ import { MediaModule } from './modules/media/media.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { PlaylistsModule } from './modules/playlists/playlists.module';
+import { LegalModule } from './modules/legal/legal.module';
 
 import databaseConfig from './config/database.config';
 // import redisConfig from './config/redis.config';
@@ -86,6 +87,7 @@ import databaseConfig from './config/database.config';
     SubscriptionsModule,
     AdminModule,
     MediaModule,
+    LegalModule,
   ],
 })
 export class AppModule {}

@@ -25,6 +25,7 @@ export interface User {
   isActive: boolean;
   emailVerified: boolean;
   authProvider?: 'local' | 'google';
+  acceptedLegal?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +35,20 @@ export interface AuthResponse {
   user: User;
   accessToken: string;
   refreshToken: string;
+}
+
+// Interface para documentos legais
+export interface LegalDocument {
+  id: string;
+  type: 'PRIVACY_POLICY' | 'TERMS_OF_USE';
+  content: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ActiveLegal {
+  privacy: LegalDocument | null;
+  terms: LegalDocument | null;
 }
 
 // Interface para perfil infantil
@@ -193,8 +208,7 @@ class ApiService {
           const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
           if (!inAuth && !isAccountPassword) {
             const msg = error?.response?.data?.message || '';
-            const pathIsDashboard = path.startsWith('/dashboard') || path.startsWith('/admin');
-            if (msg.includes('E-mail não verificado') || pathIsDashboard) {
+            if (msg.includes('E-mail não verificado')) {
               window.location.href = '/auth/pending';
             } else {
               window.location.href = '/auth/login';
@@ -237,7 +251,7 @@ class ApiService {
         await fetch('/api/auth/set-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+          body: JSON.stringify({ accessToken: response.data.data.accessToken, acceptedLegal: !!(response.data.data?.user as any)?.acceptedLegal }),
         });
       } catch { }
     }
@@ -252,18 +266,19 @@ class ApiService {
         await fetch('/api/auth/set-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+          body: JSON.stringify({ accessToken: response.data.data.accessToken, acceptedLegal: !!(response.data.data?.user as any)?.acceptedLegal }),
         });
       } catch { }
     }
     return response.data.data;
   }
 
-  async register(name: string, email: string, password: string): Promise<AuthResponse> {
+  async register(name: string, email: string, password: string, acceptedLegal: boolean): Promise<AuthResponse> {
     const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/register', {
       name,
       email,
       password,
+      acceptedLegal,
     });
 
     if (response.data.data?.accessToken) {
@@ -271,11 +286,31 @@ class ApiService {
         await fetch('/api/auth/set-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+          body: JSON.stringify({ accessToken: response.data.data.accessToken, acceptedLegal: !!(response.data.data?.user as any)?.acceptedLegal }),
         });
       } catch { }
     }
 
+    return response.data.data;
+  }
+
+  async getActiveLegal(): Promise<ActiveLegal> {
+    const response = await this.client.get<ApiResponse<ActiveLegal>>('/legal/active');
+    return response.data.data;
+  }
+
+  async adminListLegalDocuments(type?: 'PRIVACY_POLICY' | 'TERMS_OF_USE'): Promise<LegalDocument[]> {
+    const response = await this.client.get<ApiResponse<LegalDocument[]>>('/admin/legal/documents', { params: { type } });
+    return response.data.data;
+  }
+
+  async adminCreateLegalDocument(data: { type: 'PRIVACY_POLICY' | 'TERMS_OF_USE'; content: string; isActive?: boolean }): Promise<LegalDocument> {
+    const response = await this.client.post<ApiResponse<LegalDocument>>('/admin/legal/documents', data);
+    return response.data.data;
+  }
+
+  async adminActivateLegalDocument(id: string): Promise<LegalDocument> {
+    const response = await this.client.patch<ApiResponse<LegalDocument>>(`/admin/legal/documents/${id}/activate`);
     return response.data.data;
   }
 
@@ -299,6 +334,18 @@ class ApiService {
 
   async getProfile(): Promise<User> {
     const response = await this.client.get<ApiResponse<User>>('/auth/profile');
+    return response.data.data;
+  }
+
+  async acceptLegal(): Promise<{ ok: boolean }> {
+    const response = await this.client.post<ApiResponse<{ ok: boolean }>>('/legal/accept', {});
+    try {
+      await fetch('/api/auth/set-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acceptedLegal: true }),
+      });
+    } catch { }
     return response.data.data;
   }
 
@@ -355,7 +402,7 @@ class ApiService {
         await fetch('/api/auth/set-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: response.data.data.accessToken }),
+          body: JSON.stringify({ accessToken: response.data.data.accessToken, acceptedLegal: !!(response.data.data?.user as any)?.acceptedLegal }),
         });
       } catch { }
     }

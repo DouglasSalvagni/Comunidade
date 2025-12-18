@@ -23,6 +23,47 @@ export default function middleware(req: NextRequest) {
     }
   }
 
+  if (isAuthenticated && pathname.startsWith('/dashboard')) {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/api/v1'
+    const url = `${apiBase}/auth/profile`
+    return fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then(async (r) => {
+        try {
+          const data = await r.json()
+          const user = data?.data || null
+          const isAdmin = user?.role === 'admin'
+          const accepted = !!user?.acceptedLegal
+          const hasAcceptedAnyRequired = !!user?.hasAcceptedAnyRequired
+          if (!isAdmin && !accepted) {
+            if (hasAcceptedAnyRequired) {
+              return NextResponse.next()
+            }
+            const redir = req.nextUrl.clone()
+            redir.pathname = '/auth/legal'
+            return NextResponse.redirect(redir)
+          }
+          return NextResponse.next()
+        } catch {
+          const acceptedCookie = req.cookies.get('acceptedLegal')?.value
+          if (acceptedCookie === '1') {
+            return NextResponse.next()
+          }
+          const redir = req.nextUrl.clone()
+          redir.pathname = '/auth/legal'
+          return NextResponse.redirect(redir)
+        }
+      })
+      .catch(() => {
+        const acceptedCookie = req.cookies.get('acceptedLegal')?.value
+        if (acceptedCookie === '1') {
+          return NextResponse.next()
+        }
+        const redir = req.nextUrl.clone()
+        redir.pathname = '/auth/legal'
+        return NextResponse.redirect(redir)
+      })
+  }
+
   return NextResponse.next()
 }
 

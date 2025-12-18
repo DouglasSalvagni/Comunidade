@@ -27,11 +27,18 @@ export default function DashboardLayout({
         if (me?.authProvider === 'local' && me?.emailVerified === false) {
           router.replace('/auth/pending');
           setAuthorized(false);
+        } else if (me?.role !== 'admin' && !(me as any)?.acceptedLegal) {
+          if ((me as any)?.hasAcceptedAnyRequired) {
+            setAuthorized(true);
+          } else {
+            router.replace('/auth/legal');
+            setAuthorized(false);
+          }
         } else {
           setAuthorized(true);
         }
       } catch (e: any) {
-        router.replace("/auth/pending");
+        router.replace("/auth/login");
       }
       setVerifying(false);
     };

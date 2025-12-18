@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, Matches, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -31,4 +31,8 @@ export class RegisterDto {
     message: 'Password must contain at least one letter and one number',
   })
   password: string;
+
+  @ApiProperty({ description: 'Confirmação de aceite dos Termos e Política', example: true })
+  @IsBoolean()
+  acceptedLegal: boolean;
 }

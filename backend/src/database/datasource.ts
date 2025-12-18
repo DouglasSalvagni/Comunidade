@@ -21,6 +21,8 @@ import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity'
 import { WorkLandingSample } from '@/modules/catalog/entities/work-landing-sample.entity'
 import { Playlist } from '@/modules/playlists/entities/playlist.entity'
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity'
+import { LegalDocument } from '@/modules/legal/entities/legal-document.entity'
+import { UserAgreement } from '@/modules/legal/entities/user-agreement.entity'
 import * as path from 'path'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
@@ -59,6 +61,8 @@ const AppDataSource = new DataSource({
     WorkLandingSample,
     Playlist,
     PlaylistItem,
+    LegalDocument,
+    UserAgreement,
   ],
   migrations: [migrationsPath],
 })

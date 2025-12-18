@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/services/api";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect } from "react";
 
 const RegisterPage = () => {
   const router = useRouter();
@@ -18,13 +20,26 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [legalLinks, setLegalLinks] = useState<{ hasPrivacy: boolean; hasTerms: boolean }>({ hasPrivacy: false, hasTerms: false });
+
+  useEffect(() => {
+    api.getActiveLegal().then((active) => {
+      setLegalLinks({ hasPrivacy: !!active.privacy, hasTerms: !!active.terms });
+    }).catch(() => {});
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const auth = await api.register(name, email, password);
+      if (!accepted) {
+        setError("Você precisa aceitar os Termos de Uso e a Política de Privacidade.");
+        setLoading(false);
+        return;
+      }
+      const auth = await api.register(name, email, password, true);
       if (auth?.user?.authProvider === 'local' && auth?.user?.emailVerified === false) {
         await api.clearToken();
         if (typeof window !== 'undefined') window.localStorage.setItem('pendingEmail', email);
@@ -68,7 +83,16 @@ const RegisterPage = () => {
               </div>
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex items-start gap-2">
+              <Checkbox id="accepted" checked={accepted} onCheckedChange={(v) => setAccepted(!!v)} />
+              <Label htmlFor="accepted" className="text-sm leading-tight">
+            Eu li e aceito os {" "}
+            <Link href="/terms" className="underline" target="_blank">Termos de Uso</Link> {" "}
+            e {" "}
+            <Link href="/privacy" className="underline" target="_blank">Política de Privacidade</Link>.
+          </Label>
+        </div>
+            <Button type="submit" className="w-full mt-2" disabled={loading}>
               {loading ? "Criando..." : "Criar Conta"}
             </Button>
           </form>

@@ -28,7 +28,12 @@ const LoginPage = () => {
       try {
         const me = await api.getProfile();
         if (me && me.id) {
-          router.replace('/dashboard');
+          if (me.role === 'admin') {
+            router.replace('/admin');
+          } else {
+            const accepted = !!(me as any)?.acceptedLegal;
+            router.replace(accepted ? '/dashboard' : '/auth/legal');
+          }
           return;
         }
       } catch {}
@@ -42,7 +47,8 @@ const LoginPage = () => {
         if (auth?.user?.role === "admin") {
           router.replace("/admin");
         } else {
-          router.replace("/dashboard");
+          const accepted = !!(auth?.user as any)?.acceptedLegal;
+          router.replace(accepted ? "/dashboard" : "/auth/legal");
         }
       } catch (err: any) {
         // Se falhar, permanece na página de login
@@ -60,7 +66,8 @@ const LoginPage = () => {
       if (auth.user.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/dashboard");
+        const accepted = !!(auth?.user as any)?.acceptedLegal;
+        router.push(accepted ? "/dashboard" : "/auth/legal");
       }
     } catch (err: any) {
       setError(err?.message || "Falha no login");

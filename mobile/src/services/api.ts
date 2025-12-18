@@ -49,10 +49,10 @@ export async function apiLogin(email: string, password: string) {
   })
 }
 
-export async function apiRegister(name: string, email: string, password: string) {
+export async function apiRegister(name: string, email: string, password: string, acceptedLegal: boolean) {
   return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, acceptedLegal }),
   })
 }
 
@@ -95,6 +95,19 @@ export async function apiGoogleOAuth(idToken: string) {
   return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/oauth/google', {
     method: 'POST',
     body: JSON.stringify({ idToken }),
+  })
+}
+
+export async function apiAcceptLegal(accessToken: string) {
+  return request<{ ok: boolean }>('/legal/accept', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}
+
+export async function apiGetActiveLegal() {
+  return request<{ privacy?: { id: string; content: string }; terms?: { id: string; content: string } }>('/legal/active', {
+    method: 'GET',
   })
 }
 

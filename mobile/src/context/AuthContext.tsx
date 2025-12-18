@@ -8,6 +8,8 @@ type AuthUser = {
   name?: string
   role?: string
   authProvider?: 'local' | 'google'
+  acceptedLegal?: boolean
+  hasAcceptedAnyRequired?: boolean
 }
 
 type AuthContextValue = {
@@ -18,7 +20,7 @@ type AuthContextValue = {
   activeProfileId: string | null
   setActiveProfileId: (id: string | null) => void
   login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, acceptedLegal: boolean) => Promise<void>
   verifyEmail: (token: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
   resetPassword: (token: string, newPassword: string) => Promise<void>
@@ -82,8 +84,8 @@ export function AuthProvider({ children }: { children: any }) {
     if (userData) await AsyncStorage.setItem('user', JSON.stringify(userData))
   }
 
-  async function register(name: string, email: string, password: string) {
-    await apiRegister(name, email, password)
+  async function register(name: string, email: string, password: string, acceptedLegal: boolean) {
+    await apiRegister(name, email, password, acceptedLegal)
     // Usuário precisa confirmar o e-mail antes de autenticar de fato,
     // portanto não mantemos tokens/usuário aqui.
     setAccessToken(null)

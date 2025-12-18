@@ -329,13 +329,7 @@ export default function HomeScreen({ onLogout }: Props) {
                 resizeMode="contain"
               />
             ) : (
-              <Text style={styles.title}>{(() => {
-                switch (tab) {
-                  case 'home': return 'Início'
-                  case 'settings': return 'Mais'
-                  default: return 'Mais'
-                }
-              })()}</Text>
+              <Text style={styles.title}>{tab === 'settings' ? 'Mais' : 'Mais'}</Text>
             )}
             <Text style={styles.subtitle}>
               {tab === 'home'

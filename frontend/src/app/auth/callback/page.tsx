@@ -19,7 +19,8 @@ export default function AuthCallbackPage() {
           if (auth?.user?.role === "admin") {
             router.replace("/admin");
           } else {
-            router.replace("/dashboard");
+            const accepted = !!(auth?.user as any)?.acceptedLegal;
+            router.replace(accepted ? "/dashboard" : "/auth/legal");
           }
         }
       } catch {

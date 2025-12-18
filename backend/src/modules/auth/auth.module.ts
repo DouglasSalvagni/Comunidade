@@ -9,10 +9,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '../users/users.module';
 import { MailService } from './mail.service';
+import { LegalModule } from '../legal/legal.module';
 
 @Module({
   imports: [
     UsersModule,
+    LegalModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

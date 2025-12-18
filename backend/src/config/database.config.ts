@@ -20,8 +20,10 @@ import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity';
 import { WorkLandingSample } from '@/modules/catalog/entities/work-landing-sample.entity';
 import { Playlist } from '@/modules/playlists/entities/playlist.entity';
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity';
-import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
 import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
+import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
+import { LegalDocument } from '@/modules/legal/entities/legal-document.entity';
+import { UserAgreement } from '@/modules/legal/entities/user-agreement.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -57,6 +59,8 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     PlaylistItem,
     TrackPlayUserCount,
     TrackPlayGlobalCount,
+    LegalDocument,
+    UserAgreement,
   ],
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',

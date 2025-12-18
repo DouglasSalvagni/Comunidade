@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Apple, Play, Smartphone } from "lucide-react";
+import printImage from "../../assets/print.jpg";
 
 export const AppDownloadInspira: React.FC = () => {
   return (
@@ -68,28 +69,16 @@ export const AppDownloadInspira: React.FC = () => {
               className="relative"
             >
               {/* Abstract Phone Shape */}
-              <div className="relative w-[280px] h-[560px] bg-black border-[8px] border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden ring-1 ring-white/20">
-                {/* Notch/Camera */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20"></div>
+              <div className="relative w-[275px] h-[610px] bg-black border-[8px] border-gray-800 rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20">
+
                 
-                {/* Screen Content Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-b from-brand-purple to-brand-dark flex flex-col items-center justify-center p-6 text-center">
-                  <div className="w-20 h-20 bg-brand-orange rounded-2xl mb-6 flex items-center justify-center shadow-lg">
-                     <Play className="w-10 h-10 text-white fill-white" />
-                  </div>
-                  <div className="h-2 w-24 bg-white/20 rounded-full mb-3"></div>
-                  <div className="h-2 w-32 bg-white/20 rounded-full mb-8"></div>
-                  
-                  {/* Player UI Mockup */}
-                  <div className="w-full bg-white/10 backdrop-blur-md rounded-xl p-4 mt-auto mb-12">
-                     <div className="flex gap-3 items-center">
-                        <div className="w-10 h-10 bg-brand-teal rounded-lg"></div>
-                        <div className="flex-1 space-y-2">
-                           <div className="h-2 w-full bg-white/20 rounded-full"></div>
-                           <div className="h-2 w-2/3 bg-white/20 rounded-full"></div>
-                        </div>
-                     </div>
-                  </div>
+                {/* Screen Content - Image */}
+                <div className="absolute inset-0 bg-black">
+                  <img 
+                    src={printImage.src} 
+                    alt="Ninaro App Screenshot" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
               

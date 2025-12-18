@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Optional } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { MailService } from './mail.service';
+import { LegalService } from '../legal/legal.service';
 
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
@@ -16,6 +17,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    @Optional() private readonly legalService?: LegalService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -46,14 +48,19 @@ export class AuthService {
       role: user.role,
     };
 
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+    const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: this.sanitizeUser(user),
+      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
       refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
   }
 
   async register(registerDto: RegisterDto) {
+    if (!registerDto.acceptedLegal) {
+      throw new UnauthorizedException('É necessário aceitar os Termos de Uso e a Política de Privacidade.');
+    }
     // Check if user already exists
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
@@ -74,6 +81,10 @@ export class AuthService {
       authProvider: 'local',
     });
 
+    if (this.legalService) {
+      await this.legalService.recordUserAcceptance(user.id);
+    }
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -91,8 +102,10 @@ export class AuthService {
       await this.mailService.sendEmailVerification(user.email, token);
     }
 
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+    const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: this.sanitizeUser(user),
+      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
       refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
@@ -127,7 +140,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
-    return this.sanitizeUser(user);
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+    const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
+    return { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired };
   }
 
   async updateProfile(userId: string, data: { name?: string }) {
@@ -174,8 +189,10 @@ export class AuthService {
       role: user.role,
     };
 
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+    const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: this.sanitizeUser(user),
+      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
     };
@@ -254,8 +271,9 @@ export class AuthService {
     user.emailVerificationExpiresAt = null;
     await repo.save(user);
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     return {
-      user: this.sanitizeUser(user),
+      user: { ...this.sanitizeUser(user), acceptedLegal },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
     };

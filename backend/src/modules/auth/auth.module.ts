@@ -31,6 +31,6 @@ import { AuthAntiAbuseGuard } from '@/common/anti-abuse/auth-anti-abuse.guard';
   ],
   providers: [AuthService, JwtStrategy, LocalStrategy, MailService, AntiAbuseService, AuthAntiAbuseGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, AntiAbuseService],
 })
 export class AuthModule {}

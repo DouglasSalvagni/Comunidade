@@ -4,6 +4,14 @@ import * as net from 'net';
 
 type CounterState = { count: number; expiresAt: number };
 
+type AntiAbuseSnapshot = {
+  now: number;
+  counters: Array<{ key: string; count: number; expiresAt: number; remainingMs: number }>;
+  cooldowns: Array<{ key: string; until: number; remainingMs: number }>;
+  distinct: Array<{ key: string; size: number }>;
+  totals: { counters: number; cooldowns: number; distinctKeys: number };
+};
+
 @Injectable()
 export class AntiAbuseService {
   private readonly counters = new Map<string, CounterState>();
@@ -176,6 +184,57 @@ export class AntiAbuseService {
 
   clearCounter(key: string) {
     this.counters.delete(key);
+  }
+
+  getSnapshot(): AntiAbuseSnapshot {
+    const now = this.now();
+    this.purgeExpired(now);
+
+    const counters = Array.from(this.counters.entries())
+      .map(([key, state]) => ({
+        key,
+        count: state.count,
+        expiresAt: state.expiresAt,
+        remainingMs: Math.max(0, state.expiresAt - now),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+
+    const cooldowns = Array.from(this.cooldowns.entries())
+      .map(([key, until]) => ({
+        key,
+        until,
+        remainingMs: Math.max(0, until - now),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+
+    const distinct = Array.from(this.distinct.entries())
+      .map(([key, bucket]) => ({ key, size: bucket.size }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+
+    return {
+      now,
+      counters,
+      cooldowns,
+      distinct,
+      totals: { counters: counters.length, cooldowns: cooldowns.length, distinctKeys: distinct.length },
+    };
+  }
+
+  private purgeExpired(now: number) {
+    for (const [key, state] of this.counters.entries()) {
+      if (state.expiresAt <= now) this.counters.delete(key);
+    }
+
+    for (const [key, until] of this.cooldowns.entries()) {
+      if (until <= now) this.cooldowns.delete(key);
+    }
+
+    for (const [key, bucket] of this.distinct.entries()) {
+      for (const [v, exp] of bucket.entries()) {
+        if (exp <= now) bucket.delete(v);
+      }
+      if (bucket.size === 0) this.distinct.delete(key);
+    }
   }
 
   private normalizeIp(ip: string) {

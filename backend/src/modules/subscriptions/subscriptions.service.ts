@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { Subscription } from './entities/subscription.entity';
 import { Plan } from './entities/plan.entity';
 import { IPaymentGateway } from './interfaces/payment-gateway.interface';
 import { GatewayMetaService } from './services/gateway-meta.service';
+import { InvoiceService } from './services/invoice.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -16,16 +17,32 @@ export class SubscriptionsService {
     @Inject('ASAAS_GATEWAY')
     private readonly asaasGateway: IPaymentGateway,
     private readonly gatewayMetaService: GatewayMetaService,
+    private readonly invoiceService: InvoiceService,
   ) { }
 
+  private readonly logger = new Logger(SubscriptionsService.name);
+
   async getCurrentSubscription(userId: string): Promise<Subscription | null> {
+    const now = new Date();
+
+    // Atualiza assinaturas que estão em 'expiring' mas cujo período já passou -> 'canceled'
+    await this.subscriptionRepository
+      .createQueryBuilder()
+      .update(Subscription)
+      .set({ status: 'canceled' })
+      .where("status = :expiring", { expiring: 'expiring' })
+      .andWhere('periodEnd IS NOT NULL')
+      .andWhere('periodEnd < :now', { now })
+      .execute();
+
+    // Busca assinatura ativa ou em expiring cujo período ainda não expirou
     return this.subscriptionRepository
       .createQueryBuilder('subscription')
       .leftJoinAndSelect('subscription.plan', 'plan')
       .where('subscription.userId = :userId', { userId })
-      .andWhere('subscription.status = :status', { status: 'active' })
-      .andWhere('subscription.periodStart <= :now OR subscription.periodStart IS NULL', { now: new Date() })
-      .andWhere('(subscription.periodEnd >= :now OR subscription.periodEnd IS NULL)', { now: new Date() })
+      .andWhere('subscription.status IN (:...statuses)', { statuses: ['active', 'expiring'] })
+      .andWhere('subscription.periodStart <= :now OR subscription.periodStart IS NULL', { now })
+      .andWhere('(subscription.periodEnd >= :now OR subscription.periodEnd IS NULL)', { now })
       .orderBy('subscription.createdAt', 'DESC')
       .getOne();
   }
@@ -59,7 +76,7 @@ export class SubscriptionsService {
     // Cancelar assinatura atual se existir
     const currentSubscription = await this.getCurrentSubscription(userId);
     if (currentSubscription) {
-      currentSubscription.status = 'canceled';
+      currentSubscription.status = 'expiring';
       await this.subscriptionRepository.save(currentSubscription);
     }
 
@@ -91,8 +108,9 @@ export class SubscriptionsService {
       return false;
     }
 
-    return subscription.status === 'active' &&
-      subscription.periodEnd > new Date();
+    // 'expiring' é considerado ativo até periodEnd
+    return (subscription.status === 'active' || subscription.status === 'expiring') &&
+      (!subscription.periodEnd || subscription.periodEnd > new Date());
   }
 
   async getSubscriptionLimits(userId: string): Promise<any> {
@@ -132,6 +150,12 @@ export class SubscriptionsService {
 
     if (!freePlan) {
       throw new NotFoundException('Plano gratuito não encontrado');
+    }
+
+    // Não cria plano gratuito se já existir assinatura ativa ou em expiring
+    const existing = await this.getCurrentSubscription(userId);
+    if (existing) {
+      throw new ConflictException('Usuário já possui uma assinatura ativa ou expiring');
     }
 
     const now = new Date();
@@ -212,23 +236,51 @@ export class SubscriptionsService {
       throw new NotFoundException('Nenhuma assinatura ativa encontrada');
     }
 
-    // Se é assinatura paga do Asaas, cancela no gateway
+    // Se é assinatura paga do Asaas, cancela no gateway e DEIXA O WEBHOOK ATUALIZAR O STATUS LOCAL
     if (subscription.provider === 'asaas' && subscription.providerSubscriptionId) {
       if (this.asaasGateway.cancelSubscription) {
         try {
           await this.asaasGateway.cancelSubscription(subscription.providerSubscriptionId);
-          // Webhook SUBSCRIPTION_DELETED irá cancelar localmente
+          this.logger.log(`Chamada ao gateway para cancelar subscription ${subscription.providerSubscriptionId} executada com sucesso; aguardando webhook para atualizar status local.`);
+
+          // Cancela faturas pendentes locais relacionadas a essa subscription
+          try {
+            await this.invoiceService.cancelInvoicesForSubscription(subscription.id);
+            this.logger.log(`Invoices relacionadas à subscription ${subscription.id} marcadas como CANCELED`);
+          } catch (invErr) {
+            this.logger.error(`Erro ao cancelar invoices locais: ${invErr?.message || invErr}`);
+          }
+
+          // Não alteramos o status local aqui: o webhook (SUBSCRIPTION_DELETED) deve marcar a subscription como 'expiring'.
+          return;
         } catch (error) {
-          // Se falhar no gateway, cancela localmente mesmo assim
+          this.logger.error(`Erro ao cancelar subscription no gateway: ${error?.message || error}`);
+          // Em caso de falha no gateway, marcamos localmente como 'canceled' (comportamento anterior)
           subscription.status = 'canceled';
           await this.subscriptionRepository.save(subscription);
+
+          // Cancela faturas locais também
+          try {
+            await this.invoiceService.cancelInvoicesForSubscription(subscription.id);
+            this.logger.log(`Invoices relacionadas à subscription ${subscription.id} marcadas como CANCELED`);
+          } catch (invErr) {
+            this.logger.error(`Erro ao cancelar invoices locais: ${invErr?.message || invErr}`);
+          }
+
+          this.logger.log(`Subscription local marcada como 'canceled' após falha no gateway (userId=${userId}, id=${subscription.id})`);
           throw error;
         }
       }
-    } else {
-      // Plano gratuito ou sem provider, cancela localmente
-      subscription.status = 'canceled';
-      await this.subscriptionRepository.save(subscription);
+    }
+
+    // Plano gratuito ou sem provider: cancela localmente imediatamente (comportamento original)
+    subscription.status = 'canceled';
+    await this.subscriptionRepository.save(subscription);
+    try {
+      await this.invoiceService.cancelInvoicesForSubscription(subscription.id);
+      this.logger.log(`Invoices relacionadas à subscription ${subscription.id} marcadas como CANCELED`);
+    } catch (invErr) {
+      this.logger.error(`Erro ao cancelar invoices locais: ${invErr?.message || invErr}`);
     }
   }
 
@@ -266,7 +318,11 @@ export class SubscriptionsService {
     // Cancela assinatura atual se existir
     const currentSubscription = await this.getCurrentSubscription(userId);
     if (currentSubscription) {
-      currentSubscription.status = 'canceled';
+      currentSubscription.status = 'expiring';
+      if (!currentSubscription.periodEnd) {
+        // Define uma data de término razoável (por segurança, hoje)
+        currentSubscription.periodEnd = new Date();
+      }
       await this.subscriptionRepository.save(currentSubscription);
     }
 
@@ -326,6 +382,22 @@ export class SubscriptionsService {
   }
 
   /**
+   * Marca uma subscription como 'expiring' (usado por webhooks de cancelamento)
+   */
+  async expireSubscription(subscriptionId: string): Promise<void> {
+    const subscription = await this.subscriptionRepository.findOne({ where: { id: subscriptionId } });
+    if (!subscription) {
+      throw new NotFoundException(`Subscription ${subscriptionId} não encontrada`);
+    }
+
+    subscription.status = 'expiring';
+    if (!subscription.periodEnd) {
+      subscription.periodEnd = new Date();
+    }
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  /**
    * Pausa uma assinatura
    */
   async pauseSubscription(subscriptionId: string): Promise<void> {
@@ -352,8 +424,8 @@ export class SubscriptionsService {
       return false;
     }
 
-    // Se está com status diferente de active, não é válida
-    if (subscription.status !== 'active') {
+    // Se está com status diferente de active/expiring, não é válida
+    if (subscription.status !== 'active' && subscription.status !== 'expiring') {
       return false;
     }
 

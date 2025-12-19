@@ -441,9 +441,9 @@ export class WebhooksController {
         return;
       }
 
-      // Cancela localmente
-      await this.subscriptionsService.pauseSubscription(localSubscription.id);
-      this.logger.log(`✅ Subscription cancelada localmente: ${localSubscription.id}`);
+      // Marca como 'expiring' localmente
+      await this.subscriptionsService.expireSubscription(localSubscription.id);
+      this.logger.log(`✅ Subscription marcada como expiring localmente: ${localSubscription.id}`);
     } catch (error) {
       this.logger.error(`❌ Erro ao processar cancelamento: ${error.message}`);
       throw error;

@@ -120,23 +120,23 @@ export interface Track {
   createdAt: string;
 }
 
-  // Interface para tag
-  export interface Tag {
-    id: string;
-    name: string;
-    color: string;
-    isActive: boolean;
-    createdAt: string;
-  }
+// Interface para tag
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
-  // Interface para tema de desenvolvimento
-  export interface DevTheme {
-    id: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-    createdAt: string;
-  }
+// Interface para tema de desenvolvimento
+export interface DevTheme {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 // Interface para favorito
 export interface Favorite {
@@ -153,7 +153,7 @@ export interface Subscription {
   userId: string;
   planId: string;
   plan: Plan;
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid';
+  status: 'active' | 'expiring' | 'canceled' | 'past_due' | 'unpaid';
   periodStart?: string;
   periodEnd?: string;
   provider?: string;

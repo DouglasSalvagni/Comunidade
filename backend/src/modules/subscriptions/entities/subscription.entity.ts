@@ -30,7 +30,7 @@ export class Subscription {
   plan: Plan;
 
   @Column()
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid';
+  status: 'active' | 'expiring' | 'scheduled' | 'canceled' | 'past_due' | 'unpaid';
 
   @Column({ name: 'period_start', nullable: true })
   periodStart: Date;

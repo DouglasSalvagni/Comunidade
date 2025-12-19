@@ -96,6 +96,19 @@ export class InvoiceService {
   }
 
   /**
+   * Marca como CANCELED todas invoices pendentes/overdue de uma subscription
+   */
+  async cancelInvoicesForSubscription(subscriptionId: string): Promise<void> {
+    await this.invoiceRepository
+      .createQueryBuilder()
+      .update(Invoice)
+      .set({ status: 'CANCELED' })
+      .where('subscription_id = :subscriptionId', { subscriptionId })
+      .andWhere("status IN (:...statuses)", { statuses: ['PENDING', 'OVERDUE'] })
+      .execute();
+  }
+
+  /**
    * Busca fatura por ID
    */
   async findById(id: string): Promise<Invoice | null> {

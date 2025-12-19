@@ -10,6 +10,8 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '../users/users.module';
 import { MailService } from './mail.service';
 import { LegalModule } from '../legal/legal.module';
+import { AntiAbuseService } from '@/common/anti-abuse/anti-abuse.service';
+import { AuthAntiAbuseGuard } from '@/common/anti-abuse/auth-anti-abuse.guard';
 
 @Module({
   imports: [
@@ -27,8 +29,8 @@ import { LegalModule } from '../legal/legal.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy, MailService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, MailService, AntiAbuseService, AuthAntiAbuseGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, AntiAbuseService],
 })
 export class AuthModule {}

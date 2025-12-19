@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 // import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bull';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
@@ -61,6 +62,10 @@ import databaseConfig from './config/database.config';
     // Rate limiting
     ThrottlerModule.forRoot([
       {
+        ttl: 60000,
+        limit: 300,
+      },
+      {
         name: 'short',
         ttl: 1000,
         limit: 10,
@@ -88,6 +93,12 @@ import databaseConfig from './config/database.config';
     AdminModule,
     MediaModule,
     LegalModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

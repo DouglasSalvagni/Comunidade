@@ -24,13 +24,20 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ApiQuery } from '@nestjs/swagger';
+import { AntiAbuse, AuthAntiAbuseGuard } from '@/common/anti-abuse/auth-anti-abuse.guard';
+import { AntiAbuseService } from '@/common/anti-abuse/anti-abuse.service';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly antiAbuse: AntiAbuseService,
+  ) { }
 
   @Post('register')
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
@@ -56,6 +63,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('login')
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({
     status: 200,
@@ -65,16 +74,32 @@ export class AuthController {
     status: 401,
     description: 'Invalid credentials',
   })
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.login(loginDto);
-    res.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: process.env.NODE_ENV === 'production' ? true : false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
-    return result;
+  async login(@Body() loginDto: LoginDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+    const ip = this.antiAbuse.getClientIp(req);
+    const ua = this.antiAbuse.getUserAgent(req);
+    const asn = this.antiAbuse.getClientAsn(req);
+    const networkKey = this.antiAbuse.getNetworkKey(ip, asn);
+    const email = (loginDto?.email || '').toString().trim().toLowerCase();
+    const accountKey = email ? this.antiAbuse.hash(email) : undefined;
+
+    try {
+      const result = await this.authService.login(loginDto);
+      this.antiAbuse.recordLoginSuccess({ ip, networkKey, accountKey });
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+      return result;
+    } catch (err: any) {
+      const message = err?.response?.message;
+      if (message === 'E-mail ou senha incorretos.' || message === 'Credenciais inválidas') {
+        this.antiAbuse.recordLoginFailure({ ip, networkKey, accountKey });
+      }
+      throw err;
+    }
   }
 
   @Post('refresh')
@@ -102,19 +127,38 @@ export class AuthController {
 
   @Post('oauth/google')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('oauth_google')
   @ApiOperation({ summary: 'Login with Google OAuth' })
   @ApiResponse({ status: 200, description: 'User logged in via Google' })
   @ApiResponse({ status: 401, description: 'Invalid Google token' })
-  async oauthGoogle(@Body() body: GoogleOAuthDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.loginWithGoogle(body.idToken);
-    res.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      secure: process.env.NODE_ENV === 'production' ? true : false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
-    return result;
+  async oauthGoogle(@Body() body: GoogleOAuthDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+    const ip = this.antiAbuse.getClientIp(req);
+    const asn = this.antiAbuse.getClientAsn(req);
+    const networkKey = this.antiAbuse.getNetworkKey(ip, asn);
+
+    try {
+      const result = await this.authService.loginWithGoogle(body.idToken);
+      const email = (result?.user?.email || '').toString().trim().toLowerCase();
+      const accountKey = email ? this.antiAbuse.hash(email) : undefined;
+      if (accountKey) {
+        this.antiAbuse.recordAuthSuccess('oauth_google', { ip, networkKey, accountKey });
+      } else {
+        this.antiAbuse.recordAuthSuccess('oauth_google', { ip, networkKey });
+      }
+
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+      return result;
+    } catch (err) {
+      this.antiAbuse.recordAuthFailure('oauth_google', { ip, networkKey });
+      throw err;
+    }
   }
 
   @Post('logout')
@@ -170,6 +214,8 @@ export class AuthController {
 
   @Post('password/forgot')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('forgot')
   @ApiOperation({ summary: 'Enviar e-mail de recuperação de senha' })
   @ApiResponse({ status: 200, description: 'E-mail enviado se usuário existir' })
   async forgot(@Body() body: ForgotPasswordDto) {
@@ -178,6 +224,8 @@ export class AuthController {
 
   @Post('password/reset')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('reset')
   @ApiOperation({ summary: 'Redefinir senha via token' })
   @ApiResponse({ status: 200, description: 'Senha redefinida com sucesso' })
   async reset(@Body() body: ResetPasswordDto) {

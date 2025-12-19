@@ -15,6 +15,12 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3001);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
+  const httpAdapter = app.getHttpAdapter();
+  const instance = httpAdapter?.getInstance?.();
+  if (instance?.set) {
+    instance.set('trust proxy', 1);
+  }
+
   // Security
   app.use(helmet.default({
     contentSecurityPolicy: {

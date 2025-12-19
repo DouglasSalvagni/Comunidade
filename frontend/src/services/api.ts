@@ -51,6 +51,14 @@ export interface ActiveLegal {
   terms: LegalDocument | null;
 }
 
+export interface AntiAbuseSnapshot {
+  now: number;
+  counters: Array<{ key: string; count: number; expiresAt: number; remainingMs: number }>;
+  cooldowns: Array<{ key: string; until: number; remainingMs: number }>;
+  distinct: Array<{ key: string; size: number }>;
+  totals: { counters: number; cooldowns: number; distinctKeys: number };
+}
+
 // Interface para perfil infantil
 export interface Profile {
   id: string;
@@ -311,6 +319,11 @@ class ApiService {
 
   async adminActivateLegalDocument(id: string): Promise<LegalDocument> {
     const response = await this.client.patch<ApiResponse<LegalDocument>>(`/admin/legal/documents/${id}/activate`);
+    return response.data.data;
+  }
+
+  async adminGetAntiAbuseSnapshot(): Promise<AntiAbuseSnapshot> {
+    const response = await this.client.get<ApiResponse<AntiAbuseSnapshot>>('/admin/anti-abuse/snapshot');
     return response.data.data;
   }
 

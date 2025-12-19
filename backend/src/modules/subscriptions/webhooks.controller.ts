@@ -8,12 +8,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { SubscriptionsService } from './subscriptions.service';
 import { GatewayWebhookService } from './services/gateway-webhook.service';
 import { InvoiceService } from './services/invoice.service';
 
 @ApiTags('Webhooks')
 @Controller('webhooks')
+@SkipThrottle()
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
   private lastSubscriptionData: any = null;

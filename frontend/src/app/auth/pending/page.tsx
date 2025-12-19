@@ -45,6 +45,7 @@ const PendingVerificationPage = () => {
               <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="m@example.com" />
             </div>
             <Button onClick={onResend} className="w-full">Reenviar verificação</Button>
+            <Button variant="outline" onClick={() => router.push('/auth/login')} className="w-full">Voltar para Login</Button>
           </div>
         </CardContent>
       </Card>

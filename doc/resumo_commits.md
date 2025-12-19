@@ -126,3 +126,56 @@
 - ✅ Thumb 33% maior (24px vs 18px) - mais fácil de manipular
 - ✅ Alinhamento perfeito - thumb fica exatamente onde o dedo está
 - ✅ Cálculo preciso usando coordenadas absolutas da tela
+
+---
+
+## 2025-12-19 - Adição de Botão Voltar para Login na Verificação Pendente
+
+**Arquivo modificado:** `frontend/src/app/auth/pending/page.tsx`
+
+**Descrição:** Adicionado um botão para retornar à tela de login na página de verificação pendente.
+
+**Alterações:**
+- Adicionado botão "Voltar para Login" usando o componente `Button` com variante `outline`
+- Implementada navegação para a rota `/auth/login` ao clicar no novo botão
+- O botão foi posicionado abaixo do botão de "Reenviar verificação" dentro do mesmo container
+
+---
+
+## 2025-12-19 - Correção de Layout Sidebar Mobile e Botão Fechar
+
+**Arquivos modificados:** 
+- `frontend/src/components/Header.tsx`
+- `frontend/src/components/Sidebar.tsx`
+- `frontend/src/components/ui/sheet.tsx`
+
+**Descrição:** Resolvido o problema de áreas e linhas brancas no menu lateral mobile e melhorado o contraste do botão de fechar.
+
+**Alterações:**
+- **Sidebar**: Adicionado suporte a `className` customizada e permitindo sobrescrever larguras e bordas.
+- **Header**: Aplicado `bg-sidebar` e `border-none` no container do Sheet e no componente Sidebar para eliminar frestas brancas.
+- **Sheet UI**: Refilado o botão de fechar (`SheetClose`) para um círculo branco com ícone preto e sombra, garantindo visibilidade sobre o fundo escuro do menu.
+
+---
+
+## 2025-12-19 - Correção de Acessibilidade no Sheet (Falta de DialogTitle)
+
+**Arquivo modificado:** `frontend/src/components/Header.tsx`
+
+**Descrição:** Resolvido erro de console do Radix UI onde o `SheetContent` exigia um `DialogTitle`.
+
+**Alterações:**
+- Adicionado `SheetHeader`, `SheetTitle` e `SheetDescription` dentro do menu lateral no `Header.tsx`.
+- Utilizada a classe `sr-only` para manter os elementos acessíveis para leitores de tela, mas invisíveis visualmente, respeitando o design atual.
+
+---
+
+## 2025-12-19 - Substituição de Loader por Skeleton na Conta
+
+**Arquivo modificado:** `frontend/src/app/dashboard/account/page.tsx`
+
+**Descrição:** Melhorado o feedback visual de carregamento na página de configurações de conta.
+
+**Alterações:**
+- Removido o spinner de carregamento genérico.
+- Adicionado estado de Skeleton que simula o layout dos campos de nome, e-mail e formulário de alteração de senha, proporcionando uma transição visual mais suave.

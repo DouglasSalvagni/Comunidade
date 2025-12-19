@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
@@ -33,8 +33,12 @@ const Header = ({ isSidebarOpen, setIsSidebarOpen }: HeaderProps) => {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0">
-              <Sidebar />
+            <SheetContent side="left" className="p-0 border-none bg-sidebar">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Menu</SheetTitle>
+                <SheetDescription>Navegação principal</SheetDescription>
+              </SheetHeader>
+              <Sidebar className="w-full border-none" />
             </SheetContent>
           </Sheet>
         </div>

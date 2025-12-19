@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api, User } from "@/services/api";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AccountPage = () => {
   const [loading, setLoading] = useState(true);
@@ -77,10 +78,35 @@ const AccountPage = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Carregando...
-        </div>
+        <Card className="p-6 max-w-lg space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-24" />
+          </div>
+          <div className="pt-6 space-y-4">
+            <Skeleton className="h-7 w-40" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-44" />
+          </div>
+        </Card>
       ) : (
         <Card className="p-6 max-w-lg">
           <div className="space-y-4">

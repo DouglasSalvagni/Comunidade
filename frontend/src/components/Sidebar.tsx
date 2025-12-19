@@ -14,17 +14,19 @@ const navItems = [
   { href: "/dashboard/subscriptions", icon: CreditCard, label: "Assinatura" },
 ];
 
-const Sidebar = () => {
+import { cn } from "@/lib/utils";
+
+const Sidebar = ({ className }: { className?: string }) => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col h-full text-sidebar-foreground">
+    <aside className={cn("w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col h-full text-sidebar-foreground", className)}>
       <div className="mb-8 px-2">
-        <Image 
-          src={logoHorizontal} 
-          alt="BabyTune" 
-          width={160} 
-          height={48} 
+        <Image
+          src={logoHorizontal}
+          alt="BabyTune"
+          width={160}
+          height={48}
           className="h-10 w-auto object-contain"
           priority
         />
@@ -35,7 +37,7 @@ const Sidebar = () => {
           const isRoot = item.href === "/dashboard";
           const isActive = isRoot ? pathname === item.href : pathname.startsWith(item.href);
           return (
-            <Link 
+            <Link
               key={item.href}
               href={item.href}
               aria-current={isActive ? "page" : undefined}

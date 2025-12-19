@@ -30,6 +30,7 @@ const AppBody = ({ children }: { children: ReactNode }) => {
     <body
       className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       style={{ paddingBottom: `${playerHeight}px` }}
+      suppressHydrationWarning
     >
       {children}
       <Toaster richColors position="top-right" />
@@ -43,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <PlayerHeightProvider>
         <SessionProvider>
           <AppBody>{children}</AppBody>

@@ -3,6 +3,7 @@ import HeroInspira from "@/components/inspira/HeroInspira";
 import FeaturesInspira from "@/components/inspira/FeaturesInspira";
 import AudioPreviewInspira from "@/components/inspira/AudioPreviewInspira";
 import BenefitsInspira from "@/components/inspira/BenefitsInspira";
+import ManifestoInspira from "@/components/inspira/ManifestoInspira";
 import PricingInspira from "@/components/inspira/PricingInspira";
 import AppDownloadInspira from "@/components/inspira/AppDownloadInspira";
 import FooterInspira from "@/components/inspira/FooterInspira";
@@ -16,6 +17,7 @@ export default function Home() {
         <FeaturesInspira />
         <AudioPreviewInspira />
         <BenefitsInspira />
+        <ManifestoInspira />
         {/* <PricingInspira /> */}
         <AppDownloadInspira />
       </main>

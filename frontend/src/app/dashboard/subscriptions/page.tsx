@@ -107,7 +107,7 @@ const SubscriptionPage = () => {
       </div>
 
       {checkout === 'success' && (
-        <Card className="bg-primary text-white border-none">
+        <Card className="bg-success text-white border-none">
           <CardHeader>
             <CardTitle className="text-white">Pagamento iniciado</CardTitle>
             <CardDescription className="text-white/90">
@@ -174,7 +174,7 @@ const SubscriptionPage = () => {
               <Button
                 variant="outline"
                 onClick={() => setIsCancelDialogOpen(true)}
-                className="hover:bg-red-900 hover:text-white hover:border-red-900 transition-colors"
+                className="hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
               >
                 {isCancelling ? 'Cancelando...' : 'Cancelar Assinatura'}
               </Button>

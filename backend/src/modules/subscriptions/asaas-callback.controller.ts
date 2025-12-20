@@ -13,7 +13,7 @@ export class AsaasCallbackController {
     this.logger.log('✅ Checkout success - redirecionando para frontend');
 
     // Redireciona para o frontend
-    const frontendUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return res.redirect(`${frontendUrl}/dashboard?checkout=success`);
   }
 
@@ -22,7 +22,7 @@ export class AsaasCallbackController {
   handleCancel(@Res() res: Response) {
     this.logger.log('❌ Checkout cancelado - redirecionando para frontend');
 
-    const frontendUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return res.redirect(`${frontendUrl}/dashboard?checkout=cancel`);
   }
 
@@ -31,7 +31,7 @@ export class AsaasCallbackController {
   handleExpired(@Res() res: Response) {
     this.logger.log('⏰ Checkout expirado - redirecionando para frontend');
 
-    const frontendUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return res.redirect(`${frontendUrl}/dashboard?checkout=expired`);
   }
 }

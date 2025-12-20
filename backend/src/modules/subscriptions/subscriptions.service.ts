@@ -21,6 +21,20 @@ export class SubscriptionsService {
   ) { }
 
   private readonly logger = new Logger(SubscriptionsService.name);
+  private readonly freePlanSlug = 'plano-gratuito';
+
+  private async assertCanMigratePlan(userId: string): Promise<void> {
+    const currentSubscription = await this.getCurrentSubscription(userId);
+    if (!currentSubscription) {
+      return;
+    }
+
+    if (currentSubscription.plan?.slug !== this.freePlanSlug) {
+      throw new ConflictException(
+        'Não é permitido migrar de plano enquanto existe uma assinatura ativa. Cancele e aguarde o término do período atual.',
+      );
+    }
+  }
 
   async getCurrentSubscription(userId: string): Promise<Subscription | null> {
     const now = new Date();
@@ -64,6 +78,8 @@ export class SubscriptionsService {
   }
 
   async changePlan(userId: string, planId: string): Promise<Subscription> {
+    await this.assertCanMigratePlan(userId);
+
     const plan = await this.planRepository.findOne({ where: { id: planId } });
     if (!plan) {
       throw new NotFoundException(`Plan with ID ${planId} not found`);
@@ -76,7 +92,10 @@ export class SubscriptionsService {
     // Cancelar assinatura atual se existir
     const currentSubscription = await this.getCurrentSubscription(userId);
     if (currentSubscription) {
-      currentSubscription.status = 'expiring';
+      currentSubscription.status = 'canceled';
+      if (!currentSubscription.periodEnd) {
+        currentSubscription.periodEnd = new Date();
+      }
       await this.subscriptionRepository.save(currentSubscription);
     }
 
@@ -186,6 +205,8 @@ export class SubscriptionsService {
     userName: string,
     userCpf?: string,
   ): Promise<{ checkoutUrl: string }> {
+    await this.assertCanMigratePlan(userId);
+
     // Busca o plano
     const plan = await this.planRepository.findOne({ where: { id: planId } });
     if (!plan) {

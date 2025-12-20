@@ -15,10 +15,9 @@ import { api, Plan } from "@/services/api";
 
 interface PlanSelectorProps {
   currentPlanId?: string | null;
-  hasPaidSubscription?: boolean;
 }
 
-const PlanSelector = ({ currentPlanId, hasPaidSubscription = false }: PlanSelectorProps) => {
+const PlanSelector = ({ currentPlanId }: PlanSelectorProps) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -68,9 +67,9 @@ const PlanSelector = ({ currentPlanId, hasPaidSubscription = false }: PlanSelect
           }
         }
 
-        // Se for plano pago, abre checkout do ASAAS em nova aba
+        // Se for plano pago, redireciona para o checkout do ASAAS
         const { checkoutUrl } = await api.createCheckoutSession(selectedPlan.id);
-        window.open(checkoutUrl, '_blank');
+        window.location.href = checkoutUrl;
         setIsDialogOpen(false);
         setSelectedPlan(null);
       } catch (error) {
@@ -102,15 +101,16 @@ const PlanSelector = ({ currentPlanId, hasPaidSubscription = false }: PlanSelect
             };
 
             const isCurrentPlan = plan.id === currentPlanId;
-            const isFreePlanDisabled = plan.priceCents === 0 && hasPaidSubscription;
+            const canSelect = plan.canSelect ?? true;
+            const isPlanDisabled = !canSelect;
 
             return (
               <PricingCard
                 key={plan.id}
                 plan={formattedPlan}
                 isCurrentPlan={isCurrentPlan}
-                onSelectPlan={() => !isCurrentPlan && !isFreePlanDisabled && handleSelectPlan(plan)}
-                disabled={isFreePlanDisabled}
+                onSelectPlan={() => !isCurrentPlan && !isPlanDisabled && handleSelectPlan(plan)}
+                disabled={isPlanDisabled}
               />
             );
           })}

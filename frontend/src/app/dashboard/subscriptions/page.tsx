@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import PlanSelector from "@/components/PlanSelector";
 import { api, Subscription, Invoice } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import {
 } from "@/components/ui/dialog";
 
 const SubscriptionPage = () => {
+  const searchParams = useSearchParams();
+  const checkout = searchParams.get('checkout');
+
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +105,39 @@ const SubscriptionPage = () => {
         <h1 className="text-3xl font-bold">Gerenciamento de Assinatura</h1>
         <p className="text-muted-foreground">Visualize e gerencie seu plano e faturamento.</p>
       </div>
+
+      {checkout === 'success' && (
+        <Card className="bg-primary text-white border-none">
+          <CardHeader>
+            <CardTitle className="text-white">Pagamento iniciado</CardTitle>
+            <CardDescription className="text-white/90">
+              Assim que o pagamento for confirmado, sua assinatura será ativada automaticamente.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {checkout === 'cancel' && (
+        <Card className="bg-red-600 text-white border-none">
+          <CardHeader>
+            <CardTitle className="text-white">Checkout cancelado</CardTitle>
+            <CardDescription className="text-white/90">
+              Você pode tentar novamente quando quiser.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {checkout === 'expired' && (
+        <Card className="bg-red-600 text-white border-none">
+          <CardHeader>
+            <CardTitle className="text-white">Checkout expirado</CardTitle>
+            <CardDescription className="text-white/90">
+              O link expirou. Gere um novo checkout para continuar.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       {subscription && subscription.plan ? (
         <Card>
@@ -204,7 +241,6 @@ const SubscriptionPage = () => {
       </div>
       <PlanSelector
         currentPlanId={subscription?.plan?.id}
-        hasPaidSubscription={subscription?.plan?.priceCents ? subscription.plan.priceCents > 0 : false}
       />
 
       <Card>

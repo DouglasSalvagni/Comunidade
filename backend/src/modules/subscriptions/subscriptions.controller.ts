@@ -50,16 +50,25 @@ export class SubscriptionsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all available plans' })
   @ApiResponse({ status: 200, description: 'Plans retrieved successfully.' })
-  async getAllPlans() {
+  async getAllPlans(@Request() req) {
     const plans = await this.subscriptionsService.getAllPlans();
+    const currentSubscription = await this.subscriptionsService.getCurrentSubscription(
+      req.user.userId,
+    );
+    const freePlanSlug = 'plano-gratuito';
+    const isLockedByPaidSubscription = !!currentSubscription
+      && currentSubscription.plan?.slug !== freePlanSlug;
+
     return {
       plans: plans.map(plan => ({
         id: plan.id,
+        slug: plan.slug,
         name: plan.name,
         description: plan.description,
         priceCents: plan.priceCents,
         billingPeriod: plan.billingPeriod,
         features: plan.features,
+        canSelect: !isLockedByPaidSubscription || plan.id === currentSubscription?.planId,
       })),
     };
   }

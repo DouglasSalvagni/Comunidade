@@ -84,9 +84,9 @@ export class AsaasPaymentGateway implements IPaymentGateway {
       billingTypes: ['CREDIT_CARD'],
       chargeTypes: ['RECURRENT'],
       callback: {
-        successUrl: `${this.frontendUrl}/dashboard/subscriptions`,
-        cancelUrl: `${this.frontendUrl}/dashboard/subscriptions`,
-        expiredUrl: `${this.frontendUrl}/dashboard/subscriptions`,
+        successUrl: `${this.frontendUrl}/dashboard/subscriptions?checkout=success`,
+        cancelUrl: `${this.frontendUrl}/dashboard/subscriptions?checkout=cancel`,
+        expiredUrl: `${this.frontendUrl}/dashboard/subscriptions?checkout=expired`,
       },
       externalReference: 'babytunes',
       items: [

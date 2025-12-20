@@ -75,13 +75,15 @@ export interface Profile {
 // Interface para plano
 export interface Plan {
   id: string;
+  slug?: string;
   name: string;
-  description: string;
+  description?: string;
   priceCents: number;
   billingPeriod: 'monthly' | 'yearly';
   features: string[];
-  isActive: boolean;
-  createdAt: string;
+  isActive?: boolean;
+  createdAt?: string;
+  canSelect?: boolean;
 }
 
 // Interface para obra

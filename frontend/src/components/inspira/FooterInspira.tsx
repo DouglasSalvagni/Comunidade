@@ -24,7 +24,6 @@ export const FooterInspira: React.FC = () => {
             <ul className="space-y-3 text-sm text-gray-400">
               <li><a href="/#features" className="hover:text-brand-teal">Histórias</a></li>
               <li><a href="/#preview" className="hover:text-brand-teal">Músicas</a></li>
-              <li><a href="/#pricing" className="hover:text-brand-teal">Planos</a></li>
               <li><a href="/#footer" className="hover:text-brand-teal">Sobre</a></li>
             </ul>
           </div>

@@ -178,6 +178,40 @@ export interface Invoice {
   updatedAt: string;
 }
 
+export interface Affiliate {
+  id: string;
+  name: string;
+  email: string;
+  walletId: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+}
+
+export interface Partnership {
+  id: string;
+  code: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  discountType: 'PERCENT' | 'FIXED';
+  discountValue: string;
+  startsAt?: string;
+  endsAt?: string;
+  maxRedemptions?: number;
+  createdAt: string;
+  affiliates?: Array<{
+    affiliate: Affiliate;
+    splitType: 'PERCENT' | 'FIXED';
+    splitValue: string;
+  }>;
+}
+
+export interface ActiveCoupon {
+  id: string;
+  partnership: Partnership;
+  status: 'ACTIVE' | 'PENDING_CHECKOUT' | 'USED' | 'CANCELLED' | 'EXPIRED';
+  activatedAt: string;
+  expiresAt?: string;
+}
+
 // Classe principal da API
 class ApiService {
   private client: AxiosInstance;
@@ -701,7 +735,78 @@ class ApiService {
     const response = await this.client.post<ApiResponse<{ processedUrl: string; metadata: any }>>('/media/process', params);
     return response.data.data;
   }
+
+  // Exportar instância única da API
+  // ===== CUPONS E PARCERIAS =====
+  async activateCoupon(code: string): Promise<ActiveCoupon> {
+    const response = await this.client.post<ApiResponse<ActiveCoupon>>('/subscriptions/coupons/activate', { code });
+    return response.data.data;
+  }
+
+  async getActiveCoupon(): Promise<ActiveCoupon | null> {
+    try {
+      const response = await this.client.get<ApiResponse<ActiveCoupon>>('/subscriptions/coupons/active');
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) return null;
+      throw error;
+    }
+  }
+
+  async cancelActiveCoupon(): Promise<void> {
+    await this.client.post('/subscriptions/coupons/cancel');
+  }
+
+  async checkoutFailed(): Promise<void> {
+    await this.client.post('/subscriptions/coupons/checkout-failed');
+  }
+
+  // ===== ADMIN PARCERIAS =====
+  async adminGetAffiliates(): Promise<Affiliate[]> {
+    const response = await this.client.get<ApiResponse<Affiliate[]>>('/admin/affiliates');
+    return response.data.data;
+  }
+
+  async adminCreateAffiliate(data: { name: string; email: string; walletId: string }): Promise<Affiliate> {
+    const response = await this.client.post<ApiResponse<Affiliate>>('/admin/affiliates', data);
+    return response.data.data;
+  }
+
+  async adminUpdateAffiliate(id: string, data: Partial<Affiliate>): Promise<Affiliate> {
+    const response = await this.client.patch<ApiResponse<Affiliate>>(`/admin/affiliates/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminGetPartnerships(): Promise<Partnership[]> {
+    const response = await this.client.get<ApiResponse<Partnership[]>>('/admin/partnerships');
+    return response.data.data;
+  }
+
+  async adminGetPartnership(id: string): Promise<{ partnership: Partnership; affiliates: any[] }> {
+    const response = await this.client.get<ApiResponse<{ partnership: Partnership; affiliates: any[] }>>(`/admin/partnerships/${id}`);
+    return response.data.data;
+  }
+
+  async adminCreatePartnership(data: any): Promise<Partnership> {
+    const response = await this.client.post<ApiResponse<Partnership>>('/admin/partnerships', data);
+    return response.data.data;
+  }
+
+  async adminUpdatePartnership(id: string, data: any): Promise<Partnership> {
+    const response = await this.client.patch<ApiResponse<Partnership>>(`/admin/partnerships/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminAddAffiliateToPartnership(partnershipId: string, data: { affiliateId: string; splitType: 'PERCENT' | 'FIXED'; splitValue: number }): Promise<any> {
+    const response = await this.client.post<ApiResponse<any>>(`/admin/partnerships/${partnershipId}/affiliates`, data);
+    return response.data.data;
+  }
+
+  async adminRemoveAffiliateFromPartnership(partnershipId: string, affiliateId: string): Promise<void> {
+    await this.client.delete(`/admin/partnerships/${partnershipId}/affiliates/${affiliateId}`);
+  }
+
+
 }
 
-// Exportar instância única da API
 export const api = new ApiService();

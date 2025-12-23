@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import PlanSelector from "@/components/PlanSelector";
-import { api, Subscription, Invoice } from "@/services/api";
+import { api, Subscription, Invoice, ActiveCoupon } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,8 @@ const SubscriptionPage = () => {
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [activeCoupon, setActiveCoupon] = useState<ActiveCoupon | null>(null);
+  const [couponCode, setCouponCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -31,12 +35,19 @@ const SubscriptionPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [subscriptionData, invoicesData] = await Promise.all([
+        if (checkout === 'cancel' || checkout === 'expired') {
+          try {
+            await api.checkoutFailed();
+          } catch { }
+        }
+        const [subscriptionData, invoicesData, activeCouponData] = await Promise.all([
           api.getCurrentSubscription(),
           api.getInvoices(),
+          api.getActiveCoupon(),
         ]);
         setSubscription(subscriptionData);
         setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
+        setActiveCoupon(activeCouponData);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
         setInvoices([]); // Garante que seja array vazio em caso de erro
@@ -62,6 +73,28 @@ const SubscriptionPage = () => {
       setIsErrorDialogOpen(true);
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleActivateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    try {
+      const coupon = await api.activateCoupon(couponCode);
+      setActiveCoupon(coupon);
+      toast.success("Cupom ativado com sucesso!");
+      setCouponCode("");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao ativar cupom");
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    try {
+      await api.cancelActiveCoupon();
+      setActiveCoupon(null);
+      toast.success("Cupom removido");
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao remover cupom");
     }
   };
 
@@ -234,6 +267,46 @@ const SubscriptionPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Cupom de Desconto</CardTitle>
+          <CardDescription>
+            {activeCoupon 
+              ? "Você possui um cupom ativo para sua próxima assinatura ou renovação." 
+              : "Insira um código de cupom para ganhar desconto."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activeCoupon ? (
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200">
+              <div>
+                <p className="font-bold text-green-800">{activeCoupon.partnership.code}</p>
+                <p className="text-sm text-green-700">
+                  Desconto de {activeCoupon.partnership.discountType === 'PERCENT' 
+                    ? `${activeCoupon.partnership.discountValue}%` 
+                    : `R$ ${activeCoupon.partnership.discountValue}`}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleRemoveCoupon} className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                Remover
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Código do cupom" 
+                value={couponCode} 
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="max-w-xs"
+              />
+              <Button onClick={handleActivateCoupon} disabled={!couponCode.trim()}>
+                Aplicar
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div>
         <h2 className="text-2xl font-bold">Mudar de Plano</h2>

@@ -23,6 +23,10 @@ import { Playlist } from '@/modules/playlists/entities/playlist.entity'
 import { PlaylistItem } from '@/modules/playlists/entities/playlist-item.entity'
 import { LegalDocument } from '@/modules/legal/entities/legal-document.entity'
 import { UserAgreement } from '@/modules/legal/entities/user-agreement.entity'
+import { Affiliate } from '@/modules/subscriptions/entities/affiliate.entity'
+import { Partnership } from '@/modules/subscriptions/entities/partnership.entity'
+import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnership-affiliate.entity'
+import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity'
 import * as path from 'path'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
@@ -63,6 +67,10 @@ const AppDataSource = new DataSource({
     PlaylistItem,
     LegalDocument,
     UserAgreement,
+    Affiliate,
+    Partnership,
+    PartnershipAffiliate,
+    UserActiveCoupon,
   ],
   migrations: [migrationsPath],
 })

@@ -244,7 +244,16 @@ export class SubscriptionsService {
       } else {
         const meta = await this.gatewayMetaService.findOne('asaas', 'user', userId);
         const checkoutMeta = meta?.metas?.checkout;
-        if (checkoutMeta?.id === activeCoupon.lastCheckoutId) {
+        if (checkoutMeta?.id !== activeCoupon.lastCheckoutId) {
+          try {
+            if (this.asaasGateway.cancelCheckout) {
+              await this.asaasGateway.cancelCheckout(activeCoupon.lastCheckoutId);
+            }
+          } catch { }
+
+          await this.couponsService.markActiveAfterCheckoutFailure(userId);
+          await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
+        } else {
           if (checkoutMeta?.planId && checkoutMeta.planId !== planId) {
             try {
               if (this.asaasGateway.cancelCheckout) {
@@ -256,9 +265,10 @@ export class SubscriptionsService {
             await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
           } else if (checkoutMeta?.link) {
             return { checkoutUrl: checkoutMeta.link };
+          } else {
+            throw new ConflictException('Checkout pendente');
           }
         }
-        throw new ConflictException('Checkout pendente');
       }
     }
 

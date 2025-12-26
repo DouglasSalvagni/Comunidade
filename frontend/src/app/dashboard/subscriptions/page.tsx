@@ -197,7 +197,26 @@ const SubscriptionPage = () => {
               subscription.periodEnd && (
                 <div className="flex gap-4 items-center">
                   <p>Próxima cobrança em {formatDate(subscription.periodEnd)}</p>
-                  <p className="font-semibold">{formatPrice(subscription.plan.priceCents)}</p>
+                  <p className="font-semibold">
+                    {(() => {
+                      const relevant = invoices
+                        .filter((inv) =>
+                          inv.subscriptionId === subscription.id &&
+                          (inv.status === 'CONFIRMED' || inv.status === 'PENDING' || inv.status === 'OVERDUE'),
+                        )
+                        .sort((a, b) => {
+                          const aDate = (a.dueDate || a.createdAt || '').localeCompare(b.dueDate || b.createdAt || '');
+                          return aDate;
+                        });
+
+                      const last = relevant.length ? relevant[relevant.length - 1] : null;
+                      if (!last) return formatPrice(subscription.plan.priceCents);
+
+                      const value = parseFloat(String(last.amount || '0'));
+                      if (!Number.isFinite(value) || value <= 0) return formatPrice(subscription.plan.priceCents);
+                      return `R$ ${value.toFixed(2).replace(".", ",")}`;
+                    })()}
+                  </p>
                 </div>
               )
             )}
@@ -314,6 +333,7 @@ const SubscriptionPage = () => {
       </div>
       <PlanSelector
         currentPlanId={subscription?.plan?.id}
+        activeCoupon={activeCoupon}
       />
 
       <Card>

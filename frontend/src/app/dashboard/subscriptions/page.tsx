@@ -302,8 +302,13 @@ const SubscriptionPage = () => {
               <div>
                 <p className="font-bold text-green-800">{activeCoupon.partnership.code}</p>
                 <p className="text-sm text-green-700">
-                  Desconto de {activeCoupon.partnership.discountType === 'PERCENT' 
-                    ? `${activeCoupon.partnership.discountValue}%` 
+                  Desconto de {activeCoupon.partnership.discountType === 'PERCENT'
+                    ? `${(() => {
+                      const value = parseFloat(String(activeCoupon.partnership.discountValue || '0'));
+                      if (!Number.isFinite(value)) return String(activeCoupon.partnership.discountValue);
+                      const isInt = Math.abs(value - Math.round(value)) < 1e-9;
+                      return isInt ? String(Math.round(value)) : String(value).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+                    })()}%`
                     : `R$ ${activeCoupon.partnership.discountValue}`}
                 </p>
               </div>

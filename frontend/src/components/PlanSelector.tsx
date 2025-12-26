@@ -111,9 +111,13 @@ const PlanSelector = ({ currentPlanId, activeCoupon }: PlanSelectorProps) => {
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((plan) => {
             const displayPriceCents = calcDiscountedPriceCents(plan.priceCents);
+            const hasDiscount = plan.priceCents > 0 && displayPriceCents < plan.priceCents;
+            const periodLabel = plan.billingPeriod === 'monthly' ? 'mês' : 'ano';
             const formattedPlan = {
               name: plan.name,
-              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${plan.billingPeriod === 'monthly' ? 'mês' : 'ano'}`,
+              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}`,
+              originalPrice: hasDiscount ? `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
+              discountedPrice: hasDiscount ? `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
               features: plan.features,
             };
 

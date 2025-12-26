@@ -8,6 +8,8 @@ interface PricingCardProps {
   plan: {
     name: string;
     price: string;
+    originalPrice?: string;
+    discountedPrice?: string;
     features: string[];
   };
   isCurrentPlan: boolean;
@@ -20,7 +22,16 @@ const PricingCard = ({ plan, isCurrentPlan, disabled = false, onSelectPlan }: Pr
     <Card className={(isCurrentPlan ? "border-primary " : "") + "flex flex-col h-full"}>
       <CardHeader>
         <CardTitle>{plan.name}</CardTitle>
-        <CardDescription>{plan.price}</CardDescription>
+        <CardDescription>
+          {plan.originalPrice && plan.discountedPrice ? (
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground line-through">{plan.originalPrice}</div>
+              <div className="text-2xl font-bold text-foreground">{plan.discountedPrice}</div>
+            </div>
+          ) : (
+            <div className="text-2xl font-bold text-foreground">{plan.price}</div>
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 flex-1">
         {plan.features.map((feature, index) => (

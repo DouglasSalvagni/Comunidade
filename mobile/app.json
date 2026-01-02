@@ -17,9 +17,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
+          "audio",
           "audio"
         ]
-      }
+      },
+      "bundleIdentifier": "com.wizer.ninaro.android"
     },
     "android": {
       "package": "com.wizer.ninaro.android",

@@ -30,7 +30,7 @@ export default function middleware(req: NextRequest) {
       .then(async (r) => {
         try {
           const data = await r.json()
-          const user = data?.data || null
+          const user = (data as any)?.data ?? data ?? null
           const isAdmin = user?.role === 'admin'
           const accepted = !!user?.acceptedLegal
           const hasAcceptedAnyRequired = !!user?.hasAcceptedAnyRequired

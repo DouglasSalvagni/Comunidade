@@ -104,6 +104,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <Users className="h-4 w-4" />
                 Usuários
               </Link>
+              <Link href="/admin/partnerships" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+                <Tag className="h-4 w-4" />
+                Parcerias & Cupons
+              </Link>
+              <Link href="/admin/affiliates" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+                <Users className="h-4 w-4" />
+                Afiliados
+              </Link>
             </nav>
           </div>
           <div className="border-t p-4">

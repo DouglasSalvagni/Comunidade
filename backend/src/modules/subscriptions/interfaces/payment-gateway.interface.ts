@@ -18,7 +18,12 @@ export interface IPaymentGateway {
     cycle: 'MONTHLY' | 'YEARLY',
     planName: string,
     planDescription: string,
+    options?: {
+      splits?: Array<{ walletId: string; fixedValue?: number; percentageValue?: number }>;
+    },
   ): Promise<{ checkoutUrl: string; checkoutId: string }>;
+
+  cancelCheckout?(checkoutId: string): Promise<void>;
 
   /**
    * Busca pagamentos de uma subscription no gateway

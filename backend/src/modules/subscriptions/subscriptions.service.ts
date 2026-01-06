@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, ConflictException, Inject, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Subscription } from './entities/subscription.entity';
 import { Plan } from './entities/plan.entity';
 import { IPaymentGateway } from './interfaces/payment-gateway.interface';
 import { GatewayMetaService } from './services/gateway-meta.service';
 import { InvoiceService } from './services/invoice.service';
+import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
+import { PartnershipAffiliate } from './entities/partnership-affiliate.entity';
 
 @Injectable()
 export class SubscriptionsService {
@@ -14,10 +16,13 @@ export class SubscriptionsService {
     private readonly subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
+    @InjectRepository(PartnershipAffiliate)
+    private readonly partnershipAffiliateRepository: Repository<PartnershipAffiliate>,
     @Inject('ASAAS_GATEWAY')
     private readonly asaasGateway: IPaymentGateway,
     private readonly gatewayMetaService: GatewayMetaService,
     private readonly invoiceService: InvoiceService,
+    private readonly couponsService: SubscriptionsCouponsService,
   ) { }
 
   private readonly logger = new Logger(SubscriptionsService.name);
@@ -223,14 +228,122 @@ export class SubscriptionsService {
 
     // Cria Checkout Link
     const cycle = plan.billingPeriod === 'monthly' ? 'MONTHLY' : 'YEARLY';
-    const planValue = plan.priceCents / 100; // Converte centavos para reais
+    const basePlanValue = plan.priceCents / 100;
+
+    const activeCoupon = await this.couponsService.getActiveCoupon(userId);
+
+    if (activeCoupon?.status === 'PENDING_CHECKOUT' && activeCoupon.lastCheckoutId) {
+      const pendingSince = (activeCoupon as any).updatedAt || activeCoupon.activatedAt;
+      const minutesToExpire = 120;
+      const isLikelyExpired = pendingSince
+        ? (Date.now() - new Date(pendingSince).getTime()) > (minutesToExpire * 60 * 1000 + 60 * 1000)
+        : false;
+
+      if (isLikelyExpired) {
+        await this.couponsService.markActiveAfterCheckoutFailure(userId);
+      } else {
+        const meta = await this.gatewayMetaService.findOne('asaas', 'user', userId);
+        const checkoutMeta = meta?.metas?.checkout;
+        if (checkoutMeta?.id !== activeCoupon.lastCheckoutId) {
+          try {
+            if (this.asaasGateway.cancelCheckout) {
+              await this.asaasGateway.cancelCheckout(activeCoupon.lastCheckoutId);
+            }
+          } catch { }
+
+          await this.couponsService.markActiveAfterCheckoutFailure(userId);
+          await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
+        } else {
+          if (checkoutMeta?.planId && checkoutMeta.planId !== planId) {
+            try {
+              if (this.asaasGateway.cancelCheckout) {
+                await this.asaasGateway.cancelCheckout(checkoutMeta.id);
+              }
+            } catch { }
+
+            await this.couponsService.markActiveAfterCheckoutFailure(userId);
+            await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
+          } else if (checkoutMeta?.link) {
+            return { checkoutUrl: checkoutMeta.link };
+          } else {
+            throw new ConflictException('Checkout pendente');
+          }
+        }
+      }
+    }
+
+    let finalPlanValue = basePlanValue;
+    let itemDescription = plan.description || plan.name;
+    let splits: Array<{ walletId: string; fixedValue?: number; percentageValue?: number }> | undefined;
+
+    if (activeCoupon) {
+      const code = activeCoupon.partnership?.code;
+      const discountType = activeCoupon.snapshotDiscountType || activeCoupon.partnership?.discountType;
+      const discountValue = parseFloat(
+        String(activeCoupon.snapshotDiscountValue || activeCoupon.partnership?.discountValue || '0'),
+      );
+
+      if (discountType === 'PERCENT') {
+        finalPlanValue = basePlanValue * (1 - discountValue / 100);
+      } else if (discountType === 'FIXED') {
+        finalPlanValue = Math.max(basePlanValue - discountValue, 0);
+      }
+
+      finalPlanValue = Math.round(finalPlanValue * 100) / 100;
+
+      if (finalPlanValue <= 0) {
+        throw new ConflictException('Cupom inválido para este plano');
+      }
+
+      const formatBRL = (value: number) =>
+        `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+      const discountLabel = discountType === 'PERCENT'
+        ? `-${discountValue}%`
+        : `-${formatBRL(discountValue)}`;
+
+      const couponText = `Cupom ${code} aplicado: ${discountLabel} (de ${formatBRL(basePlanValue)} por ${formatBRL(finalPlanValue)}).`;
+      itemDescription = `${itemDescription}\n\n${couponText}`;
+
+      const partnershipSplits = await this.partnershipAffiliateRepository.find({
+        where: { partnershipId: activeCoupon.partnershipId },
+        relations: ['affiliate'],
+      });
+
+      const activeSplits = partnershipSplits.filter((s) => s.affiliate?.status === 'ACTIVE');
+      const percentSum = activeSplits
+        .filter((s) => s.payoutType === 'PERCENT')
+        .reduce((acc, cur) => acc + parseFloat(cur.payoutValue), 0);
+      if (percentSum > 100.0001) {
+        throw new ConflictException('Split inválido para este cupom');
+      }
+      const fixedSum = activeSplits
+        .filter((s) => s.payoutType === 'FIXED')
+        .reduce((acc, cur) => acc + parseFloat(cur.payoutValue), 0);
+      if (fixedSum > finalPlanValue + 0.0001) {
+        throw new ConflictException('Split inválido para este cupom');
+      }
+
+      splits = activeSplits.map((s) => {
+        const parsed = parseFloat(s.payoutValue);
+        const value = Math.round(parsed * 100) / 100;
+        if (!Number.isFinite(value) || value <= 0) {
+          throw new ConflictException('Split inválido para este cupom');
+        }
+        if (s.payoutType === 'FIXED') {
+          return { walletId: s.affiliate.walletId, fixedValue: value };
+        }
+        return { walletId: s.affiliate.walletId, percentageValue: value };
+      });
+    }
 
     const { checkoutUrl, checkoutId } = await this.asaasGateway.createCheckoutLink(
       userId,
-      planValue,
+      finalPlanValue,
       cycle,
       plan.name,
-      plan.description || plan.name,
+      itemDescription,
+      { splits },
     );
 
     // Atualiza o meta para incluir o planId
@@ -241,6 +354,10 @@ export class SubscriptionsService {
         planId: planId,
       },
     });
+
+    if (activeCoupon) {
+      await this.couponsService.markPendingCheckout(userId, checkoutId, { splits });
+    }
 
     return { checkoutUrl };
   }

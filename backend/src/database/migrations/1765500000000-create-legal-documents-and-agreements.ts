@@ -33,4 +33,3 @@ export class CreateLegalDocumentsAndAgreements1765500000000 implements Migration
     await queryRunner.query(`DROP TABLE IF EXISTS "legal_documents"`);
   }
 }
-

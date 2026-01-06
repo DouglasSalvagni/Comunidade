@@ -11,13 +11,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { api, Plan } from "@/services/api";
+import { ActiveCoupon, api, Plan } from "@/services/api";
 
 interface PlanSelectorProps {
   currentPlanId?: string | null;
+  activeCoupon?: ActiveCoupon | null;
 }
 
-const PlanSelector = ({ currentPlanId }: PlanSelectorProps) => {
+const PlanSelector = ({ currentPlanId, activeCoupon }: PlanSelectorProps) => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,14 +90,34 @@ const PlanSelector = ({ currentPlanId }: PlanSelectorProps) => {
     return <div className="text-center py-8">Carregando planos...</div>;
   }
 
+  const calcDiscountedPriceCents = (priceCents: number) => {
+    if (!activeCoupon || priceCents <= 0) return priceCents;
+
+    const discountType = activeCoupon.partnership.discountType;
+    const discountValue = parseFloat(String(activeCoupon.partnership.discountValue || "0"));
+    if (!Number.isFinite(discountValue) || discountValue <= 0) return priceCents;
+
+    if (discountType === "PERCENT") {
+      return Math.max(0, Math.round(priceCents * (1 - discountValue / 100)));
+    }
+
+    const fixedDiscountCents = Math.round(discountValue * 100);
+    return Math.max(0, priceCents - fixedDiscountCents);
+  };
+
   return (
     <>
       <div className="space-y-6">
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((plan) => {
+            const displayPriceCents = calcDiscountedPriceCents(plan.priceCents);
+            const hasDiscount = plan.priceCents > 0 && displayPriceCents < plan.priceCents;
+            const periodLabel = plan.billingPeriod === 'monthly' ? 'mês' : 'ano';
             const formattedPlan = {
               name: plan.name,
-              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${plan.billingPeriod === 'monthly' ? 'mês' : 'ano'}`,
+              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}`,
+              originalPrice: hasDiscount ? `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
+              discountedPrice: hasDiscount ? `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
               features: plan.features,
             };
 

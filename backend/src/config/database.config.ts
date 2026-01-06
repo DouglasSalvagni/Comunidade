@@ -24,6 +24,10 @@ import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-glo
 import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
 import { LegalDocument } from '@/modules/legal/entities/legal-document.entity';
 import { UserAgreement } from '@/modules/legal/entities/user-agreement.entity';
+import { Affiliate } from '@/modules/subscriptions/entities/affiliate.entity';
+import { Partnership } from '@/modules/subscriptions/entities/partnership.entity';
+import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnership-affiliate.entity';
+import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -61,6 +65,10 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     TrackPlayGlobalCount,
     LegalDocument,
     UserAgreement,
+    Affiliate,
+    Partnership,
+    PartnershipAffiliate,
+    UserActiveCoupon,
   ],
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',

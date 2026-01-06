@@ -10,6 +10,8 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { SubscriptionsService } from './subscriptions.service';
+import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
+import { GatewayMetaService } from './services/gateway-meta.service';
 import { GatewayWebhookService } from './services/gateway-webhook.service';
 import { InvoiceService } from './services/invoice.service';
 
@@ -22,8 +24,10 @@ export class WebhooksController {
 
   constructor(
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly gatewayMetaService: GatewayMetaService,
     private readonly gatewayWebhookService: GatewayWebhookService,
     private readonly invoiceService: InvoiceService,
+    private readonly subscriptionsCouponsService: SubscriptionsCouponsService,
   ) { }
 
   @Post('asaas')
@@ -86,6 +90,18 @@ export class WebhooksController {
           await this.handleSubscriptionDeleted(payload);
           break;
 
+        case 'CHECKOUT_CANCELED':
+          await this.handleCheckoutCanceled(payload);
+          break;
+
+        case 'CHECKOUT_EXPIRED':
+          await this.handleCheckoutExpired(payload);
+          break;
+
+        case 'CHECKOUT_PAID':
+          await this.handleCheckoutPaid(payload);
+          break;
+
         default:
           this.logger.warn(`⚠️ Evento não tratado: ${payload.event}`);
       }
@@ -122,6 +138,11 @@ export class WebhooksController {
 
     try {
       const createdSubscription = await this.subscriptionsService.processPaymentReceived(checkoutSessionId, subscription);
+
+      // Marca cupom como usado
+      if (createdSubscription?.userId) {
+        await this.subscriptionsCouponsService.markUsedByUser(createdSubscription.userId);
+      }
 
       this.logger.log(`✅ Subscription criada com sucesso`);
 
@@ -293,6 +314,12 @@ export class WebhooksController {
 
     // Ativa a assinatura quando o pagamento é confirmado
     await this.subscriptionsService.activateSubscription(subscription.id);
+    
+    // Marca cupom como usado (caso não tenha sido marcado na criação)
+    if (subscription.userId) {
+      await this.subscriptionsCouponsService.markUsedByUser(subscription.userId);
+    }
+
     this.logger.log(`✅ Assinatura ativada: ${subscription.id}`);
   }
 
@@ -448,6 +475,104 @@ export class WebhooksController {
       this.logger.error(`❌ Erro ao processar cancelamento: ${error.message}`);
       throw error;
     }
+  }
+
+  private extractCheckoutSessionId(payload: any): string | null {
+    const candidates = [
+      payload?.checkout?.id,
+      payload?.checkout?.checkoutSession,
+      payload?.checkoutSession,
+      payload?.subscription?.checkoutSession,
+      payload?.payment?.checkoutSession,
+      payload?.payment?.checkout?.id,
+      payload?.data?.checkout?.id,
+      payload?.data?.checkoutSession,
+      payload?.data?.id,
+    ];
+
+    for (const v of candidates) {
+      if (typeof v === 'string' && v.trim().length > 0) {
+        return v.trim();
+      }
+    }
+
+    return null;
+  }
+
+  private async handleCheckoutCanceled(payload: any) {
+    const checkoutSessionId = this.extractCheckoutSessionId(payload);
+    if (!checkoutSessionId) {
+      this.logger.warn('⚠️ checkoutSession/id não encontrado no payload de checkout');
+      return;
+    }
+
+    const userMeta = await this.gatewayMetaService.findUserByCheckoutSession('asaas', checkoutSessionId);
+    if (!userMeta) {
+      this.logger.warn(`⚠️ Usuário não encontrado para checkoutSession ${checkoutSessionId}`);
+      return;
+    }
+
+    const userId = userMeta.entityId;
+    const activeCoupon = await this.subscriptionsCouponsService.getActiveCoupon(userId);
+    if (activeCoupon?.status === 'PENDING_CHECKOUT' && activeCoupon.lastCheckoutId === checkoutSessionId) {
+      await this.subscriptionsCouponsService.markActiveAfterCheckoutFailure(userId);
+    }
+
+    const currentCheckoutId = userMeta.metas?.checkout?.id;
+    if (currentCheckoutId === checkoutSessionId) {
+      await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
+    }
+
+    this.logger.log(`✅ Checkout cancelado processado: ${checkoutSessionId}`);
+  }
+
+  private async handleCheckoutExpired(payload: any) {
+    const checkoutSessionId = this.extractCheckoutSessionId(payload);
+    if (!checkoutSessionId) {
+      this.logger.warn('⚠️ checkoutSession/id não encontrado no payload de checkout');
+      return;
+    }
+
+    const userMeta = await this.gatewayMetaService.findUserByCheckoutSession('asaas', checkoutSessionId);
+    if (!userMeta) {
+      this.logger.warn(`⚠️ Usuário não encontrado para checkoutSession ${checkoutSessionId}`);
+      return;
+    }
+
+    const userId = userMeta.entityId;
+    const activeCoupon = await this.subscriptionsCouponsService.getActiveCoupon(userId);
+    if (activeCoupon?.status === 'PENDING_CHECKOUT' && activeCoupon.lastCheckoutId === checkoutSessionId) {
+      await this.subscriptionsCouponsService.markActiveAfterCheckoutFailure(userId);
+    }
+
+    const currentCheckoutId = userMeta.metas?.checkout?.id;
+    if (currentCheckoutId === checkoutSessionId) {
+      await this.gatewayMetaService.updateMetas('asaas', 'user', userId, { checkout: {} });
+    }
+
+    this.logger.log(`✅ Checkout expirado processado: ${checkoutSessionId}`);
+  }
+
+  private async handleCheckoutPaid(payload: any) {
+    const checkoutSessionId = this.extractCheckoutSessionId(payload);
+    if (!checkoutSessionId) {
+      this.logger.warn('⚠️ checkoutSession/id não encontrado no payload de checkout');
+      return;
+    }
+
+    const userMeta = await this.gatewayMetaService.findUserByCheckoutSession('asaas', checkoutSessionId);
+    if (!userMeta) {
+      this.logger.warn(`⚠️ Usuário não encontrado para checkoutSession ${checkoutSessionId}`);
+      return;
+    }
+
+    const userId = userMeta.entityId;
+    const activeCoupon = await this.subscriptionsCouponsService.getActiveCoupon(userId);
+    if (activeCoupon?.status === 'PENDING_CHECKOUT' && activeCoupon.lastCheckoutId === checkoutSessionId) {
+      await this.subscriptionsCouponsService.markUsedByUser(userId);
+    }
+
+    this.logger.log(`✅ Checkout pago processado: ${checkoutSessionId}`);
   }
 
   /**

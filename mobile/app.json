@@ -21,7 +21,7 @@
           "audio"
         ]
       },
-      "bundleIdentifier": "com.wizer.ninaro.android"
+      "bundleIdentifier": "com.wizer.ninaro.ios"
     },
     "android": {
       "package": "com.wizer.ninaro.android",
@@ -36,17 +36,24 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://56a92d009b1d.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://api.ninaro.com.br/api/v1",
       "siteBaseUrl": "http://ninaro.com.br",
       "googleOAuth": {
-        "expoClientId": "138589572018-4htk4o9k84oembmlhq91acib0tnkstcp.apps.googleusercontent.com"
+        "expoClientId": "138589572018-4htk4o9k84oembmlhq91acib0tnkstcp.apps.googleusercontent.com",
+        "iosClientId": "138589572018-i2g3msa0sfilot9c22d3m3qdcdmb7n41.apps.googleusercontent.com"
       },
       "eas": {
         "projectId": "480e540c-b41d-4cbf-9896-efb3a5b34755"
       }
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.138589572018-i2g3msa0sfilot9c22d3m3qdcdmb7n41"
+        }
+      ]
     ],
     "owner": "douglassalvagni"
   }

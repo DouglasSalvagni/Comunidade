@@ -24,6 +24,12 @@ function Screens() {
     setLegalBypassed(false)
   }, [user?.id, accessToken])
 
+  useEffect(() => {
+    if ((!user || !accessToken) && (screen === 'home' || screen === 'profile_selection')) {
+      setScreen('login')
+    }
+  }, [user, accessToken, screen])
+
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>

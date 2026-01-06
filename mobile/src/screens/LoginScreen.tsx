@@ -165,9 +165,11 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
 
   useEffect(() => {
     const webClientId = (appConfig as any)?.expo?.extra?.googleOAuth?.expoClientId
-    appendLog('Configurando GoogleSignin', { webClientIdPresent: !!webClientId })
+    const iosClientId = (appConfig as any)?.expo?.extra?.googleOAuth?.iosClientId
+    appendLog('Configurando GoogleSignin', { webClientIdPresent: !!webClientId, iosClientIdPresent: !!iosClientId })
     GoogleSignin.configure({
       webClientId,
+      iosClientId,
       offlineAccess: false,
     })
     appendLog('GoogleSignin.configure concluído')

@@ -18,6 +18,7 @@ Referências do projeto:
 ### 2.1) Quem é o controlador, contatos e escopo
 
 - Identificação do controlador (razão social/CPF/CNPJ), canal de contato e, se aplicável, encarregado (DPO).
+- Canal LGPD/privacidade: `privacidade@empresa.com`.
 - Escopo: app web (`frontend`), app mobile (`mobile`) e APIs (`backend`), incluindo subdomínios/CDN.
 - Território e lei aplicável (ex.: Brasil/LGPD) e como tratar usuários fora do Brasil (se houver).
 
@@ -30,6 +31,7 @@ Referências do projeto:
   - Provedor de login: local/Google (`backend/src/modules/users/entities/user.entity.ts:23`).
 - Dados dos perfis infantis:
   - `name`, `avatarUrl`, `birthDate` e `parentalPin` (PIN parental) (`backend/src/modules/profiles/entities/profile.entity.ts:27`).
+  - No cadastro de perfil infantil, `birthDate` é obrigatório; `parentalPin` é opcional (`backend/src/modules/profiles/dto/create-profile.dto.ts:21`).
 - Dados de uso e telemetria funcional:
   - Eventos de playback (play/pause/seek/complete), posição e timestamp (`backend/src/modules/playback/entities/play-event.entity.ts:12`).
   - Downloads/offline: `deviceId` e expiração de licença por perfil/faixa (`backend/src/modules/playback/entities/download.entity.ts:13`).
@@ -55,6 +57,9 @@ Pontos de finalidade diretamente ligados ao produto:
 - Cobrança/assinatura e emissão de faturas.
 - Segurança: prevenção de abuso e incidentes, auditoria, conformidade.
 - Atendimento: suporte ao usuário (contato e histórico quando existir).
+- Comunicações:
+  - E-mails transacionais: verificação e recuperação de senha, remetente `naoresponda@ninaro.com.br`.
+  - Inicialmente, não há newsletter/ofertas nem push promocional; se houver e-mails de marketing no futuro, remetente planejado `marketing@ninaro.com.br` e prever opt-out (descadastro) e preferências.
 
 ### 2.4) Dados de crianças e adolescentes (tratamento reforçado)
 
@@ -66,21 +71,30 @@ Pontos de finalidade diretamente ligados ao produto:
   - Publicidade direcionada.
   - Perfilamento automatizado com efeitos relevantes.
   - Compartilhamento para fins de marketing.
+  - Publicidade apenas contextual, sem anúncios personalizados.
 
 ### 2.5) Compartilhamento com terceiros e operadores (quem recebe dados e por quê)
 
 Listar categorias de terceiros e o que é compartilhado:
+- Papéis (LGPD):
+  - Controlador: Ninaro.
+  - Operadores: Cloudflare (R2/CDN/segurança), Hostinger (hospedagem e e-mail), Asaas (gateway/checkout).
 - Provedor de autenticação:
   - Google (login social) no web (`frontend/src/app/api/auth/[...nextauth]/route.ts:1`) e validação de token no backend (`backend/src/modules/auth/auth.service.ts:157`).
 - Pagamentos/recorrência:
   - Asaas (integração e webhooks) (`backend/src/modules/subscriptions/subscriptions.module.ts:1` e `backend/src/modules/subscriptions/webhooks.controller.ts:1`).
+  - O processamento de pagamentos, gestão de transações e informações de checkout são realizados no ambiente do Asaas; pela integração com instituições financeiras/redes de cartão/autenticação, pode ocorrer comunicação/transmissão de dados pessoais para fora do Brasil, observadas medidas de segurança aplicáveis e conformidade com a legislação vigente.
 - Armazenamento e entrega de mídia:
   - Cloudflare R2 (S3 compatível) para upload/armazenamento e Cloudflare (CDN) para entrega.
   - Implementação: presigned upload e processamento (`backend/src/modules/media/media.service.ts:1` e `backend/src/config/s3.config.ts:1`).
+  - Infraestrutura distribuída globalmente, sem seleção de local físico específico; dados podem ser armazenados/processados fora do Brasil, observadas medidas adequadas de segurança e proteção.
 - Provedor de e-mail (SMTP):
   - Envio de verificação e recuperação de senha (`backend/src/modules/auth/auth.service.ts:99`).
+  - Verificação e recuperação de senha usam `naoresponda@ninaro.com.br`.
 - Infraestrutura/hospedagem e observabilidade:
   - Hospedagem do backend/web (Hostinger), banco (Postgres), fila/cache (Redis), logs (quando aplicável).
+  - Hospedagem (VPS Hostinger): contratada explicitamente como Brasil.
+  - E-mail (Hostinger): classificar como transferência internacional de dados pessoais; finalidade: comunicação corporativa; base legal: execução de contrato e legítimo interesse.
 
 Para cada terceiro, prever:
 - Papel (operador/suboperador/controlador independente).
@@ -107,6 +121,8 @@ Para cada terceiro, prever:
 - Medidas técnicas e organizacionais:
   - Hash de senha, tokens com expiração, cookies httpOnly, TLS, rate limiting.
   - Proteção de conteúdo (URLs assinadas e, quando aplicável, HLS/criptografia).
+  - Antiabuso usa IP, user-agent e rede/ASN para limitar tentativas, mantendo contadores em memória (sem persistência em banco) (`backend/src/common/anti-abuse/anti-abuse.service.ts:29`).
+  - Em desenvolvimento, o `DevExceptionFilter` pode registrar payload com metadados da requisição no console (`backend/src/common/filters/dev-exception.filter.ts:1` e `backend/src/main.ts:62`).
 - Gestão de incidentes:
   - Como o usuário será notificado, prazos e critérios.
 
@@ -133,7 +149,7 @@ Para cada terceiro, prever:
   - Há documentos ativos por tipo (Termos/Privacidade) e aceite por versão (`doc/legal_documents.md:1`).
   - Cadastro exige aceite; renovação de termos pode permitir continuar com aviso (fluxo já previsto) (`doc/legal_documents.md:1` e `backend/src/modules/auth/auth.service.ts:60`).
 - Idade mínima e responsabilidade do titular da conta:
-  - O responsável declara ser maior e capaz e responsável por perfis infantis.
+  - Somente responsáveis adultos criam contas; o responsável declara ser maior e capaz e responsável por perfis infantis.
 
 ### 3.2) Regras de uso e condutas proibidas
 
@@ -166,9 +182,12 @@ Para cada terceiro, prever:
 
 ### 3.6) Assinatura, cobrança, cancelamento e reembolsos
 
+- O serviço pode iniciar gratuito, com possível introdução futura de recursos premium por assinatura.
 - Planos, periodicidade, valores, reajustes e formas de pagamento.
 - Intermediação de pagamento (gateway): responsabilidades e comunicação de falhas.
 - Canal de compra: assinatura fora das lojas (ex.: checkout/gateway como Asaas).
+- Comunicação de cobrança/assinatura:
+  - Pode ocorrer envio por endereços `@asaas.com` (ex.: `cobrancas+876778@asaas.com`), mas o mais provável é não haver e-mails de cobrança.
 - Cancelamento e efeitos:
   - Fim do período vigente, encerramento de acesso, tratamento de faturas pendentes.
 - Política de reembolso/arrependimento (adequar ao CDC e ao canal de compra: web/lojas).
@@ -208,43 +227,6 @@ Para cada terceiro, prever:
 - Alternativas: atendimento, mediação/consumidor.gov, arbitragem (se fizer sentido).
 
 ## 4) Pontos transversais (o que precisa ser decidido antes da redação)
-
-### 4.1) Decisões já tomadas
-- Dados obrigatórios vs opcionais:
-  - `birthDate` (data de nascimento do perfil infantil) é obrigatório no cadastro do perfil (ex.: DTO exige `birthDate`) (`backend/src/modules/profiles/dto/create-profile.dto.ts:21`).
-  - `parentalPin` é opcional e hoje não aparece nos fluxos de UI (web/mobile); existe suporte no backend para armazenar e validar via endpoint, caso seja adotado no app (`backend/src/modules/profiles/profiles.controller.ts:83` e `backend/src/modules/profiles/profiles.service.ts:56`).
-- Público:
-  - Somente responsáveis adultos criam contas; a criança usa o conteúdo via perfis infantis vinculados ao responsável.
-- Monetização:
-  - Início gratuito, com possível introdução futura de recursos premium por assinatura.
-  - Página de assinatura pode ficar oculta enquanto não for usada.
-- Publicidade:
-  - Publicidade apenas contextual, sem anúncios personalizados.
-- Canal de compra da assinatura:
-  - Compra fora das lojas, via gateway (Asaas) e seus fluxos de cobrança/webhooks.
-- Infraestrutura (para cláusulas de terceiros/transferência):
-  - Storage: Cloudflare R2; CDN: Cloudflare; gateway: Asaas; e-mail: Hostinger; hospedagem do servidor: Hostinger.
-- Logs (estado atual do sistema):
-  - Antiabuso usa IP, user-agent e rede/ASN para limitar tentativas, mantendo contadores em memória (sem persistência em banco) (`backend/src/common/anti-abuse/anti-abuse.service.ts:29`).
-  - Em desenvolvimento, o `DevExceptionFilter` pode registrar payload com metadados da requisição no console (`backend/src/common/filters/dev-exception.filter.ts:1` e `backend/src/main.ts:62`).
-- Política de comunicação:
-  - E-mails transacionais:
-    - Verificação de e-mail: `naoresponda@ninaro.com.br`.
-    - Recuperação de senha: `naoresponda@ninaro.com.br`.
-    - Cobrança/assinatura (Asaas): pode ocorrer envio por endereços `@asaas.com` (ex.: `cobrancas+876778@asaas.com`), mas o mais provável é não haver e-mails de cobrança.
-  - E-mails de marketing:
-    - Remetente planejado: `marketing@ninaro.com.br`.
-    - Inicialmente, não haverá newsletter/ofertas nem push promocional; portanto, não há opt-out a implementar nesse momento.
-  - Canal LGPD/privacidade: `privacidade@empresa.com`.
-- Enquadramento com terceiros:
-  - Papéis (LGPD):
-    - Controlador: Ninaro.
-    - Operadores: Cloudflare (R2/CDN/segurança), Hostinger (hospedagem e e-mail), Asaas (gateway/checkout).
-  - Transferência internacional:
-    - Cloudflare R2/CDN/segurança: infraestrutura distribuída globalmente, sem seleção de local físico específico; dados podem ser armazenados/processados fora do Brasil, observadas medidas adequadas de segurança e proteção.
-    - Hospedagem (VPS Hostinger): contratada explicitamente como Brasil.
-    - E-mail (Hostinger): classificar como transferência internacional de dados pessoais; finalidade: comunicação corporativa; base legal: execução de contrato e legítimo interesse.
-    - Asaas (gateway/checkout): fintech brasileira autorizada pelo Banco Central; processamento no ambiente do Asaas; pela integração com instituições financeiras/redes de cartão/autenticação, pode ocorrer comunicação/transmissão de dados para fora do Brasil, observadas medidas de segurança aplicáveis e conformidade com a legislação vigente.
 
 ### 4.2) Decisões pendentes (definir antes de “fechar” a redação)
 

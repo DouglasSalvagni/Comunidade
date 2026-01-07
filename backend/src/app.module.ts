@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 // import { RedisModule } from '@nestjs-modules/ioredis';
@@ -16,9 +16,11 @@ import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { PlaylistsModule } from './modules/playlists/playlists.module';
 import { LegalModule } from './modules/legal/legal.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 import databaseConfig from './config/database.config';
 // import redisConfig from './config/redis.config';
+import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
 
 @Module({
   imports: [
@@ -93,11 +95,16 @@ import databaseConfig from './config/database.config';
     AdminModule,
     MediaModule,
     LegalModule,
+    AuditModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
     },
   ],
 })

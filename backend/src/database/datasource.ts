@@ -27,6 +27,7 @@ import { Affiliate } from '@/modules/subscriptions/entities/affiliate.entity'
 import { Partnership } from '@/modules/subscriptions/entities/partnership.entity'
 import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnership-affiliate.entity'
 import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity'
+import { AuditLog } from '@/modules/audit/entities/audit-log.entity'
 import * as path from 'path'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
@@ -71,6 +72,7 @@ const AppDataSource = new DataSource({
     Partnership,
     PartnershipAffiliate,
     UserActiveCoupon,
+    AuditLog,
   ],
   migrations: [migrationsPath],
 })

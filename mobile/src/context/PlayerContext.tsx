@@ -40,6 +40,16 @@ type PlayerContextValue = {
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
 
+function toSafeMediaUrl(rawUrl: string): string {
+  const trimmed = (rawUrl || '').trim()
+  if (!trimmed) return ''
+  try {
+    return encodeURI(trimmed)
+  } catch {
+    return trimmed
+  }
+}
+
 async function computeHlsDuration(masterUrl: string): Promise<number> {
   try {
     const masterRes = await fetch(masterUrl)
@@ -348,7 +358,7 @@ export function PlayerProvider({ children }: { children: any }) {
 
       // Get streaming URL from backend
       const res = await apiGetStreamingUrl(accessToken, track.id, 'original')
-      const url = (res as any)?.url || ''
+      const url = toSafeMediaUrl((res as any)?.url || '')
       if (!url) {
         isLoadingTrack.current = false
         return

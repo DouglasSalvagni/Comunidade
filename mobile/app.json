@@ -18,8 +18,11 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",
+          "audio",
+          "audio",
           "audio"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.wizer.ninaro.android"
     },
@@ -36,7 +39,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://56a92d009b1d.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://api.ninaro.com.br/api/v1",
       "siteBaseUrl": "http://ninaro.com.br",
       "googleOAuth": {
         "expoClientId": "138589572018-4htk4o9k84oembmlhq91acib0tnkstcp.apps.googleusercontent.com"

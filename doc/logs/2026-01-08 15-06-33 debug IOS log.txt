@@ -1,0 +1,74 @@
+2026-01-08 12:05:21.781927-0600 Ninaro[79693:4184199] [SceneConfiguration] Info.plist contained no UIScene configuration dictionary (looking for configuration named "(no name)")
+
+2026-01-08 12:05:21.784095-0600 Ninaro[79693:4184199] You've implemented -[<UIApplicationDelegate> application:performFetchWithCompletionHandler:], but you still need to add "fetch" to the list of your supported UIBackgroundModes in your Info.plist.
+
+2026-01-08 12:05:21.784139-0600 Ninaro[79693:4184199] You've implemented -[<UIApplicationDelegate> application:didReceiveRemoteNotification:fetchCompletionHandler:], but you still need to add "remote-notification" to the list of your supported UIBackgroundModes in your Info.plist.
+
+2026-01-08 12:05:21.785186-0600 Ninaro[79693:4184199] _setUpFeatureFlags called with release level 2
+
+2026-01-08 12:05:21.981167-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoModulesCoreJSLogger'
+
+2026-01-08 12:05:21.992027-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoFetchModule'
+
+2026-01-08 12:05:21.993909-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoApplication'
+
+2026-01-08 12:05:21.994503-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoAsset'
+
+2026-01-08 12:05:21.997494-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoVideoView'
+2026-01-08 12:05:21.998024-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExponentConstants'
+
+2026-01-08 12:05:22.000198-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoCrypto'
+
+2026-01-08 12:05:22.012621-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'FileSystem'
+
+2026-01-08 12:05:22.017995-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExponentFileSystem'
+
+2026-01-08 12:05:22.018901-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoFontLoader'
+
+2026-01-08 12:05:22.019465-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoFontUtils'
+
+2026-01-08 12:05:22.020322-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoKeepAwake'
+
+2026-01-08 12:05:22.021149-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoLinking'
+
+2026-01-08 12:05:22.022100-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoSystemUI'
+
+2026-01-08 12:05:22.033879-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoVideo'
+
+2026-01-08 12:05:22.035557-0600 Ninaro[79693:4184199] [expo] 🟢 Registering module 'ExpoWebBrowser'
+
+2026-01-08 12:05:22.062090-0600 Ninaro[79693:4184199] [plugin] AddInstanceForFactory: No factory registered for id <CFUUID 0x600003a2fc60> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+
+2026-01-08 12:05:22.228431-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExponentConstants'
+
+2026-01-08 12:05:22.231086-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExpoVideoView'
+2026-01-08 12:05:22.231192-0600 Ninaro[79693:4184290] [javascript] [expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
+
+2026-01-08 12:05:22.234652-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExpoWebBrowser'
+
+2026-01-08 12:05:22.266799-0600 Ninaro[79693:4184290] [native] Unbalanced calls start/end for tag 20
+2026-01-08 12:05:22.266848-0600 Ninaro[79693:4184290] [native] Unbalanced calls start/end for tag 19
+
+2026-01-08 12:05:22.268849-0600 Ninaro[79693:4184290] [javascript] Running "main"
+
+2026-01-08 12:05:22.269640-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExpoSystemUI'
+
+2026-01-08 12:05:22.275645-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExpoFontLoader'
+
+2026-01-08 12:05:22.286297-0600 Ninaro[79693:4184290] [expo] 🟢 Creating JS object for module 'ExpoAsset'
+
+2026-01-08 12:05:22.287044-0600 Ninaro[79693:4184281] [native] RNGoogleSignin: failed to determine clientID - GoogleService-Info.plist was not found and iosClientId was not provided. To fix this error:
+If you use Firebase, download GoogleService-Info.plist file from Firebase and place it into the project. Read the iOS guide / Expo guide to learn more.
+Otherwise pass 'iosClientId' option to configure().
+
+2026-01-08 12:05:34.673960-0600 Ninaro[79693:4184290] [javascript] '[Mobile][GoogleLogin] erro', { code: 'configure',
+  message: 'RNGoogleSignin: failed to determine clientID - GoogleService-Info.plist was not found and iosClientId was not provided. To fix this error:\nIf you use Firebase, download GoogleService-Info.plist file from Firebase and place it into the project. Read the iOS guide / Expo guide to learn more.\nOtherwise pass \'iosClientId\' option to configure().' }
+
+2026-01-08 12:05:45.257783-0600 Ninaro[79693:4184199] [SceneConfiguration] Info.plist contained no UIScene configuration dictionary (looking for configuration named "(no name)")
+
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0108 12:06:02.157397 1877307392 UIManagerBinding.cpp:135] instanceHandle is null, event of type topEndEditing will be dropped
+
+2026-01-08 12:06:08.806384-0600 Ninaro[79693:4187261] [connection] nw_connection_copy_connected_local_endpoint_block_invoke [C3] Client called nw_connection_copy_connected_local_endpoint on unconnected nw_connection
+2026-01-08 12:06:08.806447-0600 Ninaro[79693:4187261] [connection] nw_connection_copy_connected_remote_endpoint_block_invoke [C3] Client called nw_connection_copy_connected_remote_endpoint on unconnected nw_connection
+2026-01-08 12:06:08.806484-0600 Ninaro[79693:4187261] [connection] nw_connection_copy_protocol_metadata_internal_block_invoke [C3] Client called nw_connection_copy_protocol_metadata_internal on unconnected nw_connection

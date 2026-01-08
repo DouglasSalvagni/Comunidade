@@ -9,6 +9,32 @@ import { Repository } from 'typeorm';
 import { Track } from '@/modules/catalog/entities/track.entity';
 import * as Sharp from 'sharp';
 
+function sanitizeUploadFileName(fileName: string): string {
+  const raw = (fileName || '').trim();
+  if (!raw) return 'file';
+
+  const lastDot = raw.lastIndexOf('.');
+  const hasExt = lastDot > 0 && lastDot < raw.length - 1;
+  const base = hasExt ? raw.slice(0, lastDot) : raw;
+  const ext = hasExt ? raw.slice(lastDot + 1) : '';
+
+  const normalizedBase = base
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+
+  const safeBase = normalizedBase || 'file';
+  const safeExt = ext
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '')
+    .toLowerCase();
+
+  return safeExt ? `${safeBase}.${safeExt}` : safeBase;
+}
+
 @Injectable()
 export class MediaService {
   private s3: AWS.S3;
@@ -36,7 +62,8 @@ export class MediaService {
     fileType: string,
     fileSize: number,
   ): Promise<{ uploadUrl: string; storageKey: string; expiresAt: Date }> {
-    const key = `uploads/${uuidv4()}/${fileName}`;
+    const safeName = sanitizeUploadFileName(fileName);
+    const key = `uploads/${uuidv4()}/${safeName}`;
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // URL expira em 1 hora
 

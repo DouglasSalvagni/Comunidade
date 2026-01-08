@@ -21,6 +21,7 @@
 - `eas build -p android --profile production`
 
 - `eas build --profile development --platform android`
+- `eas build --profile preview --platform ios`
 
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`

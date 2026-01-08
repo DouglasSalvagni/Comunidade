@@ -12,6 +12,12 @@ import { Track } from '@/modules/catalog/entities/track.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 
+function toSafePublicUrl(rawUrl: string): string {
+  const trimmed = (rawUrl || '').trim();
+  if (!trimmed) return '';
+  return trimmed;
+}
+
 @Injectable()
 export class PlaybackService {
   private s3: AWS.S3;
@@ -51,27 +57,30 @@ export class PlaybackService {
     const cdnBase = (this.configService.get<string>('CDN_BASE_URL') || '').replace(/\/$/, '');
     if (masterKey && !preferOriginal) {
       if (cdnBase) {
-        return { url: `${cdnBase}/${masterKey}`, expiresAt };
+        return { url: toSafePublicUrl(`${cdnBase}/${masterKey}`), expiresAt };
       }
       const url = this.s3.getSignedUrl('getObject', {
         Bucket: this.configService.get<string>('S3_BUCKET'),
         Key: masterKey,
         Expires: 600,
       });
-      return { url, expiresAt };
+      return { url: toSafePublicUrl(url), expiresAt };
+    }
+    if (preferOriginal && !cdnBase && track.audioUrl) {
+      return { url: toSafePublicUrl(track.audioUrl), expiresAt };
     }
     if (track.storageKey) {
       if (cdnBase) {
-        return { url: `${cdnBase}/${track.storageKey}`, expiresAt };
+        return { url: toSafePublicUrl(`${cdnBase}/${track.storageKey}`), expiresAt };
       }
       const url = this.s3.getSignedUrl('getObject', {
         Bucket: this.configService.get<string>('S3_BUCKET'),
         Key: track.storageKey,
         Expires: 600,
       });
-      return { url, expiresAt };
+      return { url: toSafePublicUrl(url), expiresAt };
     }
-    return { url: track.audioUrl, expiresAt };
+    return { url: toSafePublicUrl(track.audioUrl), expiresAt };
   }
 
   async recordPlayEvent(

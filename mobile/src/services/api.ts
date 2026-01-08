@@ -2,6 +2,12 @@ import appConfig from '../../app.json'
 
 const BASE_URL: string = (appConfig as any)?.expo?.extra?.apiBaseUrl || ''
 
+let unauthorizedHandler: (() => void) | undefined
+
+export function setUnauthorizedHandler(handler?: () => void) {
+  unauthorizedHandler = handler
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -12,6 +18,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   })
   if (!res.ok) {
+    if (res.status === 401) {
+      try { unauthorizedHandler?.() } catch {}
+    }
     const text = await res.text()
     
     try {

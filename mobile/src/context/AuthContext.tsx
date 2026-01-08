@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiLogin, apiRegister, apiVerifyEmail, apiForgotPassword, apiResetPassword, apiProfile, apiGoogleOAuth } from '../services/api'
+import { apiLogin, apiRegister, apiVerifyEmail, apiForgotPassword, apiResetPassword, apiProfile, apiGoogleOAuth, setUnauthorizedHandler } from '../services/api'
 
 type AuthUser = {
   id: string
@@ -145,6 +145,11 @@ export function AuthProvider({ children }: { children: any }) {
     setActiveProfileId(null)
     AsyncStorage.multiRemove(['accessToken', 'user', 'activeProfileId'])
   }
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => logout())
+    return () => setUnauthorizedHandler(undefined)
+  }, [])
 
   // Intercept setActiveProfileId to persist it
   const setActiveProfileIdWithPersistence = (id: string | null) => {

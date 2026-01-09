@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, SkipBack } from "lucide-react";
 import Hls from "hls.js";
 import { api } from "@/services/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MusicNoteAnimation = ({ isPlaying }: { isPlaying: boolean }) => {
   return (
@@ -21,7 +22,7 @@ const MusicNoteAnimation = ({ isPlaying }: { isPlaying: boolean }) => {
 };
 
 export const AudioPreviewInspira: React.FC = () => {
-  const PREVIEW_PERCENT = 0.05;
+  const PREVIEW_PERCENT = 0.15;
   const FADE_SECONDS = 3;
   const MIN_EFFECTIVE_PREVIEW_SECONDS = 1;
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,6 +31,7 @@ export const AudioPreviewInspira: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [currentSeconds, setCurrentSeconds] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const durationRef = useRef(0);
@@ -40,10 +42,14 @@ export const AudioPreviewInspira: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        setIsLoading(true);
         const list = await api.getLandingSamples(3);
         setSamples(Array.isArray(list) ? list : []);
         setCurrentIndex(0);
       } catch {}
+      finally {
+        setIsLoading(false);
+      }
     };
     load();
   }, []);
@@ -167,14 +173,28 @@ export const AudioPreviewInspira: React.FC = () => {
             De aventuras espaciais a contos de fadas. Nosso catálogo cresce toda semana com produções de alta qualidade.
           </p>
           <ul className="space-y-4">
-            {(((Array.isArray(samples) ? samples : [])).length ? samples : []).map((item, idx) => (
-              <li key={item.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border border-white/5" onClick={() => setCurrentIndex(idx)}>
-                <div className="w-10 h-10 rounded-full bg-brand-teal/20 flex items-center justify-center text-brand-teal font-bold">{idx + 1}</div>
-                <span className="font-semibold text-lg">{item.title}</span>
-                {idx === currentIndex && <div className="ml-auto text-xs bg-brand-orange px-2 py-1 rounded text-white font-bold">Tocando</div>}
-              </li>
-            ))}
-            {(!samples || samples.length === 0) && (
+            {isLoading ? (
+              <>
+                {[0, 1, 2].map((idx) => (
+                  <li key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
+                    <Skeleton className="w-10 h-10 rounded-full bg-white/10" />
+                    <Skeleton className="h-5 w-56 bg-white/10" />
+                    <div className="ml-auto">
+                      <Skeleton className="h-5 w-16 rounded bg-white/10" />
+                    </div>
+                  </li>
+                ))}
+              </>
+            ) : (
+              (((Array.isArray(samples) ? samples : [])).length ? samples : []).map((item, idx) => (
+                <li key={item.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border border-white/5" onClick={() => setCurrentIndex(idx)}>
+                  <div className="w-10 h-10 rounded-full bg-brand-teal/20 flex items-center justify-center text-brand-teal font-bold">{idx + 1}</div>
+                  <span className="font-semibold text-lg">{item.title}</span>
+                  {idx === currentIndex && <div className="ml-auto text-xs bg-brand-orange px-2 py-1 rounded text-white font-bold">Tocando</div>}
+                </li>
+              ))
+            )}
+            {!isLoading && (!samples || samples.length === 0) && (
               <li className="p-4 rounded-xl bg-white/5 border border-white/5 text-sm text-gray-300">Sem amostras disponíveis no momento</li>
             )}
           </ul>
@@ -182,18 +202,30 @@ export const AudioPreviewInspira: React.FC = () => {
 
         <div className="lg:w-1/2 w-full max-w-md z-10">
           <motion.div whileHover={{ scale: 1.02 }} className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-8 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-            <div className="relative aspect-square rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-8 overflow-hidden shadow-inner group">
-              <img src={samples[currentIndex]?.coverUrl || "https://picsum.photos/400/400?random=1"} alt="Album Art" className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
-                  <MusicNoteAnimation isPlaying={isPlaying} />
+            {isLoading ? (
+              <>
+                <Skeleton className="aspect-square rounded-3xl mb-8 bg-white/10" />
+                <div className="mb-6 space-y-2">
+                  <Skeleton className="h-7 w-3/4 bg-white/10" />
+                  <Skeleton className="h-5 w-1/2 bg-white/10" />
                 </div>
-              </div>
-            </div>
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold mb-1">{samples[currentIndex]?.title || "Amostra"}</h3>
-              <p className="text-brand-teal font-medium">Amostra da plataforma</p>
-            </div>
+              </>
+            ) : (
+              <>
+                <div className="relative aspect-square rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-8 overflow-hidden shadow-inner group">
+                  <img src={samples[currentIndex]?.coverUrl || "https://picsum.photos/400/400?random=1"} alt="Album Art" className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                      <MusicNoteAnimation isPlaying={isPlaying} />
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold mb-1">{samples[currentIndex]?.title || "Amostra"}</h3>
+                  <p className="text-brand-teal font-medium">Amostra da plataforma</p>
+                </div>
+              </>
+            )}
             
             
             <div className="flex items-center justify-center">

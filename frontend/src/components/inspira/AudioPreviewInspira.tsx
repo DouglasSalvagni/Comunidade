@@ -21,6 +21,9 @@ const MusicNoteAnimation = ({ isPlaying }: { isPlaying: boolean }) => {
 };
 
 export const AudioPreviewInspira: React.FC = () => {
+  const PREVIEW_PERCENT = 0.05;
+  const FADE_SECONDS = 3;
+  const MIN_EFFECTIVE_PREVIEW_SECONDS = 1;
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [samples, setSamples] = useState<Array<{ id: string; title: string; coverUrl?: string; hlsUrl?: string }>>([]);
@@ -29,6 +32,10 @@ export const AudioPreviewInspira: React.FC = () => {
   const [currentSeconds, setCurrentSeconds] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const durationRef = useRef(0);
+  const limitRef = useRef(0);
+  const baseVolumeRef = useRef(1);
+  const fadeDurationRef = useRef(0);
 
   useEffect(() => {
     const load = async () => {
@@ -45,11 +52,69 @@ export const AudioPreviewInspira: React.FC = () => {
     const el = audioRef.current;
     const item = samples[currentIndex];
     if (!el || !item?.hlsUrl) return;
+    el.pause();
+    try {
+      el.currentTime = 0;
+    } catch {}
+    el.volume = 1;
+    baseVolumeRef.current = 1;
+    durationRef.current = 0;
+    limitRef.current = 0;
+    fadeDurationRef.current = 0;
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
     const url = item.hlsUrl;
+    const updateLimitFromDuration = (totalSeconds: number) => {
+      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return;
+      durationRef.current = Math.max(durationRef.current, totalSeconds);
+      const limit = durationRef.current * PREVIEW_PERCENT;
+      if (limit >= MIN_EFFECTIVE_PREVIEW_SECONDS && limit > limitRef.current) {
+        limitRef.current = limit;
+        fadeDurationRef.current = Math.min(FADE_SECONDS, limit);
+      }
+      setDurationSeconds(durationRef.current);
+    };
+    const onDurationChange = () => {
+      updateLimitFromDuration(el.duration || 0);
+    };
+    const onEnded = () => {
+      setIsPlaying(false);
+      try {
+        el.currentTime = 0;
+      } catch {}
+      el.volume = baseVolumeRef.current;
+    };
+    const onTimeUpdate = () => {
+      const dur = durationRef.current || el.duration || 0;
+      const pos = el.currentTime || 0;
+      setProgress(dur ? Math.min(100, (pos / dur) * 100) : 0);
+      setCurrentSeconds(pos);
+      const limit = limitRef.current;
+      const fade = fadeDurationRef.current;
+      if (limit > 0 && fade > 0) {
+        const remaining = limit - pos;
+        if (remaining <= fade && remaining >= 0) {
+          const ratio = Math.max(0, Math.min(1, remaining / fade));
+          el.volume = baseVolumeRef.current * ratio;
+        } else {
+          el.volume = baseVolumeRef.current;
+        }
+      }
+      if (limit > 0 && pos >= limit) {
+        el.pause();
+        setIsPlaying(false);
+        try {
+          el.currentTime = 0;
+        } catch {}
+        el.volume = baseVolumeRef.current;
+      }
+    };
+    el.addEventListener("ended", onEnded);
+    el.addEventListener("timeupdate", onTimeUpdate);
+    el.addEventListener("durationchange", onDurationChange);
+    let cleanupMetadata: (() => void) | null = null;
     if (url && url.includes('.m3u8') && Hls.isSupported()) {
       const hls = new Hls();
       hlsRef.current = hls;
@@ -59,33 +124,31 @@ export const AudioPreviewInspira: React.FC = () => {
         const d = data?.details;
         if (d && d.live === false && typeof d.totalduration === 'number') {
           const total = d.totalduration || 0;
-          setDurationSeconds(total);
-          const onTime = () => {
-            const pos = el.currentTime || 0;
-            const pct = total ? Math.min(100, (pos / total) * 100) : 0;
-            setProgress(pct);
-            setCurrentSeconds(pos);
-          };
-          el.addEventListener('timeupdate', onTime);
+          updateLimitFromDuration(total);
         }
       });
     } else {
       el.src = url;
       const onMeta = () => {
         const dur = el.duration || 0;
-        setDurationSeconds(dur);
+        updateLimitFromDuration(dur);
       };
       el.addEventListener('loadedmetadata', onMeta);
-      const onTime = () => {
-        const dur = el.duration || 0;
-        const pos = el.currentTime || 0;
-        setProgress(dur ? Math.min(100, (pos / dur) * 100) : 0);
-        setCurrentSeconds(pos);
-      };
-      el.addEventListener('timeupdate', onTime);
+      cleanupMetadata = () => el.removeEventListener("loadedmetadata", onMeta);
     }
     setIsPlaying(false);
     setCurrentSeconds(0);
+    setProgress(0);
+    return () => {
+      cleanupMetadata?.();
+      el.removeEventListener("ended", onEnded);
+      el.removeEventListener("timeupdate", onTimeUpdate);
+      el.removeEventListener("durationchange", onDurationChange);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
   }, [samples, currentIndex]);
 
   const formatTime = (s: number) => {
@@ -140,7 +203,19 @@ export const AudioPreviewInspira: React.FC = () => {
                 </button>
                 <button onClick={() => {
                   const el = audioRef.current; if (!el) return;
-                  if (isPlaying) { el.pause(); setIsPlaying(false); } else { el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); }
+                  if (isPlaying) {
+                    el.pause();
+                    setIsPlaying(false);
+                  } else {
+                    const limit = limitRef.current;
+                    if (limit > 0 && (el.currentTime || 0) >= limit) {
+                      try {
+                        el.currentTime = 0;
+                      } catch {}
+                    }
+                    el.volume = baseVolumeRef.current;
+                    el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                  }
                 }} className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center shadow-lg hover:bg-orange-500 transition-all transform hover:scale-110">
                   {isPlaying ? <Pause fill="white" /> : <Play fill="white" className="ml-1" />}
                 </button>

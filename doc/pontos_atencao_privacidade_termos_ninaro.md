@@ -232,4 +232,12 @@ Para cada terceiro, prever:
 
 - Logs e retenção:
   - Definir política de retenção e acesso aos logs no provedor de hospedagem (Hostinger) e controles internos.
+  - Especificar quais dados podem constar nos logs técnicos/auditoria (ex.: `user_id` quando autenticado, `ip`, `user_agent`, método, rota/path, `status_code`, duração, identificadores de correlação e nome do erro).
+  - Declarar finalidades dos logs (segurança, prevenção/detecção de fraude e abuso, auditoria/rastreabilidade, diagnóstico de falhas e conformidade).
+  - Indicar base legal aplicável para logs de segurança/auditoria (em geral legítimo interesse e/ou cumprimento de obrigação legal/exercício regular de direitos, conforme o caso).
+  - Garantir minimização: logs de auditoria devem registrar metadados técnicos e não conteúdo sensível (ex.: senha, token, dados de pagamento) ou conteúdo do usuário; prever controles para evitar inclusão indevida.
+  - Definir prazos de retenção (por tipo de log) e critérios de extensão (ex.: investigação de incidente, obrigação legal), além de política de expurgo/anonymização ao final.
+  - Definir quem acessa os logs e sob quais controles (princípio da necessidade, perfis autorizados, trilha de auditoria de acessos administrativos quando aplicável).
+  - Definir regras de compartilhamento (operadores/infraestrutura e autoridades) e em quais hipóteses os logs podem ser utilizados/fornecidos.
+  - Definir medidas de segurança e segregação (ambientes, backups, acesso restrito) e o tratamento de incidentes envolvendo logs.
 

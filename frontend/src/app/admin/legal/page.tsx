@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, LegalDocument } from "@/services/api";
 import { toast } from "sonner";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 type DocType = 'PRIVACY_POLICY' | 'TERMS_OF_USE' | 'ALL';
 
@@ -68,7 +69,7 @@ const AdminLegalPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label>Conteúdo (HTML)</Label>
+                <Label>Conteúdo (Markdown)</Label>
                 <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={12} className="font-mono text-sm" />
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setPreview(p => !p)}>{preview ? "Editar" : "Pré-visualizar"}</Button>
@@ -76,7 +77,7 @@ const AdminLegalPage = () => {
                   <Button onClick={() => handleCreate('PRIVACY_POLICY', true)}>Criar e Ativar</Button>
                 </div>
                 {preview && (
-                  <div className="prose border rounded-md p-4" dangerouslySetInnerHTML={{ __html: content }} />
+                  <MarkdownRenderer content={content} className="border rounded-md p-4" />
                 )}
               </div>
             </CardContent>
@@ -121,7 +122,7 @@ const AdminLegalPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Label>Conteúdo (HTML)</Label>
+                <Label>Conteúdo (Markdown)</Label>
                 <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={12} className="font-mono text-sm" />
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setPreview(p => !p)}>{preview ? "Editar" : "Pré-visualizar"}</Button>
@@ -129,7 +130,7 @@ const AdminLegalPage = () => {
                   <Button onClick={() => handleCreate('TERMS_OF_USE', true)}>Criar e Ativar</Button>
                 </div>
                 {preview && (
-                  <div className="prose border rounded-md p-4" dangerouslySetInnerHTML={{ __html: content }} />
+                  <MarkdownRenderer content={content} className="border rounded-md p-4" />
                 )}
               </div>
             </CardContent>

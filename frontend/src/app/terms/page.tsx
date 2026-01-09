@@ -2,6 +2,7 @@ import React from "react";
 import NavbarInspira from "@/components/inspira/NavbarInspira";
 import FooterInspira from "@/components/inspira/FooterInspira";
 import { Card } from "@/components/ui/card";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default async function TermsPage() {
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3003/api/v1';
@@ -21,7 +22,7 @@ export default async function TermsPage() {
           
           <div className="space-y-4 leading-relaxed">
             {doc ? (
-              <div dangerouslySetInnerHTML={{ __html: doc.content }} />
+              <MarkdownRenderer content={doc.content} proseClassName="prose-invert" />
             ) : (
               <p className="text-gray-300">Nenhum documento ativo.</p>
             )}

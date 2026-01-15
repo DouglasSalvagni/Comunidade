@@ -1,231 +1,148 @@
 # Política de Privacidade — Ninaro
 
-**Última atualização:** \[PREENCHER]  
-**Versão:** \[PREENCHER]
 
-Este documento descreve como o Ninaro (“**Ninaro**”, “**nós**”) trata dados pessoais no contexto do acesso e uso do nosso serviço (web, aplicativo mobile e APIs), em conformidade com a Lei Geral de Proteção de Dados Pessoais — **LGPD** (Lei nº 13.709/2018), sem prejuízo de outras normas aplicáveis.
+Bem-vindo(a) ao **Ninaro**. A sua privacidade e a segurança dos dados da sua família são prioridades para nós. Esta Política de Privacidade descreve como coletamos, usamos, armazenamos e protegemos suas informações pessoais ao utilizar nosso site, aplicativo móvel e serviços relacionados (coletivamente, "Serviços").
 
-## 1. Campos para publicação (preencher antes de usar em produção)
+Ao utilizar o Ninaro, você reconhece que leu e compreendeu esta Política.
 
-- **Controlador:** \[RAZÃO SOCIAL / NOME], \[CNPJ/CPF]  
-- **Endereço:** \[ENDEREÇO COMPLETO]  
-- **E-mail de privacidade (LGPD):** \[E-MAIL]  
-- **E-mail de suporte:** \[E-MAIL]  
-- **Encarregado/DPO (se aplicável):** \[NOME E CONTATO]  
-- **Site:** \[URL]  
+---
 
-## 2. Escopo e definições
+## 1. Controlador dos Dados e Contato
 
-### 2.1. Escopo
+O controlador dos seus dados pessoais é o **Ninaro** (aqui referido como "nós", "nosso" ou "Plataforma").
 
-Esta Política se aplica ao tratamento de dados pessoais realizado:
+- **Razão Social:** Wiser Wizer Tecnologia Aplicada LTDA
+- **CNPJ:** 41.326.511/0001-85
+- **E-mail para contato sobre privacidade:** `privacidade@ninaro.com.br`
+- **Encarregado de Dados (DPO):** Douglas Fagundes Salvagni, `protecaodedados@ninaro.com.br`
 
-- No site e aplicativo web do Ninaro (incluindo páginas públicas, autenticação, dashboard e área administrativa).
-- No aplicativo mobile do Ninaro.
-- Nas APIs e demais serviços de backend do Ninaro.
-- Na infraestrutura associada (por exemplo: hospedagem, CDN e e-mail transacional).
+Esta política aplica-se aos usuários localizados no Brasil, estando em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - **LGPD**). Caso você acesse de fora do Brasil, seus dados serão tratados conforme as leis brasileiras e esta política.
 
-### 2.2. Definições
+---
 
-- **Titular:** pessoa natural a quem se referem os dados pessoais (por exemplo, o responsável titular da conta e, quando aplicável, a criança vinculada a um perfil).
-- **Conta:** cadastro do responsável (adulto) que acessa o Ninaro.
-- **Perfil Infantil:** perfil criado dentro da conta para uso por criança/adolescente.
-- **Conteúdo:** músicas, audiobooks e demais mídias disponibilizadas no catálogo.
-- **Tratamento:** qualquer operação com dados pessoais, como coleta, uso, armazenamento, compartilhamento e exclusão.
-- **Controlador / Operador:** conforme a LGPD.
+## 2. Dados que Coletamos
 
-## 3. Quem é o controlador e como falar conosco
+Tratamos diferentes categorias de dados dependendo de como você interage com a plataforma. Diferenciamos dados do titular da conta (responsável legal) e dados dos perfis infantis.
 
-O Ninaro é o **controlador** dos dados pessoais tratados no âmbito do Serviço.  
-Para assuntos de privacidade e LGPD, use o canal: **\[E-MAIL DE PRIVACIDADE]**.
+### 2.1. Dados do Titular da Conta (Responsável)
+Coletados para criação e gestão da conta, faturamento e segurança.
+- **Identificação e Contato:** Nome completo, e-mail.
+- **Autenticação:** Senha (armazenada de forma criptografada/hash), status de verificação de e-mail e tokens de recuperação.
+- **Login Social:** Se você optar por entrar com Google, recebemos seu nome, e-mail e ID do provedor.
+- **Dados Financeiros:** Histórico de assinaturas, status de pagamento e faturas. **Atenção:** O processamento de pagamentos é realizado por parceiros (ex: Asaas); nós não armazenamos o número completo do seu cartão de crédito, apenas identificadores de transação e status.
 
-## 4. Quais dados pessoais tratamos
+### 2.2. Dados dos Perfis Infantis
+Coletados para personalização da experiência e controle parental.
+- **Informações do Perfil:** Nome (ou apelido), data de nascimento e avatar.
+- **Controle:** PIN Parental (opcional) para restringir acesso a configurações.
+- **Uso:** A data de nascimento é utilizada exclusivamente para recomendação de conteúdo adequado à faixa etária, respeitando o princípio da minimização.
 
-O Ninaro foi desenhado para ser usado por um **responsável adulto** que gerencia **perfis infantis**. Por isso, distinguimos os dados do titular da conta e os dados do perfil infantil.
+### 2.3. Dados de Uso e Telemetria
+Coletados automaticamente para melhorar o serviço e garantir o funcionamento técnico.
+- **Reprodução (Playback):** Histórico de músicas/audiobooks ouvidos, posição na faixa, eventos de play/pause e conclusão.
+- **Downloads/Offline:** Identificador do dispositivo (`deviceId`) e controle de licença para conteúdo baixado.
+- **Técnicos:** Endereço IP, tipo de dispositivo, sistema operacional e informações de rede (utilizados para segurança, prevenção de abusos e limites de requisições).
 
-### 4.1. Dados do titular da conta (responsável)
+---
 
-- **Identificação e contato:** nome, e-mail.
-- **Autenticação e segurança:** hash de senha (quando login local), status de verificação de e-mail, tokens de verificação e recuperação de senha (armazenados como hash e com expiração), registros de aceites de documentos legais (versão e data).
-- **Gestão de conta:** status de conta ativa/inativa e papel (usuário/admin).
+## 3. Para que Usamos seus Dados (Finalidade e Base Legal)
 
-### 4.2. Dados de perfis infantis
+| Categoria de Dados | Finalidade | Base Legal (LGPD) |
+| :--- | :--- | :--- |
+| **Dados da Conta** | Criar sua conta, verificar identidade, permitir login e recuperar senha. | Execução de Contrato |
+| **Dados de Assinatura** | Processar pagamentos, gerenciar planos, emitir faturas e liberar acesso ao catálogo. | Execução de Contrato |
+| **Dados de Perfis Infantis** | Personalizar recomendações de conteúdo e gerenciar múltiplos perfis na mesma conta familiar. | Execução de Contrato / Legítimo Interesse |
+| **E-mail** | Enviar comunicações transacionais (confirmação de conta, recuperação de senha, avisos de termos). | Execução de Contrato |
+| **Dados Técnicos/IP** | Prevenir fraudes, abusos (ataques), garantir segurança da plataforma e cumprir obrigações legais (logs). | Legítimo Interesse / Obrigação Legal |
+| **Telemetria de Uso** | Melhorar o catálogo, corrigir erros de reprodução e entender preferências para aprimorar o produto. | Legítimo Interesse |
 
-- **Dados do perfil:** nome, avatar (URL), data de nascimento.
-- **Controle parental:** PIN parental (quando configurado).
+**Nota sobre Marketing:** Atualmente, não enviamos newsletters ou ofertas promocionais. Caso venhamos a fazer isso no futuro, solicitaremos seu consentimento ou ofereceremos uma opção clara de descadastro (*opt-out*).
 
-### 4.3. Dados de uso do serviço (telemetria funcional)
+---
 
-- **Eventos de reprodução:** ações como play/pause/seek/complete, posição aproximada (segundos) e data/hora.
-- **Preferências e organização:** favoritos e playlists (associados à conta e/ou ao perfil, conforme a funcionalidade).
+## 4. Dados de Crianças e Adolescentes
 
-### 4.4. Dados para downloads/offline (quando disponível)
+O Ninaro é uma plataforma para famílias. O tratamento de dados de crianças é realizado com base no **consentimento** fornecido por um dos pais ou responsável legal ao criar a conta e adicionar os perfis.
 
-- **Identificador de dispositivo (`deviceId`):** usado para vincular licenças de download/offline e controlar expiração.
-- **Licença de download:** data de criação e expiração da licença por faixa/perfil/dispositivo.
+- **Responsabilidade:** A conta principal deve ser criada por um adulto (maior de 18 anos).
+- **Minimização:** Coletamos apenas os dados estritamente necessários (ex: data de nascimento) para filtrar e recomendar conteúdo apropriado.
+- **Publicidade:** **Não exibimos publicidade comportamental ou direcionada para crianças.** O ambiente é seguro e livre de rastreamento para fins de marketing de terceiros.
 
-### 4.5. Dados de cobrança e assinatura
+---
 
-O Ninaro pode oferecer planos e cobrança recorrente via provedores de pagamento.
+## 5. Compartilhamento de Dados
 
-- **Assinatura:** status, período de vigência, e identificadores do provedor.
-- **Faturas:** status, valor, vencimento, URL de pagamento e identificadores do provedor.
+Não vendemos seus dados pessoais. Compartilhamos informações apenas com parceiros essenciais para a operação do serviço (Operadores), sob estritas obrigações de confidencialidade e segurança.
 
-O Ninaro procura **minimizar** os dados financeiros tratados diretamente. Dados sensíveis de pagamento (por exemplo: dados completos de cartão) tendem a ser tratados no ambiente do provedor de pagamento, conforme as políticas do próprio provedor.
+- **Infraestrutura e Hospedagem:**
+  - **Hostinger:** Hospedagem de servidores e banco de dados (localizado no Brasil ou com garantias de transferência internacional).
+  - **Cloudflare:** Rede de distribuição de conteúdo (CDN), segurança e armazenamento de mídia (R2). Dados podem trafegar por servidores globais para garantir velocidade e segurança.
+- **Pagamentos:**
+  - **Asaas:** Gateway de pagamento. Ao assinar, seus dados de cobrança são processados diretamente por eles. O Ninaro recebe apenas a confirmação do status. Para mais detalhes sobre como seus dados financeiros são tratados, consulte a [Política de Privacidade do Asaas](https://www.asaasconnect.com.br/politica-de-privacidade/).
+- **Autenticação:**
+  - **Google:** Se você usar o "Entrar com Google", dados de autenticação são trocados com o Google para validar sua identidade.
+- **E-mail:**
+  - Provedor de envio de e-mails transacionais (ex: Hostinger) para enviar links de recuperação de senha e verificação.
 
-### 4.6. Dados de atendimento e comunicações
+**Transferência Internacional:** Alguns de nossos parceiros (como Cloudflare) possuem infraestrutura global. Garantimos que qualquer transferência internacional de dados cumpra os requisitos da LGPD, mediante cláusulas contratuais padrão ou adequação do país de destino.
 
-- **Comunicações transacionais:** envio de e-mails para verificação de e-mail, recuperação de senha, avisos operacionais e suporte.
-- **Suporte:** informações que você enviar ao entrar em contato conosco (por exemplo: mensagem, anexos e histórico do atendimento, quando existir).
+---
 
-### 4.7. Dados técnicos e de segurança
+## 6. Retenção e Exclusão de Dados
 
-- **Logs e metadados técnicos:** IP, user-agent, data/hora, registros de erro e eventos de segurança, inclusive para prevenção a fraude/abuso e estabilidade do serviço.
-- **Dados de rede:** quando disponíveis, informações agregadas como ASN/rede (por exemplo, para rate limiting e mitigação de abuso).
+Manteremos seus dados apenas pelo tempo necessário para cumprir as finalidades descritas.
 
-## 5. Como coletamos os dados
+- **Conta Ativa:** Enquanto você mantiver sua conta, seus dados e perfis permanecerão armazenados.
+- **Logs de Acesso:** Logs técnicos (IP, data/hora) são mantidos por prazo legal (mínimo de 6 meses) conforme o Marco Civil da Internet.
+- **Dados Financeiros:** Mantidos pelos prazos exigidos pela legislação tributária e fiscal.
+- **Exclusão:** Você pode solicitar a exclusão da sua conta a qualquer momento através das configurações do aplicativo ou entrando em contato conosco. Após a exclusão, dados associados serão removidos ou anonimizados, exceto aqueles que somos obrigados a manter por lei.
 
-Coletamos dados pessoais por:
+---
 
-- **Informações fornecidas por você** (cadastro, login, criação de perfis, configurações, suporte).
-- **Coleta automática** (cookies estritamente necessários, logs e registros técnicos de uso e segurança).
-- **Terceiros** quando você usa recursos integrados, como:
-  - Login social (Google).
-  - Pagamento/checkout (provedor de pagamento).
+## 7. Seus Direitos (Titular dos Dados)
 
-## 6. Para que usamos os dados e qual a base legal (LGPD)
+Conforme a LGPD, você tem direito a:
+- **Confirmar** a existência de tratamento de dados.
+- **Acessar** seus dados.
+- **Corrigir** dados incompletos, inexatos ou desatualizados.
+- **Solicitar a anonimização, bloqueio ou eliminação** de dados desnecessários.
+- **Portabilidade** dos dados a outro fornecedor de serviço (mediante requisição expressa).
+- **Revogar o consentimento** a qualquer momento (o que pode impedir o uso de certas funcionalidades).
 
-As principais finalidades e bases legais incluem:
+Para exercer seus direitos, entre em contato pelo e-mail: `privacidade@empresa.com`.
 
-| Categoria | Finalidade | Base legal (exemplos) |
-|---|---|---|
-| Conta do responsável | Criar conta, autenticar, manter sessão, recuperar acesso | Execução de contrato; legítimo interesse (segurança) |
-| Verificação de e-mail | Confirmar identidade do e-mail e reduzir fraudes | Execução de contrato; legítimo interesse |
-| Perfis infantis | Permitir personalização e segmentação etária apropriada | Execução de contrato; legítimo interesse; proteção do titular (criança), quando aplicável |
-| Eventos de reprodução | Entregar funcionalidades do player, continuidade de reprodução, estatísticas operacionais | Execução de contrato; legítimo interesse |
-| Downloads/offline | Vincular licença a dispositivo e controlar expiração | Execução de contrato; legítimo interesse |
-| Assinatura e faturas | Cobrança, gestão de planos, emissão/controle de faturas | Execução de contrato; cumprimento de obrigação legal/regulatória |
-| Prevenção a abuso e segurança | Detecção/prevenção de fraude, incidentes e uso indevido | Legítimo interesse; cumprimento de obrigação legal |
-| Comunicações transacionais | Enviar e-mails necessários ao serviço | Execução de contrato; legítimo interesse |
-| Marketing (se habilitado) | Enviar novidades e ofertas | Consentimento ou legítimo interesse, conforme o caso, com opt-out |
+---
 
-Quando a base legal for **consentimento**, você poderá revogá-lo a qualquer tempo, nos termos da LGPD, sem afetar tratamentos anteriores realizados com base no consentimento válido.
+## 8. Segurança da Informação
 
-## 7. Dados de crianças e adolescentes
+Adotamos medidas técnicas e administrativas robustas para proteger seus dados, incluindo:
+- **Criptografia:** Senhas armazenadas com hash forte; comunicação via HTTPS (TLS).
+- **Controle de Acesso:** Uso de tokens temporários e proteção contra abusos (rate limiting).
+- **Proteção de Mídia:** URLs assinadas para evitar acesso não autorizado ao conteúdo.
 
-O Ninaro é voltado ao público infantil quanto ao conteúdo, mas a **conta deve ser criada e gerida por um responsável adulto**.
+Embora nos esforcemos para proteger seus dados, nenhum sistema é 100% inviolável. Em caso de incidente de segurança relevante, notificaremos você e as autoridades competentes conforme a lei.
 
-- Você declara que é **maior de 18 anos** (ou legalmente capaz) e que possui legitimidade para criar e gerenciar perfis infantis.
-- Tratamos dados de perfis infantis com **minimização** e finalidades compatíveis com a experiência e segurança do serviço.
-- Não realizamos (ou, se vier a existir, informaremos de forma destacada) práticas como **publicidade comportamental dirigida a crianças** ou **venda de dados pessoais**.
+---
 
-## 8. Cookies, armazenamento local e tecnologias semelhantes
+## 9. Cookies e Tecnologias de Rastreamento
 
-### 8.1. Web (cookies e armazenamento local)
+Utilizamos cookies e tecnologias similares para:
+- **Essenciais:** Manter você logado (`accessToken`) e registrar seu aceite legal (`acceptedLegal`).
+- **Segurança:** Identificar comportamentos suspeitos.
+- **Mobile:** No aplicativo, usamos armazenamento local seguro para guardar suas credenciais e preferências.
 
-O Ninaro pode utilizar:
+Não utilizamos cookies de terceiros para publicidade ou rastreamento cruzado entre sites.
 
-- **Cookies estritamente necessários** para autenticação e segurança (por exemplo, cookie de sessão/autenticação) e registro do estado de aceite de documentos legais.
-- **Cookies de terceiros** quando você utiliza login social (por exemplo, serviços do Google/NextAuth), sujeitos às políticas do respectivo terceiro.
-- **Armazenamento local** do navegador para preferências e estado do player (por exemplo, seleção de perfil ativo), quando aplicável.
+---
 
-### 8.2. Mobile (armazenamento local)
+## 10. Alterações nesta Política
 
-O aplicativo mobile pode armazenar localmente:
+Podemos atualizar esta política periodicamente para refletir melhorias no produto ou mudanças legais.
+- Avisaremos sobre mudanças materiais através do e-mail cadastrado ou aviso destacado na plataforma.
+- O uso continuado do serviço após as alterações implica na sua ciência das novas condições.
 
-- Token de acesso/sessão e informações básicas para manter login.
-- Preferências do usuário e seleção de perfil.
-- Identificadores técnicos (por exemplo, `deviceId`) para recursos de download/offline.
+---
 
-Você pode remover esses dados desinstalando o aplicativo ou limpando o armazenamento do app, observadas as limitações e consequências para funcionalidades offline.
+**Dúvidas?** Entre em contato conosco em `privacidade@empresa.com`.
 
-## 9. Compartilhamento de dados com terceiros
-
-Podemos compartilhar dados pessoais com terceiros nas seguintes hipóteses:
-
-### 9.1. Operadores e provedores de infraestrutura (exemplos)
-
-- **Hospedagem e infraestrutura** (servidores, banco de dados, cache/fila, monitoramento e logs).
-- **Entrega e armazenamento de mídia (CDN/armazenamento compatível S3)** para disponibilização do conteúdo.
-- **Serviços de e-mail** para envio de mensagens transacionais (verificação de e-mail, recuperação de senha e suporte).
-
-### 9.2. Autenticação (login social)
-
-Se você optar por login social, dados como e-mail e informações de perfil podem ser compartilhados/recebidos do provedor (por exemplo, Google), conforme a autorização e políticas desse provedor.
-
-### 9.3. Pagamentos e cobrança
-
-Quando houver cobrança por assinatura, utilizaremos provedores de pagamento/checkout para:
-
-- Processar pagamentos, gerar cobranças e administrar transações.
-- Tratar dados necessários para prevenção de fraude, conformidade e suporte a pagamentos.
-
-O provedor de pagamento pode atuar como **controlador independente** para certos tratamentos necessários à execução da transação e à conformidade regulatória. Consulte também a política do respectivo provedor.
-
-### 9.4. Obrigações legais e proteção de direitos
-
-Poderemos compartilhar dados para:
-
-- Cumprir obrigação legal, regulatória ou ordem judicial/administrativa.
-- Proteger direitos, segurança e integridade do Ninaro, usuários e terceiros.
-
-### 9.5. Parceiros (afiliados e parcerias)
-
-Se houver uso de **cupons**, **parcerias** ou **afiliações**, poderemos tratar dados mínimos para atribuição, prevenção de fraude, auditoria e repasse, sempre limitado ao necessário e conforme a LGPD.
-
-## 10. Transferência internacional de dados
-
-Alguns fornecedores podem operar infraestrutura distribuída globalmente. Assim, dados podem ser armazenados ou processados fora do Brasil, conforme:
-
-- A necessidade de execução dos serviços contratados (CDN, e-mail, autenticação, pagamentos).
-- Medidas técnicas e contratuais adequadas para proteção dos dados pessoais, nos termos da LGPD.
-
-## 11. Retenção e eliminação de dados
-
-Reteremos dados pessoais **pelo tempo necessário** para cumprir as finalidades descritas nesta Política, incluindo cumprimento de obrigações legais e proteção de direitos. Em linhas gerais:
-
-- **Conta e perfis:** enquanto sua conta estiver ativa e pelo período necessário para cumprir obrigações e resolver disputas.
-- **Dados de cobrança/faturas:** pelo prazo exigido por obrigações legais/contábeis e para defesa de direitos.
-- **Logs de segurança e prevenção a abuso:** por período razoável e proporcional para investigação e mitigação de incidentes.
-- **Eventos de reprodução e dados operacionais:** pelo tempo necessário para funcionalidades do serviço e melhorias, com possibilidade de anonimização/agrupamento quando aplicável.
-- **Backups:** podem persistir por janelas adicionais até expiração do ciclo de backup.
-
-Ao solicitar exclusão, alguns dados poderão ser mantidos quando houver **base legal** para retenção (por exemplo, cumprimento de obrigação legal ou exercício regular de direitos).
-
-## 12. Direitos do titular (LGPD)
-
-Nos termos da LGPD, você poderá solicitar:
-
-- Confirmação da existência de tratamento.
-- Acesso aos dados.
-- Correção de dados incompletos, inexatos ou desatualizados.
-- Anonimização, bloqueio ou eliminação de dados desnecessários ou excessivos (quando aplicável).
-- Portabilidade (quando aplicável).
-- Informação sobre compartilhamento.
-- Revogação do consentimento (quando aplicável).
-- Oposição ao tratamento baseado em legítimo interesse (quando aplicável).
-
-Para exercer seus direitos, envie solicitação para **\[E-MAIL DE PRIVACIDADE]**, com informações suficientes para verificação de identidade e escopo do pedido.
-
-## 13. Segurança da informação
-
-Adotamos medidas técnicas e organizacionais razoáveis para proteger dados pessoais, incluindo:
-
-- Controles de autenticação, cookies de sessão com atributos de segurança, uso de criptografia em trânsito (TLS/HTTPS).
-- Hash de senhas e tokens com expiração.
-- Mecanismos de prevenção a abuso e monitoramento.
-- Controles de acesso internos e segregação de responsabilidades.
-
-Apesar dos melhores esforços, nenhum sistema é absolutamente seguro. Em caso de incidentes relevantes, adotaremos medidas de contenção, investigação e comunicação conforme exigido por lei e boas práticas.
-
-## 14. Alterações desta Política
-
-Podemos atualizar esta Política periodicamente. Quando a atualização impactar de forma relevante o tratamento de dados, poderemos solicitar um **novo aceite** no aplicativo/site.
-
-## 15. Contato
-
-Para dúvidas, solicitações ou reclamações sobre privacidade e dados pessoais, fale conosco:
-
-- **Privacidade/LGPD:** \[E-MAIL DE PRIVACIDADE]  
-- **Suporte:** \[E-MAIL DE SUPORTE]
-
+Porto Alegre, 14 de janeiro de 2026

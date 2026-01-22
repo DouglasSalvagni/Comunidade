@@ -12,6 +12,7 @@ import {
   apiRecordPlaybackEvent
 } from '../services/api'
 import { Platform } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 type PlayerTrack = { id: string; title?: string; workId: string; work?: any }
 type PlayerWork = { id: string; title?: string; coverUrl?: string; coverThumbUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
@@ -23,6 +24,7 @@ type PlayerContextValue = {
   position: number
   duration: number
   isLoading: boolean
+  loopPlaylist: boolean
   hasNext: boolean
   hasPrev: boolean
   nextTrack: () => Promise<void>
@@ -37,6 +39,7 @@ type PlayerContextValue = {
   removeFromQueue: (trackId: string) => void
   playlistItemId: string | null
   togglePlaylist: () => Promise<void>
+  setLoopPlaylist: (value: boolean) => Promise<void>
 }
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
@@ -87,6 +90,7 @@ export function PlayerProvider({ children }: { children: any }) {
   const [queueSource, setQueueSource] = useState<'playlist' | null>(null)
   const [queueIndex, setQueueIndex] = useState<number | null>(null)
   const [playlistItemId, setPlaylistItemId] = useState<string | null>(null)
+  const [loopPlaylist, setLoopPlaylistState] = useState(false)
   const lastAdvanceDirection = useRef<'next' | 'prev' | null>(null)
 
   const soundRef = useRef<Audio.Sound | null>(null)
@@ -201,6 +205,25 @@ export function PlayerProvider({ children }: { children: any }) {
     onPlaybackStatusUpdateRef.current(status)
   }
 
+  useEffect(() => {
+    const loadLoopSetting = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('player:loopPlaylist')
+        if (stored === 'true') setLoopPlaylistState(true)
+      } catch {
+      }
+    }
+    loadLoopSetting()
+  }, [])
+
+  const setLoopPlaylist = async (value: boolean) => {
+    setLoopPlaylistState(value)
+    try {
+      await AsyncStorage.setItem('player:loopPlaylist', value ? 'true' : 'false')
+    } catch {
+    }
+  }
+
   // Helper function to safely unload current sound
   const unloadCurrentSound = async () => {
     if (soundRef.current) {
@@ -253,7 +276,12 @@ export function PlayerProvider({ children }: { children: any }) {
     // If playlist queue is active and we have an index, use it for consistency
     if (queueSource === 'playlist' && typeof queueIndex === 'number' && queueIndex >= 0) {
       if (direction === 'next') {
-        if (queueIndex >= tracks.length - 1) return { track: null, tracksSource: tracks }
+        if (queueIndex >= tracks.length - 1) {
+          if (loopPlaylist && tracks.length > 0) {
+            return { track: tracks[0], tracksSource: tracks, nextIndex: 0 }
+          }
+          return { track: null, tracksSource: tracks }
+        }
         const nextIdx = queueIndex + 1
         return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
       } else {
@@ -558,6 +586,7 @@ export function PlayerProvider({ children }: { children: any }) {
       position,
       duration,
       isLoading,
+      loopPlaylist,
       hasNext,
       hasPrev,
       nextTrack,
@@ -571,9 +600,10 @@ export function PlayerProvider({ children }: { children: any }) {
       stop,
       removeFromQueue,
       playlistItemId,
-      togglePlaylist
+      togglePlaylist,
+      setLoopPlaylist
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading, loopPlaylist],
   )
 
   return (

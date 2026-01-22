@@ -107,10 +107,24 @@ export default function HomeScreen({ onLogout }: Props) {
   const [loadingDashboard, setLoadingDashboard] = useState(false)
   const [profileName, setProfileName] = useState('')
   const [ageLabel, setAgeLabel] = useState('')
+  const [playerCardTrack, setPlayerCardTrack] = useState<typeof currentTrack | null>(null)
+  const [playerCardWork, setPlayerCardWork] = useState<typeof currentWork | null>(null)
 
   useEffect(() => {
-    if (!currentTrack) setPlayerVisible(false)
-  }, [currentTrack])
+    if (currentTrack && currentWork) {
+      setPlayerCardTrack(currentTrack)
+      setPlayerCardWork(currentWork)
+    }
+  }, [currentTrack, currentWork])
+
+  useEffect(() => {
+    if (!currentTrack && playerVisible) {
+      const timeout = setTimeout(() => {
+        setPlayerVisible(false)
+      }, 400)
+      return () => clearTimeout(timeout)
+    }
+  }, [currentTrack, playerVisible])
 
   // Clear pending seek when player position catches up
   useEffect(() => {
@@ -551,32 +565,31 @@ export default function HomeScreen({ onLogout }: Props) {
         onChange={(k) => { setTab(k as any); if (k === 'settings') setSettingsView('menu') }}
         onHeight={(h) => setBottomNavHeight(Math.max(60, Math.round(h)))}
       />
-      {playerVisible && (
+      {playerVisible && playerCardTrack && playerCardWork && (
         <Animated.View 
           style={styles.playerOverlay}
           entering={SlideInDown.duration(400)}
           exiting={SlideOutDown.duration(400)}
         >
           <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
-          {currentTrack && currentWork && (
-            <View style={styles.playerCard}>
-              <View style={styles.playerHeader}>
-                <Text style={styles.playerNow}>Tocando agora</Text>
-                <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>
-                  <Ionicons name="chevron-down" size={32} color="#cfd3ff" />
-                </Pressable>
-              </View>
-              <View style={styles.playerCoverWrap}>
-                {currentWork.coverUrl ? (
-                  <Image source={{ uri: currentWork.coverUrl }} style={styles.playerCover} />
-                ) : (
-                  <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
-                )}
-              </View>
-              <Text style={styles.playerTitle} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
-              <Text style={styles.playerSubtitle} numberOfLines={2}>{(currentWork as any).artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
+          <View style={styles.playerCard}>
+            <View style={styles.playerHeader}>
+              <Text style={styles.playerNow}>Tocando agora</Text>
+              <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>
+                <Ionicons name="chevron-down" size={32} color="#cfd3ff" />
+              </Pressable>
+            </View>
+            <View style={styles.playerCoverWrap}>
+              {playerCardWork?.coverUrl ? (
+                <Image source={{ uri: playerCardWork.coverUrl }} style={styles.playerCover} />
+              ) : (
+                <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
+              )}
+            </View>
+            <Text style={styles.playerTitle} numberOfLines={1}>{playerCardTrack?.title || playerCardWork?.title || 'Faixa'}</Text>
+            <Text style={styles.playerSubtitle} numberOfLines={2}>{(playerCardWork as any)?.artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
 
-              <View
+            <View
                 style={styles.progressBarContainer}
                 onLayout={(e) => {
                   setProgressBarWidth(e.nativeEvent.layout.width)
@@ -602,71 +615,70 @@ export default function HomeScreen({ onLogout }: Props) {
                     { left: `${progress * 100}%` }
                   ]}
                 />
-              </View>
-              <View style={styles.progressTimes}>
-                <Text style={styles.progressText}>{formatTime(position)}</Text>
-                <Text style={styles.progressText}>{formatTime(duration)}</Text>
-              </View>
+            </View>
+            <View style={styles.progressTimes}>
+              <Text style={styles.progressText}>{formatTime(position)}</Text>
+              <Text style={styles.progressText}>{formatTime(duration)}</Text>
+            </View>
 
-              <View style={styles.playerControls}>
-                <View style={styles.playerSide}>
-                  {hasPrev && (
-                    <Pressable
-                      accessibilityRole="button"
-                      disabled={isLoading}
-                      style={styles.controlBtn}
-                      onPress={prevTrack}
-                    >
-                      <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
-                    </Pressable>
-                  )}
-                </View>
-                <View style={styles.playerCenter}>
+            <View style={styles.playerControls}>
+              <View style={styles.playerSide}>
+                {hasPrev && (
                   <Pressable
                     accessibilityRole="button"
-                    style={[styles.controlBtn, styles.controlBtnPrimary]}
-                    onPress={togglePlay}
+                    disabled={isLoading}
+                    style={styles.controlBtn}
+                    onPress={prevTrack}
                   >
-                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+                    <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
                   </Pressable>
-                </View>
-                <View style={styles.playerSide}>
-                  {hasNext && (
-                    <Pressable
-                      accessibilityRole="button"
-                      disabled={isLoading}
-                      style={styles.controlBtn}
-                      onPress={nextTrack}
-                    >
-                      <Ionicons name="play-skip-forward" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
-                    </Pressable>
-                  )}
-                </View>
+                )}
               </View>
-              <View style={styles.playerActions}>
+              <View style={styles.playerCenter}>
                 <Pressable
                   accessibilityRole="button"
-                  style={styles.actionBtn}
-                  onPress={togglePlaylist}
+                  style={[styles.controlBtn, styles.controlBtnPrimary]}
+                  onPress={togglePlay}
                 >
-                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
-                  <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
-                    {playlistItemId ? 'Na Playlist' : 'Playlist'}
-                  </Text>
+                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
                 </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  style={styles.actionBtn}
-                  onPress={toggleFavorite}
-                >
-                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
-                  <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
-                    {isFavorite ? 'Favorito' : 'Favoritar'}
-                  </Text>
-                </Pressable>
+              </View>
+              <View style={styles.playerSide}>
+                {hasNext && (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={isLoading}
+                    style={styles.controlBtn}
+                    onPress={nextTrack}
+                  >
+                    <Ionicons name="play-skip-forward" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
+                  </Pressable>
+                )}
               </View>
             </View>
-          )}
+            <View style={styles.playerActions}>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.actionBtn}
+                onPress={togglePlaylist}
+              >
+                <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
+                  {playlistItemId ? 'Na Playlist' : 'Playlist'}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.actionBtn}
+                onPress={toggleFavorite}
+              >
+                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
+                  {isFavorite ? 'Favorito' : 'Favoritar'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </Animated.View>
       )}
     </View >

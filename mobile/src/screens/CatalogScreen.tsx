@@ -279,9 +279,9 @@ export default function CatalogScreen() {
                   )}
                   <View style={styles.cardBody}>
                     <Text style={styles.workType}>
-                      {w.type === 'music' || w.type === 'música' ? 'Música' :
+                      {w.type === 'music' ? 'Música' :
                         w.type === 'audiobook' ? 'Audiobook' :
-                          w.type === 'série' ? 'Série' : w.type}
+                          w.type === 'series' ? 'Série' : w.type}
                     </Text>
                     <Text style={styles.workTitle}>{w.title}</Text>
                     <AgeLabel {...w} />

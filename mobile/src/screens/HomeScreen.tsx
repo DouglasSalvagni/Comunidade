@@ -608,42 +608,58 @@ export default function HomeScreen({ onLogout }: Props) {
               </View>
 
               <View style={styles.playerControls}>
+                <View style={styles.playerSide}>
+                  {hasPrev && (
+                    <Pressable
+                      accessibilityRole="button"
+                      style={styles.controlBtn}
+                      onPress={prevTrack}
+                    >
+                      <Ionicons name="play-skip-back" size={26} color="#e6e9ff" />
+                    </Pressable>
+                  )}
+                </View>
+                <View style={styles.playerCenter}>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={[styles.controlBtn, styles.controlBtnPrimary]}
+                    onPress={togglePlay}
+                  >
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+                  </Pressable>
+                </View>
+                <View style={styles.playerSide}>
+                  {hasNext && (
+                    <Pressable
+                      accessibilityRole="button"
+                      style={styles.controlBtn}
+                      onPress={nextTrack}
+                    >
+                      <Ionicons name="play-skip-forward" size={26} color="#e6e9ff" />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+              <View style={styles.playerActions}>
                 <Pressable
                   accessibilityRole="button"
-                  disabled={!hasPrev}
-                  style={[styles.controlBtn, !hasPrev && styles.controlBtnDisabled]}
-                  onPress={prevTrack}
-                >
-                  <Ionicons name="play-skip-back" size={26} color={hasPrev ? '#e6e9ff' : '#6b7280'} />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.controlBtn, styles.controlBtnPrimary]}
-                  onPress={togglePlay}
-                >
-                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={!hasNext}
-                  style={[styles.controlBtn, !hasNext && styles.controlBtnDisabled]}
-                  onPress={nextTrack}
-                >
-                  <Ionicons name="play-skip-forward" size={26} color={hasNext ? '#e6e9ff' : '#6b7280'} />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.controlBtn, styles.controlBtnGhost]}
+                  style={styles.actionBtn}
                   onPress={togglePlaylist}
                 >
-                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={22} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                  <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
+                    {playlistItemId ? 'Na Playlist' : 'Playlist'}
+                  </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
-                  style={[styles.controlBtn, styles.controlBtnGhost]}
+                  style={styles.actionBtn}
                   onPress={toggleFavorite}
                 >
-                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={22} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                  <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
+                    {isFavorite ? 'Favorito' : 'Favoritar'}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -691,7 +707,13 @@ const styles = StyleSheet.create({
   progressThumb: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#A78BFA', borderWidth: 2, borderColor: '#ffffff', top: 0, transform: [{ translateX: -12 }], shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 5 },
   progressTimes: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, width: '100%' },
   progressText: { color: '#94a3b8', fontSize: 14 },
-  playerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 20, marginBottom: 40 },
+  playerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 20, marginTop: 20 },
+  playerSide: { flex: 1, alignItems: 'center' },
+  playerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  playerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', width: '100%', paddingHorizontal: 40, marginTop: 16, marginBottom: 40 },
+  actionBtn: { alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 80 },
+  actionBtnText: { color: '#cfd3ff', fontSize: 12, fontWeight: '500' },
+  actionBtnTextActive: { color: '#e6e9ff', fontWeight: '600' },
   controlBtn: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, borderColor: '#1d2340', backgroundColor: '#121632', alignItems: 'center', justifyContent: 'center' },
   controlBtnPrimary: { backgroundColor: '#A78BFA', borderColor: '#A78BFA', width: 80, height: 80, borderRadius: 40 },
   controlBtnGhost: { backgroundColor: 'transparent', borderWidth: 0, width: 48, height: 48 },

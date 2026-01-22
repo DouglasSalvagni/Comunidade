@@ -332,10 +332,6 @@ export function PlayerProvider({ children }: { children: any }) {
             ? options.nextIndex
             : activeQueue.findIndex((t) => t.id === track.id)
         setQueueIndex(idx >= 0 ? idx : 0)
-      } else if (queueSource === 'playlist' && queue && queue.length > 0) {
-        // keep existing playlist queue, update index to current track
-        const idx = queue.findIndex((t) => t.id === track.id)
-        setQueueIndex(idx >= 0 ? idx : 0)
       } else {
         setQueue(null)
         setQueueSource(null)

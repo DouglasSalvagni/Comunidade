@@ -278,7 +278,11 @@ export default function CatalogScreen() {
                     <View style={[styles.cover, styles.coverPlaceholder]} />
                   )}
                   <View style={styles.cardBody}>
-                    <Text style={styles.workType}>{w.type}</Text>
+                    <Text style={styles.workType}>
+                      {w.type === 'music' || w.type === 'música' ? 'Música' :
+                        w.type === 'audiobook' ? 'Audiobook' :
+                          w.type === 'série' ? 'Série' : w.type}
+                    </Text>
                     <Text style={styles.workTitle}>{w.title}</Text>
                     <AgeLabel {...w} />
                     <View style={styles.tagsRow}>

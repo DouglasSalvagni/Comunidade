@@ -551,14 +551,14 @@ export default function HomeScreen({ onLogout }: Props) {
         onChange={(k) => { setTab(k as any); if (k === 'settings') setSettingsView('menu') }}
         onHeight={(h) => setBottomNavHeight(Math.max(60, Math.round(h)))}
       />
-      {
-        playerVisible && currentTrack && currentWork && (
-          <Animated.View 
-            style={styles.playerOverlay}
-            entering={SlideInDown.duration(400)}
-            exiting={SlideOutDown.duration(400)}
-          >
-            <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
+      {playerVisible && (
+        <Animated.View 
+          style={styles.playerOverlay}
+          entering={SlideInDown.duration(400)}
+          exiting={SlideOutDown.duration(400)}
+        >
+          <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
+          {currentTrack && currentWork && (
             <View style={styles.playerCard}>
               <View style={styles.playerHeader}>
                 <Text style={styles.playerNow}>Tocando agora</Text>
@@ -666,9 +666,9 @@ export default function HomeScreen({ onLogout }: Props) {
                 </Pressable>
               </View>
             </View>
-          </Animated.View>
-        )
-      }
+          )}
+        </Animated.View>
+      )}
     </View >
   )
 }

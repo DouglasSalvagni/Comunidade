@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
 import { apiGetProfiles, apiCreateProfile, apiUpdateProfile, apiDeleteProfile } from '../services/api'
@@ -12,6 +13,7 @@ type Props = {
 }
 
 export default function ProfilesScreen({ onBack }: Props) {
+  const insets = useSafeAreaInsets()
   const { accessToken, activeProfileId, setActiveProfileId } = useAuth()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -162,7 +164,7 @@ export default function ProfilesScreen({ onBack }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Perfis</Text>
         {onBack && (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -13,6 +14,7 @@ type Props = {
 export default function AccountScreen({ onBack }: Props) {
   const { accessToken, user, refreshProfile } = useAuth()
   const { loopPlaylist, setLoopPlaylist } = usePlayer()
+  const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingPwd, setSavingPwd] = useState(false)
@@ -90,7 +92,7 @@ export default function AccountScreen({ onBack }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Minha Conta</Text>
         <Pressable onPress={onBack} style={styles.back}>

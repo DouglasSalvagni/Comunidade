@@ -9,21 +9,55 @@ type Props = { onOpen: () => void; bottomOffset?: number }
 export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
   const { currentWork, currentTrack, isPlaying, togglePlay, toggleFavorite, isFavorite, stop, togglePlaylist, playlistItemId } = usePlayer()
   const translateX = useRef(new Animated.Value(0)).current
-  useEffect(() => { try { translateX.setValue(0) } catch { } }, [currentTrack?.id, currentWork?.id])
+  const swipeX = useRef(0)
+  const stopRef = useRef(stop)
+  useEffect(() => {
+    stopRef.current = stop
+  }, [stop])
+  useEffect(() => {
+    try {
+      translateX.setValue(0)
+      swipeX.current = 0
+    } catch { }
+  }, [currentTrack?.id, currentWork?.id])
   const opacity = translateX.interpolate({ inputRange: [-260, 0, 260], outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' })
-  const pan = PanResponder.create({
-    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 6,
-    onPanResponderMove: (_e, g) => { translateX.setValue(g.dx) },
-    onPanResponderRelease: (_e, g) => {
-      const threshold = 80
-      if (Math.abs(g.dx) >= threshold) {
-        const to = g.dx > 0 ? 260 : -260
-        Animated.timing(translateX, { toValue: to, duration: 160, useNativeDriver: true }).start(() => { stop() })
-      } else {
-        Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start()
-      }
-    },
-  })
+  const pan = useRef(
+    PanResponder.create({
+      onPanResponderGrant: () => {
+        translateX.stopAnimation((value?: number) => {
+          if (typeof value === 'number') {
+            swipeX.current = value
+          }
+        })
+      },
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 5,
+      onMoveShouldSetPanResponderCapture: (_e, g) =>
+        Math.abs(g.dx) > Math.abs(g.dy) && Math.abs(g.dx) > 5,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderMove: (_e, g) => {
+        const max = 260
+        const next = Math.max(-max, Math.min(max, g.dx))
+        swipeX.current = next
+        translateX.setValue(next)
+      },
+      onPanResponderRelease: () => {
+        const x = swipeX.current
+        const distanceThreshold = 120
+        const draggedFarEnough = Math.abs(x) >= distanceThreshold
+
+        if (draggedFarEnough) {
+          const to = x > 0 ? 260 : -260
+          Animated.timing(translateX, { toValue: to, duration: 160, useNativeDriver: true }).start(() => {
+            stopRef.current()
+          })
+        } else {
+          swipeX.current = 0
+          translateX.setValue(0)
+        }
+      },
+    })
+  ).current
   if (!currentTrack || !currentWork) return null
   return (
     <Animated.View style={[styles.wrap, { bottom: (bottomOffset || 70) + 8 }, { transform: [{ translateX }], opacity }]} {...pan.panHandlers}>

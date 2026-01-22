@@ -161,8 +161,21 @@ export default function FavoritesScreen() {
             </View>
 
             {loading && favorites.length === 0 ? (
-                <View style={styles.loading}>
-                    <ActivityIndicator size="large" color="#A78BFA" />
+                <View style={styles.list}>
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                        <View key={`fav-skeleton-${idx}`} style={styles.card}>
+                            <View style={[styles.cover, styles.skelCover]} />
+                            <View style={styles.info}>
+                                <View style={[styles.skelLine, { width: '80%' }]} />
+                                <View style={[styles.skelLine, { width: '60%' }]} />
+                                <View style={styles.skelTagsRow}>
+                                    <View style={styles.skelTag} />
+                                    <View style={styles.skelTag} />
+                                </View>
+                            </View>
+                            <View style={styles.skelIcon} />
+                        </View>
+                    ))}
                 </View>
             ) : (
                 <FlatList
@@ -297,5 +310,31 @@ const styles = StyleSheet.create({
     footer: {
         paddingVertical: 20,
         alignItems: 'center',
+    },
+    skelCover: {
+        backgroundColor: '#171a2f',
+    },
+    skelLine: {
+        height: 12,
+        backgroundColor: '#171a2f',
+        borderRadius: 6,
+        marginBottom: 6,
+    },
+    skelTagsRow: {
+        flexDirection: 'row',
+        marginTop: 4,
+        gap: 6,
+    },
+    skelTag: {
+        width: 40,
+        height: 12,
+        backgroundColor: '#171a2f',
+        borderRadius: 6,
+    },
+    skelIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#171a2f',
     },
 })

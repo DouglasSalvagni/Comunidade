@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, ActivityIndicator, Pressable, Image } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native'
 import { useState, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist'
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
@@ -110,17 +110,13 @@ export default function PlaylistScreen() {
         }
     }
 
-    const handleDragEnd = async ({ data }: { data: PlaylistItem[] }) => {
+    const handleDragEnd = ({ data }: { data: PlaylistItem[] }) => {
         setItems(data)
 
         if (!accessToken || !playlistId) return
 
-        try {
-            const itemIdsInOrder = data.map(i => i.id)
-            await apiReorderPlaylistItems(accessToken, playlistId, itemIdsInOrder)
-        } catch (error) {
-            loadPlaylist()
-        }
+        const itemIdsInOrder = data.map(i => i.id)
+        apiReorderPlaylistItems(accessToken, playlistId, itemIdsInOrder).catch(() => {})
     }
 
     const renderItem = ({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
@@ -128,42 +124,40 @@ export default function PlaylistScreen() {
         const work = track?.work
 
         return (
-            <ScaleDecorator>
-                <Pressable
-                    style={[styles.card, isActive && styles.cardActive]}
-                    onPress={() => handlePlay(item)}
-                    onLongPress={drag}
-                    disabled={isActive}
-                >
-                    {(work?.coverThumbUrl || work?.coverUrl) ? (
-                        <Image source={{ uri: work?.coverThumbUrl || work?.coverUrl! }} style={styles.thumbnail} />
-                    ) : (
-                        <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-                            <Ionicons name="musical-notes" size={20} color="#3b4466" />
-                        </View>
-                    )}
-
-                    <View style={styles.info}>
-                        <Text style={styles.title} numberOfLines={1}>
-                            {track?.title || work?.title || 'Sem título'}
-                        </Text>
+            <Pressable
+                style={[styles.card, isActive && styles.cardActive]}
+                onPress={() => handlePlay(item)}
+                onLongPress={drag}
+                disabled={isActive}
+            >
+                {(work?.coverThumbUrl || work?.coverUrl) ? (
+                    <Image source={{ uri: work?.coverThumbUrl || work?.coverUrl! }} style={styles.thumbnail} />
+                ) : (
+                    <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+                        <Ionicons name="musical-notes" size={20} color="#3b4466" />
                     </View>
+                )}
 
-                    <Pressable style={styles.dragHandle} onPressIn={drag}>
-                        <Ionicons name="reorder-three" size={24} color="#8b92b8" />
-                    </Pressable>
+                <View style={styles.info}>
+                    <Text style={styles.title} numberOfLines={1}>
+                        {track?.title || work?.title || 'Sem título'}
+                    </Text>
+                </View>
 
-                    <Pressable
-                        style={styles.removeBtn}
-                        onPress={(e) => {
-                            e.stopPropagation()
-                            handleRemove(item.id)
-                        }}
-                    >
-                        <Ionicons name="close-circle" size={20} color="#8b92b8" />
-                    </Pressable>
+                <Pressable style={styles.dragHandle} onPressIn={drag}>
+                    <Ionicons name="reorder-three" size={24} color="#8b92b8" />
                 </Pressable>
-            </ScaleDecorator>
+
+                <Pressable
+                    style={styles.removeBtn}
+                    onPress={(e) => {
+                        e.stopPropagation()
+                        handleRemove(item.id)
+                    }}
+                >
+                    <Ionicons name="close-circle" size={20} color="#8b92b8" />
+                </Pressable>
+            </Pressable>
         )
     }
 
@@ -187,8 +181,17 @@ export default function PlaylistScreen() {
             </View>
 
             {loading ? (
-                <View style={styles.loading}>
-                    <ActivityIndicator size="large" color="#A78BFA" />
+                <View style={styles.list}>
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                        <View key={`playlist-skeleton-${idx}`} style={styles.card}>
+                            <View style={[styles.thumbnail, styles.skelThumbnail]} />
+                            <View style={styles.info}>
+                                <View style={[styles.skelLine, { width: '70%' }]} />
+                            </View>
+                            <View style={styles.skelDrag} />
+                            <View style={styles.skelRemove} />
+                        </View>
+                    ))}
                 </View>
             ) : items.length === 0 ? (
                 renderEmpty()
@@ -300,5 +303,25 @@ const styles = StyleSheet.create({
         color: '#8b92b8',
         textAlign: 'center',
         lineHeight: 20,
+    },
+    skelThumbnail: {
+        backgroundColor: '#171a2f',
+    },
+    skelLine: {
+        height: 12,
+        backgroundColor: '#171a2f',
+        borderRadius: 6,
+    },
+    skelDrag: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#171a2f',
+    },
+    skelRemove: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#171a2f',
     },
 })

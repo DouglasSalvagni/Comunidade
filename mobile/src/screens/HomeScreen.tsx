@@ -32,6 +32,7 @@ export default function HomeScreen({ onLogout }: Props) {
     isPlaying,
     position,
     duration,
+    isLoading,
     hasNext,
     hasPrev,
     seekTo,
@@ -612,10 +613,11 @@ export default function HomeScreen({ onLogout }: Props) {
                   {hasPrev && (
                     <Pressable
                       accessibilityRole="button"
+                      disabled={isLoading}
                       style={styles.controlBtn}
                       onPress={prevTrack}
                     >
-                      <Ionicons name="play-skip-back" size={26} color="#e6e9ff" />
+                      <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
                     </Pressable>
                   )}
                 </View>
@@ -632,10 +634,11 @@ export default function HomeScreen({ onLogout }: Props) {
                   {hasNext && (
                     <Pressable
                       accessibilityRole="button"
+                      disabled={isLoading}
                       style={styles.controlBtn}
                       onPress={nextTrack}
                     >
-                      <Ionicons name="play-skip-forward" size={26} color="#e6e9ff" />
+                      <Ionicons name="play-skip-forward" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
                     </Pressable>
                   )}
                 </View>

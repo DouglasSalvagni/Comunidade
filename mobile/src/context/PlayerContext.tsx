@@ -22,6 +22,7 @@ type PlayerContextValue = {
   isPlaying: boolean
   position: number
   duration: number
+  isLoading: boolean
   hasNext: boolean
   hasPrev: boolean
   nextTrack: () => Promise<void>
@@ -81,6 +82,7 @@ export function PlayerProvider({ children }: { children: any }) {
   const [position, setPosition] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [queue, setQueue] = useState<PlayerTrack[] | null>(null) // active playlist queue (ordered)
   const [queueSource, setQueueSource] = useState<'playlist' | null>(null)
   const [queueIndex, setQueueIndex] = useState<number | null>(null)
@@ -320,6 +322,7 @@ export function PlayerProvider({ children }: { children: any }) {
     }
 
     isLoadingTrack.current = true
+    setIsLoading(true)
 
     try {
       const fromPlaylist = Array.isArray(options?.playlistQueue) && options?.playlistQueue.length > 0
@@ -357,6 +360,7 @@ export function PlayerProvider({ children }: { children: any }) {
       const url = toSafeMediaUrl((res as any)?.url || '')
       if (!url) {
         isLoadingTrack.current = false
+        setIsLoading(false)
         return
       }
 
@@ -403,6 +407,7 @@ export function PlayerProvider({ children }: { children: any }) {
       await unloadCurrentSound()
     } finally {
       isLoadingTrack.current = false
+      setIsLoading(false)
     }
   }
 
@@ -552,6 +557,7 @@ export function PlayerProvider({ children }: { children: any }) {
       isPlaying,
       position,
       duration,
+      isLoading,
       hasNext,
       hasPrev,
       nextTrack,
@@ -567,7 +573,7 @@ export function PlayerProvider({ children }: { children: any }) {
       playlistItemId,
       togglePlaylist
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading],
   )
 
   return (

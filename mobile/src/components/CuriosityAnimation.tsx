@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
-import Animated, { FadeIn, FadeInRight, FadeInLeft } from 'react-native-reanimated';
+import Animated, { 
+    FadeIn, 
+    FadeInRight, 
+    FadeInLeft, 
+    useSharedValue, 
+    useAnimatedStyle, 
+    withRepeat, 
+    withTiming, 
+    Easing 
+} from 'react-native-reanimated';
 import ExternalLinkModal from './ExternalLinkModal';
 
 const { width } = Dimensions.get('window');
@@ -127,11 +136,26 @@ const CURIOSITIES: Curiosity[] = [
 export default function CuriosityAnimation() {
     const [curiosity, setCuriosity] = useState<Curiosity | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const translateY = useSharedValue(0);
 
     useEffect(() => {
         const randomCuriosity = CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)];
         setCuriosity(randomCuriosity);
+        translateY.value = withRepeat(
+            withTiming(-10, { 
+                duration: 2000, 
+                easing: Easing.inOut(Easing.ease) 
+            }),
+            -1, 
+            true
+        );
     }, []);
+
+    const floatingStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateY: translateY.value }],
+        };
+    });
 
     if (!curiosity) return null;
 
@@ -160,7 +184,7 @@ export default function CuriosityAnimation() {
                 <View style={styles.arrow} />
             </Animated.View>
 
-            <Animated.View entering={FadeInRight.duration(800)} style={styles.characterContainer}>
+            <Animated.View entering={FadeInRight.duration(800)} style={[styles.characterContainer, floatingStyle]}>
                 <Image
                     source={require('../../assets/char-ventinho-mini.png')}
                     style={styles.character}

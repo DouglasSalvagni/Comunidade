@@ -23,7 +23,7 @@
 - `eas build --profile development --platform android`
 
 ### update EAS
-- `eas update --branch production --message "Correção de bugs menores"`
+- `eas update --branch production --message "Teste update OTA"`
 
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`

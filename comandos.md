@@ -20,8 +20,10 @@
 - `eas build -p android --profile preview`
 - `eas build --profile preview --platform ios`
 - `eas build -p android --profile production`
-
 - `eas build --profile development --platform android`
+
+### update EAS
+- `eas update --branch production --message "Correção de bugs menores"`
 
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`

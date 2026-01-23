@@ -17,9 +17,6 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
-          "audio",
-          "audio",
           "audio"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -57,6 +54,12 @@
           "iosUrlScheme": "com.googleusercontent.apps.138589572018-i2g3msa0sfilot9c22d3m3qdcdmb7n41"
         }
       ]
-    ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ae27d378-c772-4518-8bb5-8fe917771767"
+    }
   }
 }

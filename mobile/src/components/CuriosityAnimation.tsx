@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import Animated, { 
     FadeIn, 
-    FadeInRight, 
     FadeInLeft, 
     useSharedValue, 
     useAnimatedStyle, 
@@ -136,14 +135,14 @@ const CURIOSITIES: Curiosity[] = [
 export default function CuriosityAnimation() {
     const [curiosity, setCuriosity] = useState<Curiosity | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
-    const translateY = useSharedValue(0);
+    const translateY = useSharedValue(-6);
 
     useEffect(() => {
         const randomCuriosity = CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)];
         setCuriosity(randomCuriosity);
         translateY.value = withRepeat(
-            withTiming(-10, { 
-                duration: 2000, 
+            withTiming(6, { 
+                duration: 2600, 
                 easing: Easing.inOut(Easing.ease) 
             }),
             -1, 
@@ -184,7 +183,7 @@ export default function CuriosityAnimation() {
                 <View style={styles.arrow} />
             </Animated.View>
 
-            <Animated.View entering={FadeInRight.duration(800)} style={[styles.characterContainer, floatingStyle]}>
+            <Animated.View entering={FadeIn.duration(1600)} style={[styles.characterContainer, floatingStyle]}>
                 <Image
                     source={require('../../assets/char-ventinho-mini.png')}
                     style={styles.character}

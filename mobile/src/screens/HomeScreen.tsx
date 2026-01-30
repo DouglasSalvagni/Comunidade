@@ -143,43 +143,61 @@ export default function HomeScreen({ onLogout }: Props) {
     async function loadDashboard() {
       if (!accessToken || !activeProfileId) return
       setLoadingDashboard(true)
-      try {
-        // 1. Get Profile Info
-        const profiles = await apiGetProfiles(accessToken)
-        const profile = profiles.find((p) => p.id === activeProfileId)
-        if (profile) {
-          setProfileName(profile.name)
-          if (profile.birthDate) {
-            const birth = new Date(profile.birthDate)
-            const now = new Date()
-            const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
-            setAgeLabel(months < 12 ? `${months} meses` : `${Math.floor(months / 12)} anos`)
 
-            // Fetch Suggested
-            const min = Math.max(0, months - 6)
-            const max = months + 6
-            const suggRes = await apiGetWorks(accessToken, { minMonths: min, maxMonths: max, limit: 10, profileId: activeProfileId })
-            if (mounted) setSuggested(suggRes.data || [])
+      try {
+        // 1. Get Profile & Suggested (Sequential as suggested depends on profile)
+        try {
+          const profiles = await apiGetProfiles(accessToken)
+          const profile = profiles.find((p) => p.id === activeProfileId)
+          if (profile && mounted) {
+            setProfileName(profile.name)
+            if (profile.birthDate) {
+              const birth = new Date(profile.birthDate)
+              const now = new Date()
+              const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+              setAgeLabel(months < 12 ? `${months} meses` : `${Math.floor(months / 12)} anos`)
+
+              // Fetch Suggested
+              const min = Math.max(0, months - 6)
+              const max = months + 6
+              apiGetWorks(accessToken, { minMonths: min, maxMonths: max, limit: 10, profileId: activeProfileId })
+                .then(suggRes => {
+                  if (mounted) setSuggested(suggRes.data || [])
+                })
+                .catch(err => console.log('Suggested error:', err))
+            }
           }
+        } catch (err) {
+          console.log('Profile error:', err)
         }
 
-        // 2. Fetch Favorites
-        const favRes = await apiGetFavorites(accessToken, { limit: 10, profileId: activeProfileId })
-        if (mounted) setFavorites(favRes.data || [])
+        // 2. Fetch independent sections in parallel
+        await Promise.all([
+          apiGetFavorites(accessToken, { limit: 10, profileId: activeProfileId })
+            .then(res => { if (mounted) setFavorites(res.data || []) })
+            .catch(err => console.log('Fav error:', err)),
 
-        // 3. Fetch Recent Audiobooks
-        const audioRes = await apiGetWorks(accessToken, { type: 'audiobook', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
-        if (mounted) setRecentAudiobooks(audioRes.data || [])
+          apiGetWorks(accessToken, { type: 'audiobook', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
+            .then(res => { if (mounted) setRecentAudiobooks(res.data || []) })
+            .catch(err => console.log('Audiobook error:', err)),
 
-        // 4. Fetch Recent Music
-        const musicRes = await apiGetWorks(accessToken, { type: 'music', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
-        if (mounted) setRecentMusic(musicRes.data || [])
+          apiGetWorks(accessToken, { type: 'music', sort: 'createdAt:desc', limit: 10, profileId: activeProfileId })
+            .then(res => { if (mounted) setRecentMusic(res.data || []) })
+            .catch(err => console.log('Music error:', err)),
 
-        // 5. Fetch Top Played (Global)
-        const topRes = await apiGetTopPlayed(accessToken, { limit: 10 })
-        if (mounted) setTopPlayed((topRes.data || []).slice(0, 10))
+          apiGetTopPlayed(accessToken, { limit: 10 })
+            .then(res => {
+              if (mounted) {
+                // Handle both { data: [...] } and [...] formats
+                const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : [])
+                setTopPlayed(list.slice(0, 10))
+              }
+            })
+            .catch(err => console.log('TopPlayed error:', err)),
+        ])
 
       } catch (err) {
+        console.log('Dashboard global error:', err)
       } finally {
         if (mounted) setLoadingDashboard(false)
       }
@@ -187,6 +205,7 @@ export default function HomeScreen({ onLogout }: Props) {
     if (tab === 'home') {
       loadDashboard()
     }
+    return () => { mounted = false }
   }, [accessToken, activeProfileId, tab])
 
   const orderedTracks = useMemo(() => {

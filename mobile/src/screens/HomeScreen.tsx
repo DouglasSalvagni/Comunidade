@@ -72,7 +72,7 @@ export default function HomeScreen({ onLogout }: Props) {
         setPlayerVisible(false)
         return true // Prevent default behavior
       }
-      
+
       // 2. If inside settings sub-menus, go back to settings menu
       if (tab === 'settings' && settingsView !== 'menu') {
         setSettingsView('menu')
@@ -360,6 +360,18 @@ export default function HomeScreen({ onLogout }: Props) {
                 <CuriosityAnimation />
                 {loadingDashboard ? (
                   <>
+                    {/* Top 10 Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <View style={styles.topList}>
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
+                        ))}
+                      </View>
+                    </View>
+
                     {/* Favoritos Skeleton */}
                     <View style={styles.section}>
                       <View style={styles.sectionHeader}>
@@ -407,21 +419,36 @@ export default function HomeScreen({ onLogout }: Props) {
                         ))}
                       </ScrollView>
                     </View>
-
-                    {/* Top 10 Skeleton */}
-                    <View style={styles.section}>
-                      <View style={styles.sectionHeader}>
-                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
-                      </View>
-                      <View style={styles.topList}>
-                        {Array.from({ length: 4 }).map((_, idx) => (
-                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
-                        ))}
-                      </View>
-                    </View>
                   </>
                 ) : (
                   <>
+                    {topPlayed.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Top 10</Text>
+                        </View>
+                        <View style={styles.topList}>
+                          {topPlayed.map((item, idx) => (
+                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
+                              <View style={styles.topIndexWrap}>
+                                <Text style={styles.topIndex}>{idx + 1}</Text>
+                              </View>
+                              {item.coverUrl ? (
+                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
+                              ) : (
+                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
+                              )}
+                              <View style={styles.topInfo}>
+                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
+                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
+                              </View>
+                              <Ionicons name="play" size={18} color="#cfd3ff" />
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+
                     {favorites.length > 0 && (
                       <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -483,34 +510,7 @@ export default function HomeScreen({ onLogout }: Props) {
                       </View>
                     )}
 
-                    {topPlayed.length > 0 && (
-                      <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>Top 10</Text>
-                        </View>
-                        <View style={styles.topList}>
-                          {topPlayed.map((item, idx) => (
-                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
-                              <View style={styles.topIndexWrap}>
-                                <Text style={styles.topIndex}>{idx + 1}</Text>
-                              </View>
-                              {item.coverUrl ? (
-                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
-                              ) : (
-                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
-                              )}
-                              <View style={styles.topInfo}>
-                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
-                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
-                              </View>
-                              <Ionicons name="play" size={18} color="#cfd3ff" />
-                            </Pressable>
-                          ))}
-                        </View>
-                      </View>
-                    )}
-
-                    {favorites.length === 0 && suggested.length === 0 && (
+                    {favorites.length === 0 && suggested.length === 0 && topPlayed.length === 0 && (
                       <View style={styles.emptyState}>
                         <Ionicons name="musical-notes-outline" size={48} color="#2b3448" />
                         <Text style={styles.emptyText}>Explore o catálogo para encontrar músicas e histórias!</Text>
@@ -566,7 +566,7 @@ export default function HomeScreen({ onLogout }: Props) {
         onHeight={(h) => setBottomNavHeight(Math.max(60, Math.round(h)))}
       />
       {playerVisible && playerCardTrack && playerCardWork && (
-        <Animated.View 
+        <Animated.View
           style={styles.playerOverlay}
           entering={SlideInDown.duration(400)}
           exiting={SlideOutDown.duration(400)}
@@ -590,31 +590,31 @@ export default function HomeScreen({ onLogout }: Props) {
             <Text style={styles.playerSubtitle} numberOfLines={2}>{(playerCardWork as any)?.artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
 
             <View
-                style={styles.progressBarContainer}
-                onLayout={(e) => {
-                  setProgressBarWidth(e.nativeEvent.layout.width)
-                  // Capture absolute X position for accurate touch calculations
-                  e.currentTarget.measureInWindow((x) => {
-                    progressBarOffsetXRef.current = x
-                  })
-                }}
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={handleSeekStart}
-                onResponderMove={handleSeekMove}
-                onResponderRelease={handleSeekEnd}
-                onResponderTerminate={handleSeekTerminate}
-                onResponderTerminationRequest={() => false}
-              >
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-                </View>
-                <View
-                  style={[
-                    styles.progressThumb,
-                    { left: `${progress * 100}%` }
-                  ]}
-                />
+              style={styles.progressBarContainer}
+              onLayout={(e) => {
+                setProgressBarWidth(e.nativeEvent.layout.width)
+                // Capture absolute X position for accurate touch calculations
+                e.currentTarget.measureInWindow((x) => {
+                  progressBarOffsetXRef.current = x
+                })
+              }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleSeekStart}
+              onResponderMove={handleSeekMove}
+              onResponderRelease={handleSeekEnd}
+              onResponderTerminate={handleSeekTerminate}
+              onResponderTerminationRequest={() => false}
+            >
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+              </View>
+              <View
+                style={[
+                  styles.progressThumb,
+                  { left: `${progress * 100}%` }
+                ]}
+              />
             </View>
             <View style={styles.progressTimes}>
               <Text style={styles.progressText}>{formatTime(position)}</Text>

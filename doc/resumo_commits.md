@@ -179,3 +179,59 @@
 **Alterações:**
 - Removido o spinner de carregamento genérico.
 - Adicionado estado de Skeleton que simula o layout dos campos de nome, e-mail e formulário de alteração de senha, proporcionando uma transição visual mais suave.
+
+---
+
+## 2026-01-31 - Correção do Worker para Processar Eventos de Play (Top 10)
+
+**Arquivos modificados:**
+- `docker-compose-prod.yml`
+- `backend/Dockerfile.worker`
+- `backend/src/workers/worker.ts`
+- `backend/src/workers/worker.module.ts`
+- `backend/src/workers/processors/play-events.processor.ts`
+- `backend/src/app.module.ts`
+- `backend/src/modules/playback/playback.service.ts`
+
+**Problema:**
+- O Top 10 (músicas mais tocadas) não aparecia no mobile, mostrando apenas skeleton e depois vazio.
+- Investigação revelou que a tabela `TrackPlayGlobalCount` estava vazia em produção.
+- O worker de eventos de play não estava processando os jobs, apenas o worker de HLS.
+
+**Causa raiz:**
+- O `docker-compose-prod.yml` linha 66 tinha `command: ["node", "dist/src/workers/transcode.worker.js"]`
+- Isso sobrescrevia o CMD do Dockerfile e executava apenas o worker de HLS
+- O `PlayEventsProcessor` (que atualiza contadores) nunca era iniciado
+
+**Correções:**
+1. `docker-compose-prod.yml`: Alterado command para `worker.js` que inclui AMBOS os workers
+2. `Dockerfile.worker`: Atualizado CMD para `worker.js` (consistência)
+3. `worker.ts`: Adicionados logs de bootstrap para confirmar inicialização
+4. `worker.module.ts` e `app.module.ts`: Corrigido fallback do Redis host para container name
+5. `play-events.processor.ts`: Adicionado log de inicialização
+
+**Resultado:**
+- Worker agora processa tanto HLS quanto eventos de play
+- Contadores de reprodução são atualizados corretamente
+- Top 10 exibe as músicas mais tocadas
+
+---
+
+## 2026-01-31 - Implementação do Top 10 no Mobile
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Implementada a seção Top 10 na home do mobile, exibindo as músicas mais reproduzidas.
+
+**Alterações:**
+- Adicionada chamada à API `apiGetTopPlayed` no carregamento do dashboard
+- Criada seção "Top 10" com lista vertical mostrando:
+  - Ranking (1-10)
+  - Capa da música
+  - Título
+  - Tipo (Música/Audiobook)
+  - Botão de play
+- Seção posicionada como primeira após a animação de curiosidade
+- Adicionado skeleton loader durante carregamento
+- Tratamento robusto de resposta (suporte a formatos `{ data: [...] }` e `[...]`)
+

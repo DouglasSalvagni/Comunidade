@@ -188,9 +188,11 @@ export default function HomeScreen({ onLogout }: Props) {
           apiGetTopPlayed(accessToken, { limit: 10 })
             .then(res => {
               if (mounted) {
-                // Handle both { data: [...] } and [...] formats
-                const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : [])
-                setTopPlayed(list.slice(0, 10))
+                // Match exact frontend pattern: check res.data first (object with data array), then res itself
+                const topData = Array.isArray((res as any)?.data)
+                  ? (res as any).data
+                  : (Array.isArray(res) ? res : [])
+                setTopPlayed((topData || []).slice(0, 10))
               }
             })
             .catch(err => console.log('TopPlayed error:', err)),
@@ -379,18 +381,6 @@ export default function HomeScreen({ onLogout }: Props) {
                 <CuriosityAnimation />
                 {loadingDashboard ? (
                   <>
-                    {/* Top 10 Skeleton */}
-                    <View style={styles.section}>
-                      <View style={styles.sectionHeader}>
-                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
-                      </View>
-                      <View style={styles.topList}>
-                        {Array.from({ length: 4 }).map((_, idx) => (
-                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
-                        ))}
-                      </View>
-                    </View>
-
                     {/* Favoritos Skeleton */}
                     <View style={styles.section}>
                       <View style={styles.sectionHeader}>
@@ -401,6 +391,18 @@ export default function HomeScreen({ onLogout }: Props) {
                           <DashboardCardSkeleton key={`fav-skel-${idx}`} variant="square" />
                         ))}
                       </ScrollView>
+                    </View>
+
+                    {/* Top 10 Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <View style={styles.topList}>
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
+                        ))}
+                      </View>
                     </View>
 
                     {/* Sugeridos Skeleton */}

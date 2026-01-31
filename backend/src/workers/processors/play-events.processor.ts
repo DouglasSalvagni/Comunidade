@@ -15,7 +15,9 @@ export class PlayEventsProcessor {
         private readonly trackPlayUserCountRepository: Repository<TrackPlayUserCount>,
         @InjectRepository(TrackPlayGlobalCount)
         private readonly trackPlayGlobalCountRepository: Repository<TrackPlayGlobalCount>,
-    ) { }
+    ) {
+        console.log('[PLAY_EVENTS_PROCESSOR] Initialized and ready to process play-events queue');
+    }
 
     @Process('process-play-event')
     async handlePlayEvent(job: Job) {

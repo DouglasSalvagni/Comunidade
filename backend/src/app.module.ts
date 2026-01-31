@@ -46,7 +46,7 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     BullModule.forRoot({
       redis: ((): any => {
         const url = process.env.REDIS_URL;
-        let host = process.env.REDIS_HOST || 'localhost';
+        let host = process.env.REDIS_HOST || 'ninaro_redis';  // Use 'redis' as fallback (Docker container name)
         let port = parseInt(process.env.REDIS_PORT || '6379');
         let password = process.env.REDIS_PASSWORD;
         if (url) {
@@ -55,7 +55,7 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
             host = u.hostname || host;
             port = (u.port && parseInt(u.port)) || port;
             password = u.password || password;
-          } catch {}
+          } catch { }
         }
         return { host, port, password };
       })(),
@@ -108,4 +108,4 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

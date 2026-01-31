@@ -235,3 +235,23 @@
 - Adicionado skeleton loader durante carregamento
 - Tratamento robusto de resposta (suporte a formatos `{ data: [...] }` e `[...]`)
 
+---
+
+## 2026-01-31 - Correção do Safe Area no Player Full Screen
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Corrigido problema onde o conteúdo do player full screen ficava atrás dos botões de navegação nativos em alguns dispositivos Android.
+
+**Problema:**
+- Em dispositivos com barra de navegação por gestos ou botões virtuais, a parte inferior do player (botões de ação como Favoritar e Playlist) ficava oculta atrás dos controles do sistema.
+
+**Solução:**
+- Aplicado padding inferior dinâmico no container `playerCard` usando `insets.bottom` do `useSafeAreaInsets`
+- O padding é calculado como `insets.bottom + 24` para manter espaçamento consistente
+
+**Resultado:**
+- O player full screen agora respeita a área segura do dispositivo
+- Todos os controles e botões de ação ficam visíveis e acessíveis
+
+

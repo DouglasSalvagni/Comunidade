@@ -393,18 +393,6 @@ export default function HomeScreen({ onLogout }: Props) {
                       </ScrollView>
                     </View>
 
-                    {/* Top 10 Skeleton */}
-                    <View style={styles.section}>
-                      <View style={styles.sectionHeader}>
-                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
-                      </View>
-                      <View style={styles.topList}>
-                        {Array.from({ length: 4 }).map((_, idx) => (
-                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
-                        ))}
-                      </View>
-                    </View>
-
                     {/* Sugeridos Skeleton */}
                     <View style={styles.section}>
                       <View style={styles.sectionHeader}>
@@ -415,6 +403,18 @@ export default function HomeScreen({ onLogout }: Props) {
                           <DashboardCardSkeleton key={`sug-skel-${idx}`} variant="square" />
                         ))}
                       </ScrollView>
+                    </View>
+
+                    {/* Top 10 Skeleton */}
+                    <View style={styles.section}>
+                      <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
+                      </View>
+                      <View style={styles.topList}>
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                          <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
+                        ))}
+                      </View>
                     </View>
 
                     {/* Audiobooks Skeleton */}
@@ -443,32 +443,6 @@ export default function HomeScreen({ onLogout }: Props) {
                   </>
                 ) : (
                   <>
-                    {topPlayed.length > 0 && (
-                      <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>Top 10</Text>
-                        </View>
-                        <View style={styles.topList}>
-                          {topPlayed.map((item, idx) => (
-                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
-                              <View style={styles.topIndexWrap}>
-                                <Text style={styles.topIndex}>{idx + 1}</Text>
-                              </View>
-                              {item.coverUrl ? (
-                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
-                              ) : (
-                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
-                              )}
-                              <View style={styles.topInfo}>
-                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
-                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
-                              </View>
-                              <Ionicons name="play" size={18} color="#cfd3ff" />
-                            </Pressable>
-                          ))}
-                        </View>
-                      </View>
-                    )}
 
                     {favorites.length > 0 && (
                       <View style={styles.section}>
@@ -496,6 +470,34 @@ export default function HomeScreen({ onLogout }: Props) {
                             <DashboardCard key={item.id} work={item} onPress={() => handlePlayWork(item)} />
                           ))}
                         </ScrollView>
+                      </View>
+                    )}
+
+                    {/* Top 10 */}
+                    {topPlayed.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Top 10</Text>
+                        </View>
+                        <View style={styles.topList}>
+                          {topPlayed.map((item, idx) => (
+                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
+                              <View style={styles.topIndexWrap}>
+                                <Text style={styles.topIndex}>{idx + 1}</Text>
+                              </View>
+                              {item.coverUrl ? (
+                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
+                              ) : (
+                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
+                              )}
+                              <View style={styles.topInfo}>
+                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
+                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
+                              </View>
+                              <Ionicons name="play" size={18} color="#cfd3ff" />
+                            </Pressable>
+                          ))}
+                        </View>
                       </View>
                     )}
 
@@ -593,7 +595,7 @@ export default function HomeScreen({ onLogout }: Props) {
           exiting={SlideOutDown.duration(400)}
         >
           <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
-          <View style={styles.playerCard}>
+          <View style={[styles.playerCard, { paddingBottom: insets.bottom + 24 }]}>
             <View style={styles.playerHeader}>
               <Text style={styles.playerNow}>Tocando agora</Text>
               <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>

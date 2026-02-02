@@ -241,17 +241,111 @@
 
 **Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
 
-**Descrição:** Corrigido problema onde o conteúdo do player full screen ficava atrás dos botões de navegação nativos em alguns dispositivos Android.
+**Descrição:** Corrigido problema onde o conteúdo do player full screen ficava atrás dos botões de navegação nativos em alguns dispositivos Android (testado no Galaxy S24).
 
 **Problema:**
 - Em dispositivos com barra de navegação por gestos ou botões virtuais, a parte inferior do player (botões de ação como Favoritar e Playlist) ficava oculta atrás dos controles do sistema.
+- Tentativas anteriores com `paddingBottom`, `bottom: insets.bottom` e `SafeAreaView` não resolveram no Galaxy S24.
+- **Causa raiz identificada:** O conteúdo do player tinha tamanhos fixos (capa 300x300px, margens fixas) que somados excediam a altura disponível em telas menores.
 
 **Solução:**
-- Aplicado padding inferior dinâmico no container `playerCard` usando `insets.bottom` do `useSafeAreaInsets`
-- O padding é calculado como `insets.bottom + 24` para manter espaçamento consistente
+1. **SafeAreaView com edges={['bottom']}** - Envolver o conteúdo do player (mesma abordagem do BottomNav)
+2. **Layout Responsivo** - Tamanhos dinâmicos baseados na altura da tela:
+   - Usa `useWindowDimensions` para obter altura da tela
+   - Calcula `availableHeight = screenHeight - insets.top - insets.bottom`
+   - Em telas menores (< 700px), reduz proporcionalmente:
+     - `coverSize`: 300px → min(220, 32% da altura)
+     - `smallMargin`: 30px → 16px
+     - `mediumMargin`: 40px → 20px
+3. **justifyContent: 'space-between'** - Distribui melhor os elementos na altura disponível
+
+**Alterações técnicas:**
+```tsx
+// Imports atualizados
+import { ..., useWindowDimensions } from 'react-native'
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
+
+// Cálculo dinâmico de tamanhos
+const { height: screenHeight } = useWindowDimensions()
+const availableHeight = screenHeight - insets.top - insets.bottom
+const isSmallScreen = availableHeight < 700
+const coverSize = isSmallScreen ? Math.min(220, availableHeight * 0.32) : 300
+const smallMargin = isSmallScreen ? 16 : 30
+const mediumMargin = isSmallScreen ? 20 : 40
+
+// Aplicação nos elementos
+<Image style={[styles.playerCover, { width: coverSize, height: coverSize }]} />
+<View style={[styles.playerHeader, { marginBottom: smallMargin }]}>
+<View style={[styles.playerCoverWrap, { marginBottom: mediumMargin }]}>
+```
 
 **Resultado:**
-- O player full screen agora respeita a área segura do dispositivo
+- O player full screen agora se adapta a diferentes tamanhos de tela
 - Todos os controles e botões de ação ficam visíveis e acessíveis
+- Funciona corretamente em dispositivos como Galaxy S24 e Pocophone
 
+
+---
+
+## 2026-02-02 - Home Screen: Top 5 Global e Top 5 Pessoal
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Atualizad a seção de ranking na home screen para exibir "Top 5 Global" e adicionada nova seção "Suas Mais Ouvidas" (Top 5 Pessoal).
+
+**Alterações:**
+1. **Top Global:**
+   - Reduzido limite de busca na API de 10 para 5 itens globalmente.
+   - Renomeado título da seção de "Top 10" para "Top 5 Global".
+2. **Top Pessoal:**
+   - Implementada verificação e consumo do endpoint `apiGetMyTopPlayed` (verificado no backend como existente).
+   - Adicionada nova seção "Suas Mais Ouvidas" com layout idêntico ao ranking global.
+   - Limitado a 5 itens.
+3. **UX/UI:**
+   - Ambas as seções agora exibem 5 itens cada.
+   - Skeleton loading ajustado para representar 5 itens placeholder.
+   - "Suas Mais Ouvidas" aparece antes de "Top 5 Global" para priorizar conteúdo personalizado.
+
+---
+
+## 2026-02-02 - Home Screen: Ajuste de Texto Top 5
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Pequeno ajuste de copy na Home Screen.
+
+**Alterações:**
+1. Alterado título de "Top 5 Global" para "Top 5 no Ninaro".
+2. Confirmado que a seção "Suas Mais Ouvidas" só renderiza se houver itens (`length > 0`), portanto não aparecerá para usuários sem histórico.
+
+---
+
+## 2026-02-02 - UI Redesign: My Top 5 e Global Top 5 Distintos
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Redesenhada a interface das seções de "Top 5" para diferenciá-las visualmente e melhorar a hierarquia.
+
+**Alterações:**
+1. **"Suas Mais Ouvidas" (My Top 5):**
+   - Alterado de lista vertical para **Carrossel Horizontal** (ScrollView) de Cards Quadrados.
+   - Adicionado um **Badge de Ranking** (#1, #2...) sobreposto no canto superior esquerdo de cada card.
+   - Mantém consistência com outras seções horizontais, mas com o diferencial do badge.
+
+2. **"Top 5 no Ninaro" (Global):**
+   - Mantida lista vertical para reforçar conceito de "Ranking/lista".
+   - **Ícones de Play:** Substituído ícone pequeno por `play-circle` maior e na cor primária (#A78BFA).
+
+---
+
+## 2026-02-02 - UI: Card "Top 1" em Dourado
+
+**Arquivo modificado:** `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Implementado destaque visual exclusivo para o 1º lugar do ranking no "Top 5 no Ninaro".
+
+**Alterações:**
+1. **Background:** O card #1 agora possui fundo totalmente dourado (`#FFD700`).
+2. **Contraste:** Para garantir legibilidade sobre o fundo dourado, todos os textos (título, subtítulo, ranking) e ícones desse card específico foram alterados para marrom escuro (`#422006` e `#78350f`).
+3. **Harmonia:** Os elementos internos agora combinam com a estética "Premium Gold" solicitada, criando um destaque imediato para a obra mais ouvida.
 

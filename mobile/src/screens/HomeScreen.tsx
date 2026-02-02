@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator, BackHandler } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator, BackHandler, useWindowDimensions } from 'react-native'
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -15,8 +15,8 @@ import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
-import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork, apiGetTopPlayed } from '../services/api'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork, apiGetTopPlayed, apiGetMyTopPlayed } from '../services/api'
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import appConfig from '../../app.json'
 
 type Props = {
@@ -26,6 +26,15 @@ type Props = {
 export default function HomeScreen({ onLogout }: Props) {
   const { user, accessToken, activeProfileId } = useAuth()
   const insets = useSafeAreaInsets()
+  const { height: screenHeight } = useWindowDimensions()
+
+  // Tamanho dinâmico da capa baseado na altura disponível
+  // Em telas menores (< 700px), reduzimos proporcionalmente
+  const availableHeight = screenHeight - insets.top - insets.bottom
+  const isSmallScreen = availableHeight < 700
+  const coverSize = isSmallScreen ? Math.min(220, availableHeight * 0.32) : 300
+  const smallMargin = isSmallScreen ? 16 : 30
+  const mediumMargin = isSmallScreen ? 20 : 40
   const {
     currentTrack,
     currentWork,
@@ -104,6 +113,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [recentAudiobooks, setRecentAudiobooks] = useState<any[]>([])
   const [recentMusic, setRecentMusic] = useState<any[]>([])
   const [topPlayed, setTopPlayed] = useState<any[]>([])
+  const [myTopPlayed, setMyTopPlayed] = useState<any[]>([])
   const [loadingDashboard, setLoadingDashboard] = useState(false)
   const [profileName, setProfileName] = useState('')
   const [ageLabel, setAgeLabel] = useState('')
@@ -185,17 +195,28 @@ export default function HomeScreen({ onLogout }: Props) {
             .then(res => { if (mounted) setRecentMusic(res.data || []) })
             .catch(err => console.log('Music error:', err)),
 
-          apiGetTopPlayed(accessToken, { limit: 10 })
+          apiGetTopPlayed(accessToken, { limit: 5 })
             .then(res => {
               if (mounted) {
                 // Match exact frontend pattern: check res.data first (object with data array), then res itself
                 const topData = Array.isArray((res as any)?.data)
                   ? (res as any).data
                   : (Array.isArray(res) ? res : [])
-                setTopPlayed((topData || []).slice(0, 10))
+                setTopPlayed((topData || []).slice(0, 5))
               }
             })
             .catch(err => console.log('TopPlayed error:', err)),
+
+          apiGetMyTopPlayed(accessToken, { limit: 5, profileId: activeProfileId })
+            .then(res => {
+              if (mounted) {
+                const data = Array.isArray((res as any)?.data)
+                  ? (res as any).data
+                  : (Array.isArray(res) ? res : [])
+                setMyTopPlayed((data || []).slice(0, 5))
+              }
+            })
+            .catch(err => console.log('MyTopPlayed error:', err)),
         ])
 
       } catch (err) {
@@ -405,13 +426,13 @@ export default function HomeScreen({ onLogout }: Props) {
                       </ScrollView>
                     </View>
 
-                    {/* Top 10 Skeleton */}
+                    {/* Top Skeleton */}
                     <View style={styles.section}>
                       <View style={styles.sectionHeader}>
                         <View style={[styles.sectionTitleSkeleton, styles.skeleton]} />
                       </View>
                       <View style={styles.topList}>
-                        {Array.from({ length: 4 }).map((_, idx) => (
+                        {Array.from({ length: 5 }).map((_, idx) => (
                           <View key={`top-skel-${idx}`} style={[styles.topSkeleton, styles.skeleton]} />
                         ))}
                       </View>
@@ -473,30 +494,82 @@ export default function HomeScreen({ onLogout }: Props) {
                       </View>
                     )}
 
-                    {/* Top 10 */}
+                    {/* Suas Mais Ouvidas - Horizontal Cards with Rank */}
+                    {myTopPlayed.length > 0 && (
+                      <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                          <Text style={styles.sectionTitle}>Suas Mais Ouvidas</Text>
+                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+                          {myTopPlayed.map((item, idx) => (
+                            <View key={item.id || idx} style={{ position: 'relative' }}>
+                              <DashboardCard work={item} variant="square" onPress={() => handlePlayWork(item)} />
+                              <View style={styles.rankBadge}>
+                                <Text style={styles.rankText}>#{idx + 1}</Text>
+                              </View>
+                            </View>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+
+                    {/* Top 5 no Ninaro - Enhanced Vertical List */}
                     {topPlayed.length > 0 && (
                       <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                          <Text style={styles.sectionTitle}>Top 10</Text>
+                          <Text style={styles.sectionTitle}>Top 5 no Ninaro</Text>
                         </View>
                         <View style={styles.topList}>
-                          {topPlayed.map((item, idx) => (
-                            <Pressable key={item.id || idx} style={styles.topItem} onPress={() => handlePlayWork(item)}>
-                              <View style={styles.topIndexWrap}>
-                                <Text style={styles.topIndex}>{idx + 1}</Text>
-                              </View>
-                              {item.coverUrl ? (
-                                <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
-                              ) : (
-                                <View style={[styles.topCover, styles.topCoverPlaceholder]} />
-                              )}
-                              <View style={styles.topInfo}>
-                                <Text style={styles.topTitle} numberOfLines={1}>{item.title}</Text>
-                                <Text style={styles.topMeta} numberOfLines={1}>{item.type === 'music' ? 'Musica' : 'Audiobook'}</Text>
-                              </View>
-                              <Ionicons name="play" size={18} color="#cfd3ff" />
-                            </Pressable>
-                          ))}
+                          {topPlayed.map((item, idx) => {
+                            const isFirst = idx === 0
+                            return (
+                              <Pressable
+                                key={item.id || idx}
+                                style={[
+                                  styles.topItem,
+                                  isFirst && { backgroundColor: '#FFD700', borderColor: '#FFD700' }
+                                ]}
+                                onPress={() => handlePlayWork(item)}
+                              >
+                                <View style={styles.topIndexWrap}>
+                                  <Text style={[
+                                    styles.topIndex,
+                                    isFirst && { color: '#422006', fontSize: 22 }, // #1 Dark Brown
+                                    idx === 1 && { color: '#9ca3af', fontSize: 18 }, // Silver
+                                    idx === 2 && { color: '#b45309', fontSize: 18 }, // Bronze
+                                  ]}>{idx + 1}</Text>
+                                </View>
+                                {item.coverUrl ? (
+                                  <Image source={{ uri: item.coverUrl }} style={styles.topCover} />
+                                ) : (
+                                  <View style={[
+                                    styles.topCover,
+                                    styles.topCoverPlaceholder,
+                                    isFirst && { backgroundColor: 'rgba(66, 32, 6, 0.1)' }
+                                  ]} />
+                                )}
+                                <View style={styles.topInfo}>
+                                  <Text
+                                    style={[styles.topTitle, isFirst && { color: '#422006' }]}
+                                    numberOfLines={1}
+                                  >
+                                    {item.title}
+                                  </Text>
+                                  <Text
+                                    style={[styles.topMeta, isFirst && { color: '#78350f' }]}
+                                    numberOfLines={1}
+                                  >
+                                    {item.type === 'music' ? 'Musica' : 'Audiobook'}
+                                  </Text>
+                                </View>
+                                <Ionicons
+                                  name="play-circle"
+                                  size={28}
+                                  color={isFirst ? '#422006' : '#A78BFA'}
+                                />
+                              </Pressable>
+                            )
+                          })}
                         </View>
                       </View>
                     )}
@@ -533,7 +606,7 @@ export default function HomeScreen({ onLogout }: Props) {
                       </View>
                     )}
 
-                    {favorites.length === 0 && suggested.length === 0 && topPlayed.length === 0 && (
+                    {favorites.length === 0 && suggested.length === 0 && topPlayed.length === 0 && myTopPlayed.length === 0 && (
                       <View style={styles.emptyState}>
                         <Ionicons name="musical-notes-outline" size={48} color="#2b3448" />
                         <Text style={styles.emptyText}>Explore o catálogo para encontrar músicas e histórias!</Text>
@@ -595,113 +668,115 @@ export default function HomeScreen({ onLogout }: Props) {
           exiting={SlideOutDown.duration(400)}
         >
           <Pressable style={styles.playerBackdrop} onPress={() => setPlayerVisible(false)} />
-          <View style={[styles.playerCard, { paddingBottom: insets.bottom + 24 }]}>
-            <View style={styles.playerHeader}>
-              <Text style={styles.playerNow}>Tocando agora</Text>
-              <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>
-                <Ionicons name="chevron-down" size={32} color="#cfd3ff" />
-              </Pressable>
-            </View>
-            <View style={styles.playerCoverWrap}>
-              {playerCardWork?.coverUrl ? (
-                <Image source={{ uri: playerCardWork.coverUrl }} style={styles.playerCover} />
-              ) : (
-                <View style={[styles.playerCover, styles.playerCoverPlaceholder]} />
-              )}
-            </View>
-            <Text style={styles.playerTitle} numberOfLines={1}>{playerCardTrack?.title || playerCardWork?.title || 'Faixa'}</Text>
-            <Text style={styles.playerSubtitle} numberOfLines={2}>{(playerCardWork as any)?.artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
-
-            <View
-              style={styles.progressBarContainer}
-              onLayout={(e) => {
-                setProgressBarWidth(e.nativeEvent.layout.width)
-                // Capture absolute X position for accurate touch calculations
-                e.currentTarget.measureInWindow((x) => {
-                  progressBarOffsetXRef.current = x
-                })
-              }}
-              onStartShouldSetResponder={() => true}
-              onMoveShouldSetResponder={() => true}
-              onResponderGrant={handleSeekStart}
-              onResponderMove={handleSeekMove}
-              onResponderRelease={handleSeekEnd}
-              onResponderTerminate={handleSeekTerminate}
-              onResponderTerminationRequest={() => false}
-            >
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-              </View>
-              <View
-                style={[
-                  styles.progressThumb,
-                  { left: `${progress * 100}%` }
-                ]}
-              />
-            </View>
-            <View style={styles.progressTimes}>
-              <Text style={styles.progressText}>{formatTime(position)}</Text>
-              <Text style={styles.progressText}>{formatTime(duration)}</Text>
-            </View>
-
-            <View style={styles.playerControls}>
-              <View style={styles.playerSide}>
-                {hasPrev && (
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={isLoading}
-                    style={styles.controlBtn}
-                    onPress={prevTrack}
-                  >
-                    <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
-                  </Pressable>
-                )}
-              </View>
-              <View style={styles.playerCenter}>
-                <Pressable
-                  accessibilityRole="button"
-                  style={[styles.controlBtn, styles.controlBtnPrimary]}
-                  onPress={togglePlay}
-                >
-                  <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+          <SafeAreaView edges={['bottom']} style={styles.playerSafeArea}>
+            <View style={styles.playerCard}>
+              <View style={[styles.playerHeader, { marginBottom: smallMargin }]}>
+                <Text style={styles.playerNow}>Tocando agora</Text>
+                <Pressable onPress={() => setPlayerVisible(false)} hitSlop={20}>
+                  <Ionicons name="chevron-down" size={32} color="#cfd3ff" />
                 </Pressable>
               </View>
-              <View style={styles.playerSide}>
-                {hasNext && (
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={isLoading}
-                    style={styles.controlBtn}
-                    onPress={nextTrack}
-                  >
-                    <Ionicons name="play-skip-forward" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
-                  </Pressable>
+              <View style={[styles.playerCoverWrap, { marginBottom: mediumMargin }]}>
+                {playerCardWork?.coverUrl ? (
+                  <Image source={{ uri: playerCardWork.coverUrl }} style={[styles.playerCover, { width: coverSize, height: coverSize }]} />
+                ) : (
+                  <View style={[styles.playerCover, styles.playerCoverPlaceholder, { width: coverSize, height: coverSize }]} />
                 )}
               </View>
-            </View>
-            <View style={styles.playerActions}>
-              <Pressable
-                accessibilityRole="button"
-                style={styles.actionBtn}
-                onPress={togglePlaylist}
+              <Text style={styles.playerTitle} numberOfLines={1}>{playerCardTrack?.title || playerCardWork?.title || 'Faixa'}</Text>
+              <Text style={[styles.playerSubtitle, { marginBottom: mediumMargin }]} numberOfLines={2}>{(playerCardWork as any)?.artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
+
+              <View
+                style={styles.progressBarContainer}
+                onLayout={(e) => {
+                  setProgressBarWidth(e.nativeEvent.layout.width)
+                  // Capture absolute X position for accurate touch calculations
+                  e.currentTarget.measureInWindow((x) => {
+                    progressBarOffsetXRef.current = x
+                  })
+                }}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={handleSeekStart}
+                onResponderMove={handleSeekMove}
+                onResponderRelease={handleSeekEnd}
+                onResponderTerminate={handleSeekTerminate}
+                onResponderTerminationRequest={() => false}
               >
-                <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
-                <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
-                  {playlistItemId ? 'Na Playlist' : 'Playlist'}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                style={styles.actionBtn}
-                onPress={toggleFavorite}
-              >
-                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
-                <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
-                  {isFavorite ? 'Favorito' : 'Favoritar'}
-                </Text>
-              </Pressable>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                </View>
+                <View
+                  style={[
+                    styles.progressThumb,
+                    { left: `${progress * 100}%` }
+                  ]}
+                />
+              </View>
+              <View style={styles.progressTimes}>
+                <Text style={styles.progressText}>{formatTime(position)}</Text>
+                <Text style={styles.progressText}>{formatTime(duration)}</Text>
+              </View>
+
+              <View style={styles.playerControls}>
+                <View style={styles.playerSide}>
+                  {hasPrev && (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={isLoading}
+                      style={styles.controlBtn}
+                      onPress={prevTrack}
+                    >
+                      <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
+                    </Pressable>
+                  )}
+                </View>
+                <View style={styles.playerCenter}>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={[styles.controlBtn, styles.controlBtnPrimary]}
+                    onPress={togglePlay}
+                  >
+                    <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color="#0b1023" />
+                  </Pressable>
+                </View>
+                <View style={styles.playerSide}>
+                  {hasNext && (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={isLoading}
+                      style={styles.controlBtn}
+                      onPress={nextTrack}
+                    >
+                      <Ionicons name="play-skip-forward" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+              <View style={styles.playerActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.actionBtn}
+                  onPress={togglePlaylist}
+                >
+                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                  <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
+                    {playlistItemId ? 'Na Playlist' : 'Playlist'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.actionBtn}
+                  onPress={toggleFavorite}
+                >
+                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                  <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
+                    {isFavorite ? 'Favorito' : 'Favoritar'}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </SafeAreaView>
         </Animated.View>
       )}
     </View >
@@ -731,14 +806,15 @@ const styles = StyleSheet.create({
   logoutText: { color: '#ef4444' },
   playerOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#0b1023', zIndex: 50 },
   playerBackdrop: { display: 'none' },
-  playerCard: { flex: 1, width: '100%', padding: 24, paddingTop: 60, alignItems: 'center', justifyContent: 'space-around' },
-  playerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 30 },
+  playerSafeArea: { flex: 1, backgroundColor: '#0b1023' },
+  playerCard: { flex: 1, width: '100%', padding: 24, paddingTop: 40, alignItems: 'center', justifyContent: 'space-between' },
+  playerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
   playerNow: { color: '#cfd3ff', fontSize: 14, letterSpacing: 0.5, textTransform: 'uppercase' },
-  playerCoverWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
-  playerCover: { width: 300, height: 300, borderRadius: 24, backgroundColor: '#121632' },
+  playerCoverWrap: { alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  playerCover: { borderRadius: 24, backgroundColor: '#121632' },
   playerCoverPlaceholder: { backgroundColor: '#1f2742' },
   playerTitle: { color: '#e6e9ff', fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  playerSubtitle: { color: '#cfd3ff', fontSize: 18, textAlign: 'center', marginBottom: 40 },
+  playerSubtitle: { color: '#cfd3ff', fontSize: 18, textAlign: 'center' },
   progressBarContainer: { width: '100%', height: 24, justifyContent: 'center', position: 'relative' },
   progressBar: { height: 6, borderRadius: 6, backgroundColor: '#1f2742', overflow: 'hidden', width: '100%' },
   progressFill: { height: '100%', backgroundColor: '#A78BFA' },
@@ -748,7 +824,7 @@ const styles = StyleSheet.create({
   playerControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingHorizontal: 20, marginTop: 20 },
   playerSide: { flex: 1, alignItems: 'center' },
   playerCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  playerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', width: '100%', paddingHorizontal: 40, marginTop: 16, marginBottom: 40 },
+  playerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', width: '100%', paddingHorizontal: 40, marginTop: 16 },
   actionBtn: { alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 80 },
   actionBtnText: { color: '#cfd3ff', fontSize: 12, fontWeight: '500' },
   actionBtnTextActive: { color: '#e6e9ff', fontWeight: '600' },
@@ -768,5 +844,27 @@ const styles = StyleSheet.create({
   topTitle: { color: '#e6e9ff', fontSize: 14, fontWeight: '700' },
   topMeta: { color: '#8b92b8', fontSize: 12, marginTop: 2 },
   topSkeleton: { height: 68, borderRadius: 14, marginBottom: 10 },
+  rankBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#0b1023',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#A78BFA',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  rankText: {
+    color: '#A78BFA',
+    fontSize: 10,
+    fontWeight: '800',
+  },
   headerLogo: { width: 200, height: 46, marginBottom: 8, alignSelf: 'center' },
 })

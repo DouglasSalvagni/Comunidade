@@ -23,7 +23,7 @@
 - `eas build --profile development --platform android`
 
 ### update EAS
-- `eas update --branch production --message "Teste update OTA"`
+- `eas update --branch production --message "ajustes player screed"`
 
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`

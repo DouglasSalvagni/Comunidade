@@ -36,5 +36,3 @@
 ### build docker worker
 - `docker build -f Dockerfile.worker -t ninaro-worker:v1.0.0 .`
 - `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-worker.tar" ninaro-worker:v1.0.0`
-
-

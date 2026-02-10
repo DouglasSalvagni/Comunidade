@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Audio, AVPlaybackStatus } from 'expo-av'
 import { useAuth } from './AuthContext'
 import {
@@ -9,7 +9,11 @@ import {
   apiGetPlaylistItems,
   apiAddPlaylistItem,
   apiRemovePlaylistItem,
-  apiRecordPlaybackEvent
+  apiRecordPlaybackEvent,
+  apiGetWorks,
+  apiGetProfiles,
+  apiGetTopPlayed,
+  apiGetMyTopPlayed
 } from '../services/api'
 import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -25,6 +29,7 @@ type PlayerContextValue = {
   duration: number
   isLoading: boolean
   loopPlaylist: boolean
+  autoPlayAfterTrack: boolean
   hasNext: boolean
   hasPrev: boolean
   nextTrack: () => Promise<void>
@@ -40,6 +45,7 @@ type PlayerContextValue = {
   playlistItemId: string | null
   togglePlaylist: () => Promise<void>
   setLoopPlaylist: (value: boolean) => Promise<void>
+  setAutoPlayAfterTrack: (value: boolean) => Promise<void>
 }
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
@@ -86,8 +92,9 @@ export function PlayerProvider({ children }: { children: any }) {
   const [duration, setDuration] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [queue, setQueue] = useState<PlayerTrack[] | null>(null) // active playlist queue (ordered)
-  const [queueSource, setQueueSource] = useState<'playlist' | null>(null)
+  const [queue, setQueue] = useState<PlayerTrack[] | null>(null)
+  const [queueSource, setQueueSource] = useState<'playlist' | 'auto' | null>(null)
+  const [autoPlayAfterTrack, setAutoPlayAfterTrackState] = useState(true)
   const [queueIndex, setQueueIndex] = useState<number | null>(null)
   const [playlistItemId, setPlaylistItemId] = useState<string | null>(null)
   const [loopPlaylist, setLoopPlaylistState] = useState(false)
@@ -191,7 +198,16 @@ export function PlayerProvider({ children }: { children: any }) {
     if ('didJustFinish' in status && status.didJustFinish && !isLoadingTrack.current) {
       if (isAutoAdvancing.current) return
       isAutoAdvancing.current = true
-      advanceQueue('next')
+      const handleFinish = async () => {
+        if (queueSource === 'playlist') {
+          await advanceQueue('next')
+        } else if (autoPlayAfterTrack) {
+          await advanceOrBuildAutoQueue('next')
+        } else {
+          await stop()
+        }
+      }
+      handleFinish()
         .catch(() => { })
         .finally(() => { isAutoAdvancing.current = false })
     }
@@ -206,20 +222,32 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   useEffect(() => {
-    const loadLoopSetting = async () => {
+    const loadSettings = async () => {
       try {
-        const stored = await AsyncStorage.getItem('player:loopPlaylist')
-        if (stored === 'true') setLoopPlaylistState(true)
+        const [storedLoop, storedAuto] = await Promise.all([
+          AsyncStorage.getItem('player:loopPlaylist'),
+          AsyncStorage.getItem('player:autoPlayAfterTrack'),
+        ])
+        if (storedLoop === 'true') setLoopPlaylistState(true)
+        if (storedAuto === 'false') setAutoPlayAfterTrackState(false)
       } catch {
       }
     }
-    loadLoopSetting()
+    loadSettings()
   }, [])
 
   const setLoopPlaylist = async (value: boolean) => {
     setLoopPlaylistState(value)
     try {
       await AsyncStorage.setItem('player:loopPlaylist', value ? 'true' : 'false')
+    } catch {
+    }
+  }
+
+  const setAutoPlayAfterTrack = async (value: boolean) => {
+    setAutoPlayAfterTrackState(value)
+    try {
+      await AsyncStorage.setItem('player:autoPlayAfterTrack', value ? 'true' : 'false')
     } catch {
     }
   }
@@ -263,7 +291,7 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   const getActiveQueue = () => {
-    if (queueSource === 'playlist' && Array.isArray(queue) && queue.length > 0) {
+    if ((queueSource === 'playlist' || queueSource === 'auto') && Array.isArray(queue) && queue.length > 0) {
       return queue
     }
     return getOrderedTracks(currentWork)
@@ -273,11 +301,10 @@ export function PlayerProvider({ children }: { children: any }) {
     const tracks = getActiveQueue()
     if (tracks.length === 0) return { track: null, tracksSource: tracks }
 
-    // If playlist queue is active and we have an index, use it for consistency
-    if (queueSource === 'playlist' && typeof queueIndex === 'number' && queueIndex >= 0) {
+    if ((queueSource === 'playlist' || queueSource === 'auto') && typeof queueIndex === 'number' && queueIndex >= 0) {
       if (direction === 'next') {
         if (queueIndex >= tracks.length - 1) {
-          if (loopPlaylist && tracks.length > 0) {
+          if (queueSource === 'playlist' && loopPlaylist && tracks.length > 0) {
             return { track: tracks[0], tracksSource: tracks, nextIndex: 0 }
           }
           return { track: null, tracksSource: tracks }
@@ -285,7 +312,8 @@ export function PlayerProvider({ children }: { children: any }) {
         const nextIdx = queueIndex + 1
         return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
       } else {
-        const nextIdx = (queueIndex - 1 + tracks.length) % tracks.length
+        if (queueIndex <= 0) return { track: null, tracksSource: tracks }
+        const nextIdx = queueIndex - 1
         return { track: tracks[nextIdx], tracksSource: tracks, nextIndex: nextIdx }
       }
     }
@@ -304,14 +332,128 @@ export function PlayerProvider({ children }: { children: any }) {
   }
 
   const hasPrev = useMemo(() => {
+    if (queueSource === 'auto' && typeof queueIndex === 'number' && queueIndex > 0) return true
+    if (!queueSource && autoPlayAfterTrack && currentTrack) return false
     const tracks = getActiveQueue()
     return tracks.length > 1
-  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex])
+  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex, autoPlayAfterTrack])
 
   const hasNext = useMemo(() => {
+    if (!queueSource && autoPlayAfterTrack && currentTrack) return true
+    if (queueSource === 'auto') return true
     const tracks = getActiveQueue()
     return tracks.length > 1
-  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex])
+  }, [queueSource, queue, currentWork, currentTrack?.id, queueIndex, autoPlayAfterTrack])
+
+  const fetchRecommendations = async (excludeWorkId?: string): Promise<PlayerTrack[]> => {
+    if (!accessToken) return []
+    try {
+      const currentTags = (currentWork as any)?.tags
+      const currentDevThemes = (currentWork as any)?.devThemes
+      const tagsStr = Array.isArray(currentTags) ? currentTags.join(',') : (typeof currentTags === 'string' ? currentTags : '')
+      const devThemesStr = Array.isArray(currentDevThemes) ? currentDevThemes.join(',') : (typeof currentDevThemes === 'string' ? currentDevThemes : '')
+
+      let ageMin: number | undefined
+      let ageMax: number | undefined
+      if (activeProfileId) {
+        try {
+          const profiles = await apiGetProfiles(accessToken)
+          const profile = profiles.find((p: any) => p.id === activeProfileId)
+          if (profile?.birthDate) {
+            const birth = new Date(profile.birthDate)
+            const now = new Date()
+            const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+            ageMin = Math.max(0, months - 6)
+            ageMax = months + 6
+          }
+        } catch { }
+      }
+
+      const extractTracks = (works: any[]): PlayerTrack[] => {
+        const filtered = excludeWorkId ? works.filter(w => w.id !== excludeWorkId) : works
+        return filtered
+          .filter(w => Array.isArray(w.tracks) && w.tracks.length > 0)
+          .map(w => {
+            const sorted = [...w.tracks].sort((a: any, b: any) => {
+              const ao = typeof a?.orderIndex === 'number' ? a.orderIndex : 0
+              const bo = typeof b?.orderIndex === 'number' ? b.orderIndex : 0
+              return ao - bo
+            })
+            return { ...sorted[0], work: w } as PlayerTrack
+          })
+      }
+
+      const tryFetch = async (params: any): Promise<PlayerTrack[]> => {
+        const res = await apiGetWorks(accessToken, { ...params, limit: 10, profileId: activeProfileId || undefined })
+        return extractTracks(res.data || [])
+      }
+
+      if (ageMin !== undefined && ageMax !== undefined && tagsStr) {
+        const r = await tryFetch({ minMonths: ageMin, maxMonths: ageMax, tags: tagsStr })
+        if (r.length > 0) return r
+      }
+      if (ageMin !== undefined && ageMax !== undefined && devThemesStr) {
+        const r = await tryFetch({ minMonths: ageMin, maxMonths: ageMax, devThemes: devThemesStr })
+        if (r.length > 0) return r
+      }
+      if (ageMin !== undefined && ageMax !== undefined) {
+        const r = await tryFetch({ minMonths: ageMin, maxMonths: ageMax })
+        if (r.length > 0) return r
+      }
+      if (tagsStr) {
+        const r = await tryFetch({ tags: tagsStr })
+        if (r.length > 0) return r
+      }
+      if (activeProfileId) {
+        try {
+          const res = await apiGetMyTopPlayed(accessToken, { limit: 10, profileId: activeProfileId })
+          const data = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res as any[] : [])
+          const r = extractTracks(data.filter((w: any) => w.id !== excludeWorkId))
+          if (r.length > 0) return r
+        } catch { }
+      }
+      try {
+        const res = await apiGetTopPlayed(accessToken, { limit: 10 })
+        const data = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res as any[] : [])
+        return extractTracks(data.filter((w: any) => w.id !== excludeWorkId))
+      } catch { }
+      return []
+    } catch {
+      return []
+    }
+  }
+
+  const advanceOrBuildAutoQueue = async (direction: 'next' | 'prev' = 'next') => {
+    if (queueSource === 'auto' && Array.isArray(queue) && queue.length > 0 && typeof queueIndex === 'number') {
+      const { track: nextFromQueue, tracksSource, nextIndex } = computeNextFromQueue(direction)
+      if (nextFromQueue) {
+        const targetWork = (nextFromQueue as any).work || currentWork || undefined
+        await playTrack(nextFromQueue, targetWork)
+        setQueue(tracksSource)
+        setQueueSource('auto')
+        if (typeof nextIndex === 'number') setQueueIndex(nextIndex)
+        return
+      }
+      if (direction === 'prev') {
+        return
+      }
+    }
+    if (direction === 'prev') return
+    const recs = await fetchRecommendations(currentWork?.id)
+    if (recs.length === 0) {
+      await stop()
+      return
+    }
+    setQueue(recs)
+    setQueueSource('auto')
+    setQueueIndex(0)
+    const first = recs[0]
+    const targetWork = (first as any).work || undefined
+    await playTrack(first, targetWork)
+    setQueue(recs)
+    setQueueSource('auto')
+    setQueueIndex(0)
+  }
 
   const advanceQueue = async (direction: 'next' | 'prev') => {
     lastAdvanceDirection.current = direction
@@ -327,18 +469,30 @@ export function PlayerProvider({ children }: { children: any }) {
       targetWork,
       queueSource === 'playlist' ? { playlistQueue: tracksSource, nextIndex } : undefined
     )
+    if (queueSource === 'auto') {
+      setQueue(tracksSource)
+      setQueueSource('auto')
+    }
     if (typeof nextIndex === 'number') setQueueIndex(nextIndex)
     lastAdvanceDirection.current = null
   }
 
   async function nextTrack() {
     if (isLoadingTrack.current) return
-    await advanceQueue('next')
+    if (queueSource === 'playlist') {
+      await advanceQueue('next')
+    } else if (autoPlayAfterTrack) {
+      await advanceOrBuildAutoQueue('next')
+    }
   }
 
   async function prevTrack() {
     if (isLoadingTrack.current) return
-    await advanceQueue('prev')
+    if (queueSource === 'auto') {
+      await advanceOrBuildAutoQueue('prev')
+    } else {
+      await advanceQueue('prev')
+    }
   }
 
   async function playTrack(track: PlayerTrack, work?: PlayerWork, options?: { playlistQueue?: PlayerTrack[]; nextIndex?: number }) {
@@ -587,6 +741,7 @@ export function PlayerProvider({ children }: { children: any }) {
       duration,
       isLoading,
       loopPlaylist,
+      autoPlayAfterTrack,
       hasNext,
       hasPrev,
       nextTrack,
@@ -601,9 +756,10 @@ export function PlayerProvider({ children }: { children: any }) {
       removeFromQueue,
       playlistItemId,
       togglePlaylist,
-      setLoopPlaylist
+      setLoopPlaylist,
+      setAutoPlayAfterTrack
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading, loopPlaylist],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading, loopPlaylist, autoPlayAfterTrack],
   )
 
   return (

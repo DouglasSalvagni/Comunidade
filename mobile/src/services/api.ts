@@ -19,26 +19,39 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
   if (!res.ok) {
     if (res.status === 401) {
-      try { unauthorizedHandler?.() } catch {}
+      try { unauthorizedHandler?.() } catch { }
     }
     const text = await res.text()
-    
+
+    const friendlyFallback = (status: number) => {
+      if (status === 502 || status === 503 || status === 504) return 'Servidor temporariamente indisponível. Tente novamente em instantes.'
+      if (status === 500) return 'Erro interno do servidor. Tente novamente.'
+      if (status === 404) return 'Recurso não encontrado.'
+      if (status === 403) return 'Acesso negado.'
+      if (status === 429) return 'Muitas requisições. Aguarde um momento.'
+      return `Erro de conexão (HTTP ${status})`
+    }
+
+    let parsed: any = null
     try {
-      const json = JSON.parse(text)
-      const rawMsg = json?.message || json?.details?.message || json?.error || `HTTP ${res.status}`
+      parsed = JSON.parse(text)
+    } catch { }
+
+    if (parsed) {
+      const rawMsg = parsed?.message || parsed?.details?.message || parsed?.error || friendlyFallback(res.status)
       const normalized = Array.isArray(rawMsg) ? rawMsg.join(', ') : String(rawMsg)
       throw new Error(normalized)
-    } catch {
-      if (text && text.startsWith('{')) {
-        const m = /"message"\s*:\s*"([^"]+)"/.exec(text)
-        const d = /"details"\s*:\s*\{[^}]*"message"\s*:\s*"([^"]+)"/.exec(text)
-        const e = /"error"\s*:\s*"([^"]+)"/.exec(text)
-        const rawMsg = (m?.[1] || d?.[1] || e?.[1] || `HTTP ${res.status}`)
-        throw new Error(rawMsg)
-      } else {
-        throw new Error(text || `HTTP ${res.status}`)
-      }
     }
+
+    if (text && text.startsWith('{')) {
+      const m = /"message"\s*:\s*"([^"]+)"/.exec(text)
+      const d = /"details"\s*:\{[^}]*"message"\s*:\s*"([^"]+)"/.exec(text)
+      const e = /"error"\s*:\s*"([^"]+)"/.exec(text)
+      const rawMsg = (m?.[1] || d?.[1] || e?.[1] || friendlyFallback(res.status))
+      throw new Error(rawMsg)
+    }
+
+    throw new Error(friendlyFallback(res.status))
   }
   const ct = res.headers.get('content-type') || ''
   if (res.status === 204) {

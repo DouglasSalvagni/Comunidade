@@ -349,3 +349,62 @@ const mediumMargin = isSmallScreen ? 20 : 40
 2. **Contraste:** Para garantir legibilidade sobre o fundo dourado, todos os textos (título, subtítulo, ranking) e ícones desse card específico foram alterados para marrom escuro (`#422006` e `#78350f`).
 3. **Harmonia:** Os elementos internos agora combinam com a estética "Premium Gold" solicitada, criando um destaque imediato para a obra mais ouvida.
 
+---
+
+## 2026-02-10 - Reprodução Contínua (autoPlayAfterTrack)
+
+**Arquivos modificados:**
+- `mobile/src/context/PlayerContext.tsx`
+- `mobile/src/screens/AccountScreen.tsx`
+
+**Descrição:** Implementada funcionalidade de reprodução contínua que, ao terminar uma faixa reproduzida fora de playlist, busca recomendações e toca automaticamente a próxima.
+
+**Alterações:**
+
+1. **Nova configuração `autoPlayAfterTrack`** (padrão: `true`):
+   - Persistida via AsyncStorage (chave `player:autoPlayAfterTrack`)
+   - Exposta via `PlayerContextValue` e `usePlayer()`
+
+2. **Lógica de recomendação com fallback em cascata:**
+   - Faixa etária + tags da obra atual
+   - Faixa etária + devThemes da obra atual
+   - Faixa etária apenas
+   - Tags apenas
+   - Minhas mais ouvidas (se perfil ativo disponível)
+   - Top global
+
+3. **Comportamento ao fim da faixa (`didJustFinish`):**
+   - Playlist ativa → avança normalmente na playlist
+   - `autoPlayAfterTrack = true` e sem playlist → busca recomendações e toca
+   - `autoPlayAfterTrack = false` e sem playlist → para a reprodução
+
+4. **Queue dinâmica (`queueSource: 'auto'`):**
+   - Novo tipo de queue para faixas recomendadas
+   - Suporta Next/Prev dentro da queue de recomendações
+   - `hasNext` retorna `true` quando autoPlay está ativado (mesmo sem playlist)
+   - `hasPrev` retorna `true` apenas se há faixa anterior na queue auto
+
+5. **Toggle na UI de configurações:**
+   - Nova seção "Reprodução" com toggle "Reprodução contínua"
+   - Posicionada acima do toggle existente de loop de playlist
+
+---
+
+## 2026-02-10 - Correção de Exibição de Erros HTML no App
+
+**Arquivo modificado:** `mobile/src/services/api.ts`
+
+**Problema:**
+- Quando o servidor retornava erro 502 Bad Gateway (página HTML do Cloudflare), o HTML cru era exibido diretamente na tela do usuário (ex: na tela de Conta)
+- Bug estrutural: o `throw` dentro do `try` era capturado pelo seu próprio `catch`, fazendo o fluxo cair no fallback que jogava o HTML bruto como mensagem de erro
+
+**Correções:**
+1. Separado `JSON.parse` do `throw` — parsing agora é feito em bloco isolado, resultado armazenado em variável `parsed`
+2. Adicionada função `friendlyFallback(status)` que mapeia códigos HTTP para mensagens amigáveis em português:
+   - 502/503/504 → "Servidor temporariamente indisponível..."
+   - 500 → "Erro interno do servidor..."
+   - 404 → "Recurso não encontrado."
+   - 403 → "Acesso negado."
+   - 429 → "Muitas requisições..."
+   - Outros → "Erro de conexão (HTTP X)"
+3. Respostas HTML (não-JSON) agora nunca são expostas ao usuário — sempre usa a mensagem amigável

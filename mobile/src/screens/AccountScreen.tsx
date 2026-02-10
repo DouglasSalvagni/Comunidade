@@ -13,7 +13,7 @@ type Props = {
 
 export default function AccountScreen({ onBack }: Props) {
   const { accessToken, user, refreshProfile } = useAuth()
-  const { loopPlaylist, setLoopPlaylist } = usePlayer()
+  const { loopPlaylist, setLoopPlaylist, autoPlayAfterTrack, setAutoPlayAfterTrack } = usePlayer()
   const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -117,6 +117,24 @@ export default function AccountScreen({ onBack }: Props) {
             </View>
 
             <PrimaryButton title={saving ? 'Salvando...' : 'Salvar'} onPress={onSave} disabled={saving || !name.trim()} />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Reprodução</Text>
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.toggleLabel}>Reprodução contínua</Text>
+                  <Text style={styles.toggleDescription}>
+                    Quando ativado, ao terminar uma música o app sugere e toca automaticamente a próxima.
+                  </Text>
+                </View>
+                <Switch
+                  value={autoPlayAfterTrack}
+                  onValueChange={setAutoPlayAfterTrack}
+                  thumbColor={autoPlayAfterTrack ? '#A78BFA' : '#f4f4f5'}
+                  trackColor={{ false: '#4b5563', true: '#4c1d95' }}
+                />
+              </View>
+            </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Reprodução da playlist</Text>

@@ -53,7 +53,8 @@ export default function HomeScreen({ onLogout }: Props) {
     stop,
     togglePlaylist,
     playlistItemId,
-    playWork
+    playWork,
+    autoPlayAfterTrack
   } = usePlayer()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
   const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
@@ -720,11 +721,11 @@ export default function HomeScreen({ onLogout }: Props) {
 
               <View style={styles.playerControls}>
                 <View style={styles.playerSide}>
-                  {hasPrev && (
+                  {(autoPlayAfterTrack || hasPrev) && (
                     <Pressable
                       accessibilityRole="button"
-                      disabled={isLoading}
-                      style={styles.controlBtn}
+                      disabled={isLoading || !hasPrev}
+                      style={[styles.controlBtn, { opacity: hasPrev ? 1 : 0.3 }]}
                       onPress={prevTrack}
                     >
                       <Ionicons name="play-skip-back" size={26} color={isLoading ? '#6b7280' : '#e6e9ff'} />
@@ -741,7 +742,7 @@ export default function HomeScreen({ onLogout }: Props) {
                   </Pressable>
                 </View>
                 <View style={styles.playerSide}>
-                  {hasNext && (
+                  {(autoPlayAfterTrack || hasNext) && (
                     <Pressable
                       accessibilityRole="button"
                       disabled={isLoading}

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import AudioPlayer from "@/components/AudioPlayer";
 
 export default function DashboardLayout({
   children,
@@ -65,7 +64,6 @@ export default function DashboardLayout({
             <main className="flex-1 p-4 md:p-8">
               {children}
             </main>
-            <AudioPlayer />
           </div>
         </>
       )}

@@ -5,7 +5,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import { ProfileSwitcher } from "./ProfileSwitcher";
 import { api } from "@/services/api";
 import { signOut } from "next-auth/react";
 
@@ -45,7 +44,6 @@ const Header = ({ isSidebarOpen, setIsSidebarOpen }: HeaderProps) => {
         <h1 className="text-xl font-semibold hidden md:block">Dashboard</h1>
       </div>
       <div className="flex items-center gap-2">
-        <ProfileSwitcher />
         <Button variant="outline" onClick={onLogout}>Sair</Button>
       </div>
     </header>

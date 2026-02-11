@@ -10,6 +10,7 @@ import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly subscriptionsService: SubscriptionsService,
     @Optional() private readonly legalService?: LegalService,
   ) {}
 
@@ -84,6 +86,9 @@ export class AuthService {
     if (this.legalService) {
       await this.legalService.recordUserAcceptance(user.id);
     }
+    try {
+      await this.subscriptionsService.tryAutoGrantCourtesy(user.id);
+    } catch { }
 
     const payload: JwtPayload = {
       sub: user.id,
@@ -170,6 +175,7 @@ export class AuthService {
     }
 
     let user = await this.usersService.findByEmail(info.email);
+    let created = false;
     if (!user) {
       const pseudoHash = await bcrypt.hash(String(Date.now()), 10);
       user = await this.usersService.createWithPasswordHash({
@@ -181,6 +187,12 @@ export class AuthService {
         emailVerified: true,
         authProvider: 'google',
       });
+      created = true;
+    }
+    if (created) {
+      try {
+        await this.subscriptionsService.tryAutoGrantCourtesy(user.id);
+      } catch { }
     }
 
     const payload: JwtPayload = {

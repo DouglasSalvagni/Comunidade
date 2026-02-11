@@ -26,6 +26,7 @@ export interface User {
   emailVerified: boolean;
   authProvider?: 'local' | 'google';
   acceptedLegal?: boolean;
+  currentSubscription?: Subscription | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +83,7 @@ export interface Plan {
   billingPeriod: 'monthly' | 'yearly';
   features: string[];
   isActive?: boolean;
+  courtesyDurationMonths?: number | null;
   createdAt?: string;
   canSelect?: boolean;
 }
@@ -675,6 +677,32 @@ class ApiService {
     await this.client.delete(`/users/${id}`);
   }
 
+  async adminGetCourtesyAutoGrant(): Promise<{ enabled: boolean }> {
+    const response = await this.client.get<ApiResponse<{ enabled: boolean }>>('/subscriptions/admin/courtesy-auto-grant');
+    return response.data.data;
+  }
+
+  async adminUpdateCourtesyAutoGrant(enabled: boolean): Promise<{ enabled: boolean }> {
+    const response = await this.client.patch<ApiResponse<{ enabled: boolean }>>('/subscriptions/admin/courtesy-auto-grant', {
+      enabled,
+    });
+    return response.data.data;
+  }
+
+  async adminGrantCourtesy(userId: string): Promise<Subscription> {
+    const response = await this.client.post<ApiResponse<{ subscription: Subscription }>>('/subscriptions/admin/courtesy/grant', {
+      userId,
+    });
+    return response.data.data.subscription;
+  }
+
+  async adminRevokeCourtesy(userId: string): Promise<Subscription> {
+    const response = await this.client.post<ApiResponse<{ subscription: Subscription }>>('/subscriptions/admin/courtesy/revoke', {
+      userId,
+    });
+    return response.data.data.subscription;
+  }
+
   async adminGetTags(): Promise<Tag[]> {
     const response = await this.client.get<ApiResponse<Tag[]>>('/admin/tags');
     return response.data.data;
@@ -724,6 +752,41 @@ class ApiService {
 
   async adminDeleteDevTheme(id: string): Promise<void> {
     await this.client.delete(`/admin/dev-themes/${id}`);
+  }
+
+  async adminGetPlans(): Promise<Plan[]> {
+    const response = await this.client.get<ApiResponse<Plan[]>>('/admin/plans');
+    return response.data.data;
+  }
+
+  async adminCreatePlan(data: {
+    name: string;
+    slug?: string;
+    description?: string;
+    priceCents: number;
+    billingPeriod: 'monthly' | 'yearly';
+    features?: string[];
+    isActive?: boolean;
+    isCourtesy?: boolean;
+    courtesyDurationMonths?: number | null;
+  }): Promise<Plan> {
+    const response = await this.client.post<ApiResponse<Plan>>('/admin/plans', data);
+    return response.data.data;
+  }
+
+  async adminUpdatePlan(id: string, data: Partial<{
+    name: string;
+    slug: string;
+    description?: string;
+    priceCents: number;
+    billingPeriod: 'monthly' | 'yearly';
+    features?: string[];
+    isActive?: boolean;
+    isCourtesy?: boolean;
+    courtesyDurationMonths?: number | null;
+  }>): Promise<Plan> {
+    const response = await this.client.patch<ApiResponse<Plan>>(`/admin/plans/${id}`, data);
+    return response.data.data;
   }
 
   async getUploadUrl(params: { fileName: string; fileType: string; fileSize: number }): Promise<{ uploadUrl: string; storageKey: string; expiresAt: string }> {

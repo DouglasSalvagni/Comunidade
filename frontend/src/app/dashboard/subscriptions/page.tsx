@@ -117,7 +117,10 @@ const SubscriptionPage = () => {
     return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string, isCourtesy: boolean) => {
+    if (isCourtesy && status === 'expiring') {
+      return 'Cortesia ativa';
+    }
     const labels: Record<string, string> = {
       active: "Ativo",
       expiring: "Cancelado",
@@ -179,18 +182,31 @@ const SubscriptionPage = () => {
             <CardTitle>{subscription.plan.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {(() => {
+              const isCourtesyPlan = subscription.plan.slug === 'plano-cortesia';
+              const isActiveOrCourtesy = subscription.status === "active" || (isCourtesyPlan && subscription.status === "expiring");
+              return (
+                <>
             <div className="flex gap-4 items-center">
               <p>Status</p>
-              <Badge variant={subscription.status === "active" ? "default" : "destructive"}>
-                {getStatusLabel(subscription.status)}
+              <Badge variant={isActiveOrCourtesy ? "default" : "destructive"}>
+                {getStatusLabel(subscription.status, isCourtesyPlan)}
               </Badge>
             </div>
             {subscription.status === 'expiring' ? (
               <div className="text-sm text-muted-foreground">
                 {subscription.periodEnd ? (
-                  <p>Seu plano seguirá ativo até {formatDate(subscription.periodEnd)}. Você não receberá cobranças novamente.</p>
+                  isCourtesyPlan ? (
+                    <p>Seu plano cortesia seguirá ativo até {formatDate(subscription.periodEnd)}.</p>
+                  ) : (
+                    <p>Seu plano seguirá ativo até {formatDate(subscription.periodEnd)}. Você não receberá cobranças novamente.</p>
+                  )
                 ) : (
-                  <p>Plano será cancelado em breve.</p>
+                  isCourtesyPlan ? (
+                    <p>Seu plano cortesia está ativo.</p>
+                  ) : (
+                    <p>Plano será cancelado em breve.</p>
+                  )
                 )}
               </div>
             ) : (
@@ -220,6 +236,9 @@ const SubscriptionPage = () => {
                 </div>
               )
             )}
+                </>
+              );
+            })()}
           </CardContent>
           <CardFooter>
             {subscription.status === "active" && subscription.plan.priceCents > 0 && (

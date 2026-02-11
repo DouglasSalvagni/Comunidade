@@ -14,7 +14,8 @@ describe('AuthService password recovery', () => {
       userRepository: { save: jest.fn() },
     } as any as UsersService;
     const mailService = { sendPasswordReset: jest.fn().mockResolvedValue(undefined) } as any as MailService;
-    const svc = new AuthService(usersService, jwt, mailService);
+    const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
     const res = await svc.forgotPassword('a@b.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendPasswordReset).toHaveBeenCalled();
@@ -24,7 +25,8 @@ describe('AuthService password recovery', () => {
     const user = { id: 'u2', email: 'c@d.com', name: 'C', authProvider: 'google' } as any;
     const usersService = { findByEmail: jest.fn().mockResolvedValue(user) } as any as UsersService;
     const mailService = { sendPasswordReset: jest.fn() } as any as MailService;
-    const svc = new AuthService(usersService, jwt, mailService);
+    const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
     const res = await svc.forgotPassword('c@d.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendPasswordReset).not.toHaveBeenCalled();
@@ -40,7 +42,8 @@ describe('AuthService email verification', () => {
       userRepository: { save: jest.fn() },
     } as any as UsersService;
     const mailService = { sendEmailVerification: jest.fn().mockResolvedValue(undefined) } as any as MailService;
-    const svc = new AuthService(usersService, jwt, mailService);
+    const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
     const res = await svc.requestEmailVerification('a@b.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendEmailVerification).toHaveBeenCalled();

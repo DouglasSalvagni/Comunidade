@@ -23,6 +23,10 @@ const AdminUsersPage = () => {
   const [editRole, setEditRole] = useState<"user" | "admin" | "">("");
   const [editActive, setEditActive] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
+  const [courtesyAutoGrantEnabled, setCourtesyAutoGrantEnabled] = useState(false);
+  const [courtesyLoading, setCourtesyLoading] = useState(true);
+  const courtesySlug = "plano-cortesia";
+  const freeSlug = "plano-gratuito";
 
   useEffect(() => {
     const load = async () => {
@@ -36,12 +40,60 @@ const AdminUsersPage = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    const loadCourtesyToggle = async () => {
+      try {
+        setCourtesyLoading(true);
+        const data = await api.adminGetCourtesyAutoGrant();
+        setCourtesyAutoGrantEnabled(!!data?.enabled);
+      } catch (e: any) {
+        toast.error(e?.message || "Falha ao carregar configuração de cortesia");
+      } finally {
+        setCourtesyLoading(false);
+      }
+    };
+    loadCourtesyToggle();
+  }, []);
+
   const handleToggleStatus = async (id: string) => {
     try {
       const updated = await api.adminToggleUserStatus(id);
       setUsers((prev) => prev.map(u => u.id === id ? updated : u));
     } catch (e: any) {
       toast.error(e?.message || "Erro ao atualizar status");
+    }
+  };
+
+  const handleToggleCourtesyAutoGrant = async (enabled: boolean) => {
+    try {
+      setCourtesyAutoGrantEnabled(enabled);
+      await api.adminUpdateCourtesyAutoGrant(enabled);
+      toast.success(enabled ? "Cortesia automática ativada" : "Cortesia automática desativada");
+    } catch (e: any) {
+      setCourtesyAutoGrantEnabled((prev) => !prev);
+      toast.error(e?.message || "Erro ao atualizar cortesia automática");
+    }
+  };
+
+  const handleGrantCourtesy = async (userId: string) => {
+    try {
+      await api.adminGrantCourtesy(userId);
+      toast.success("Plano cortesia concedido");
+      const list = await api.adminGetUsers();
+      setUsers(list);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao conceder cortesia");
+    }
+  };
+
+  const handleRevokeCourtesy = async (userId: string) => {
+    try {
+      await api.adminRevokeCourtesy(userId);
+      toast.success("Plano cortesia revogado");
+      const list = await api.adminGetUsers();
+      setUsers(list);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao revogar cortesia");
     }
   };
 
@@ -60,6 +112,25 @@ const AdminUsersPage = () => {
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Gerenciar Usuários</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Plano cortesia</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Conceder automaticamente no cadastro</p>
+              <p className="text-xs text-muted-foreground">Ativa ou desativa a cortesia automática para novos usuários</p>
+            </div>
+            <Switch
+              checked={courtesyAutoGrantEnabled}
+              disabled={courtesyLoading}
+              onCheckedChange={(v) => handleToggleCourtesyAutoGrant(!!v)}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -93,6 +164,26 @@ const AdminUsersPage = () => {
                     <Switch checked={user.isActive} onCheckedChange={() => handleToggleStatus(user.id)} />
                   </TableCell>
                   <TableCell className="text-right">
+                    {user.currentSubscription?.plan?.slug === courtesySlug ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mr-2"
+                        onClick={() => handleRevokeCourtesy(user.id)}
+                      >
+                        Revogar cortesia
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mr-2"
+                        disabled={!!user.currentSubscription && user.currentSubscription.plan?.slug !== freeSlug && user.currentSubscription.plan?.slug !== courtesySlug}
+                        onClick={() => handleGrantCourtesy(user.id)}
+                      >
+                        Cortesia
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="mr-2" onClick={() => {
                       setEditingUser(user);
                       setEditName(user.name || "");

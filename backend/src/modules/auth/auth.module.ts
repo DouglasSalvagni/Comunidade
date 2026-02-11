@@ -12,11 +12,13 @@ import { MailService } from './mail.service';
 import { LegalModule } from '../legal/legal.module';
 import { AntiAbuseService } from '@/common/anti-abuse/anti-abuse.service';
 import { AuthAntiAbuseGuard } from '@/common/anti-abuse/auth-anti-abuse.guard';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     UsersModule,
     LegalModule,
+    SubscriptionsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -28,6 +28,9 @@ export class Plan {
   @Column({ type: 'jsonb', nullable: true })
   features: any;
 
+  @Column({ name: 'courtesy_duration_months', type: 'int', nullable: true })
+  courtesyDurationMonths: number | null;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

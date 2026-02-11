@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscription } from './entities/subscription.entity';
 import { Plan } from './entities/plan.entity';
+import { User } from '@/modules/users/entities/user.entity';
 import { IPaymentGateway } from './interfaces/payment-gateway.interface';
 import { GatewayMetaService } from './services/gateway-meta.service';
 import { InvoiceService } from './services/invoice.service';
@@ -16,6 +17,8 @@ export class SubscriptionsService {
     private readonly subscriptionRepository: Repository<Subscription>,
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(PartnershipAffiliate)
     private readonly partnershipAffiliateRepository: Repository<PartnershipAffiliate>,
     @Inject('ASAAS_GATEWAY')
@@ -27,6 +30,92 @@ export class SubscriptionsService {
 
   private readonly logger = new Logger(SubscriptionsService.name);
   private readonly freePlanSlug = 'plano-gratuito';
+  private readonly courtesyPlanSlug = 'plano-cortesia';
+
+  private async getCourtesyPlan(): Promise<Plan | null> {
+    return this.planRepository.findOne({ where: { slug: this.courtesyPlanSlug } });
+  }
+
+  async getCourtesyAutoGrantEnabled(): Promise<boolean> {
+    const plan = await this.getCourtesyPlan();
+    if (!plan) return false;
+    const meta = await this.gatewayMetaService.findOne('asaas', 'plan', plan.id);
+    return meta?.metas?.courtesyAutoGrantEnabled === true;
+  }
+
+  async setCourtesyAutoGrantEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+    const plan = await this.getCourtesyPlan();
+    if (!plan) {
+      throw new NotFoundException('Plano cortesia não encontrado');
+    }
+    await this.gatewayMetaService.updateMetas('asaas', 'plan', plan.id, {
+      courtesyAutoGrantEnabled: enabled,
+    });
+    return { enabled };
+  }
+
+  async grantCourtesySubscription(userId: string): Promise<Subscription> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+    const plan = await this.getCourtesyPlan();
+    if (!plan) {
+      throw new NotFoundException('Plano cortesia não encontrado');
+    }
+    if (!plan.isActive) {
+      throw new ConflictException('Plano cortesia não está ativo');
+    }
+    const current = await this.getCurrentSubscription(userId);
+    if (current && current.plan?.slug !== this.freePlanSlug && current.plan?.slug !== this.courtesyPlanSlug) {
+      throw new ConflictException('Usuário já possui uma assinatura ativa');
+    }
+    if (current && current.plan?.slug === this.courtesyPlanSlug) {
+      return current;
+    }
+    if (current && current.plan?.slug === this.freePlanSlug) {
+      current.status = 'canceled';
+      if (!current.periodEnd) {
+        current.periodEnd = new Date();
+      }
+      await this.subscriptionRepository.save(current);
+    }
+    const now = new Date();
+    const periodEnd = new Date(now);
+    const courtesyMonths = plan.courtesyDurationMonths;
+    if (courtesyMonths && courtesyMonths > 0) {
+      periodEnd.setMonth(periodEnd.getMonth() + courtesyMonths);
+    } else {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    }
+    const newSubscription = this.subscriptionRepository.create({
+      userId,
+      planId: plan.id,
+      status: 'expiring',
+      periodStart: now,
+      periodEnd,
+    });
+    return this.subscriptionRepository.save(newSubscription);
+  }
+
+  async revokeCourtesySubscription(userId: string): Promise<Subscription> {
+    const current = await this.getCurrentSubscription(userId);
+    if (!current || current.plan?.slug !== this.courtesyPlanSlug) {
+      throw new NotFoundException('Plano cortesia não encontrado para o usuário');
+    }
+    current.status = 'canceled';
+    if (!current.periodEnd) {
+      current.periodEnd = new Date();
+    }
+    await this.subscriptionRepository.save(current);
+    return this.createFreeSubscription(userId);
+  }
+
+  async tryAutoGrantCourtesy(userId: string): Promise<void> {
+    const enabled = await this.getCourtesyAutoGrantEnabled();
+    if (!enabled) return;
+    await this.grantCourtesySubscription(userId);
+  }
 
   private async assertCanMigratePlan(userId: string): Promise<void> {
     const currentSubscription = await this.getCurrentSubscription(userId);

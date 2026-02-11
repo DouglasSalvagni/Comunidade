@@ -15,6 +15,7 @@ import { Affiliate } from './entities/affiliate.entity';
 import { Partnership } from './entities/partnership.entity';
 import { PartnershipAffiliate } from './entities/partnership-affiliate.entity';
 import { UserActiveCoupon } from './entities/user-active-coupon.entity';
+import { User } from '@/modules/users/entities/user.entity';
 import { GatewayMetaService } from './services/gateway-meta.service';
 import { GatewayWebhookService } from './services/gateway-webhook.service';
 import { InvoiceService } from './services/invoice.service';
@@ -35,6 +36,7 @@ import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
       Partnership,
       PartnershipAffiliate,
       UserActiveCoupon,
+      User,
     ]),
     ConfigModule,
   ],

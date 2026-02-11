@@ -21,6 +21,19 @@ const AdminDashboardPage = () => {
         </Card>
         <Card>
           <CardHeader>
+            <CardTitle>Gerenciar Planos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Criar e editar planos de assinatura.
+            </p>
+            <Link href="/admin/plans" className="text-sm font-medium text-primary hover:underline mt-4 block">
+              Acessar
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <CardTitle>Gerenciar Tags</CardTitle>
           </CardHeader>
           <CardContent>

@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Package, Users, Tag, BookOpen, FileText, Shield } from 'lucide-react';
+import { Home, Package, Users, Tag, BookOpen, FileText, Shield, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/services/api';
@@ -83,6 +83,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link href="/admin/catalog" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <Package className="h-4 w-4" />
                 Catálogo
+              </Link>
+              <Link href="/admin/plans" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+                <CreditCard className="h-4 w-4" />
+                Planos
               </Link>
               <Link href="/admin/tags" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <Tag className="h-4 w-4" />

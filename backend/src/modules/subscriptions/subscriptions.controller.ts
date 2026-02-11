@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   UseGuards,
   Request,
@@ -11,6 +12,8 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -35,6 +38,7 @@ export class SubscriptionsController {
         id: subscription.id,
         plan: {
           id: subscription.plan.id,
+          slug: subscription.plan.slug,
           name: subscription.plan.name,
           priceCents: subscription.plan.priceCents,
           billingPeriod: subscription.plan.billingPeriod,
@@ -56,11 +60,15 @@ export class SubscriptionsController {
       req.user.userId,
     );
     const freePlanSlug = 'plano-gratuito';
+    const courtesyPlanSlug = 'plano-cortesia';
     const isLockedByPaidSubscription = !!currentSubscription
       && currentSubscription.plan?.slug !== freePlanSlug;
+    const isCourtesyUser = currentSubscription?.plan?.slug === courtesyPlanSlug;
 
     return {
-      plans: plans.map(plan => ({
+      plans: plans
+        .filter(plan => isCourtesyUser || plan.slug !== courtesyPlanSlug)
+        .map(plan => ({
         id: plan.id,
         slug: plan.slug,
         name: plan.name,
@@ -68,7 +76,7 @@ export class SubscriptionsController {
         priceCents: plan.priceCents,
         billingPeriod: plan.billingPeriod,
         features: plan.features,
-        canSelect: !isLockedByPaidSubscription || plan.id === currentSubscription?.planId,
+        canSelect: (!isLockedByPaidSubscription || plan.id === currentSubscription?.planId) && plan.slug !== courtesyPlanSlug,
       })),
     };
   }
@@ -139,6 +147,7 @@ export class SubscriptionsController {
         id: subscription.id,
         plan: subscription.plan ? {
           id: subscription.plan.id,
+          slug: subscription.plan.slug,
           name: subscription.plan.name,
           priceCents: subscription.plan.priceCents,
           billingPeriod: subscription.plan.billingPeriod,
@@ -180,5 +189,48 @@ export class SubscriptionsController {
   async getSubscriptionLimits(@Request() req) {
     const limits = await this.subscriptionsService.getSubscriptionLimits(req.user.userId);
     return { limits };
+  }
+
+  @Get('admin/courtesy-auto-grant')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get courtesy auto grant toggle (Admin)' })
+  @ApiResponse({ status: 200, description: 'Toggle retrieved successfully.' })
+  async getCourtesyAutoGrant() {
+    const enabled = await this.subscriptionsService.getCourtesyAutoGrantEnabled();
+    return { enabled };
+  }
+
+  @Patch('admin/courtesy-auto-grant')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update courtesy auto grant toggle (Admin)' })
+  @ApiResponse({ status: 200, description: 'Toggle updated successfully.' })
+  async updateCourtesyAutoGrant(@Body() body: { enabled: boolean }) {
+    return this.subscriptionsService.setCourtesyAutoGrantEnabled(!!body?.enabled);
+  }
+
+  @Post('admin/courtesy/grant')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Grant courtesy subscription to user (Admin)' })
+  @ApiResponse({ status: 200, description: 'Courtesy subscription granted.' })
+  async grantCourtesy(@Body() body: { userId: string }) {
+    const subscription = await this.subscriptionsService.grantCourtesySubscription(body.userId);
+    return { subscription };
+  }
+
+  @Post('admin/courtesy/revoke')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke courtesy subscription from user (Admin)' })
+  @ApiResponse({ status: 200, description: 'Courtesy subscription revoked.' })
+  async revokeCourtesy(@Body() body: { userId: string }) {
+    const subscription = await this.subscriptionsService.revokeCourtesySubscription(body.userId);
+    return { subscription };
   }
 }

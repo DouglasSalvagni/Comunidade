@@ -4,12 +4,15 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepository: Repository<Subscription>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -38,8 +41,30 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+  async findAll(): Promise<Array<User & { currentSubscription?: Subscription | null }>> {
+    const users = await this.userRepository.find();
+    if (users.length === 0) {
+      return users;
+    }
+    const now = new Date();
+    const subscriptions = await this.subscriptionRepository
+      .createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .where('subscription.status IN (:...statuses)', { statuses: ['active', 'expiring'] })
+      .andWhere('subscription.periodStart <= :now OR subscription.periodStart IS NULL', { now })
+      .andWhere('(subscription.periodEnd >= :now OR subscription.periodEnd IS NULL)', { now })
+      .orderBy('subscription.createdAt', 'DESC')
+      .getMany();
+    const subscriptionByUser = new Map<string, Subscription>();
+    for (const subscription of subscriptions) {
+      if (!subscriptionByUser.has(subscription.userId)) {
+        subscriptionByUser.set(subscription.userId, subscription);
+      }
+    }
+    return users.map((user) => ({
+      ...user,
+      currentSubscription: subscriptionByUser.get(user.id) ?? null,
+    }));
   }
 
   async findOne(id: string): Promise<User | null> {

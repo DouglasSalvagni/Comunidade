@@ -12,12 +12,13 @@ import { WorkDevTheme } from './entities/work-dev-theme.entity';
 import { WorkLandingSample } from './entities/work-landing-sample.entity';
 import { Favorite } from './entities/favorite.entity';
 import { MediaModule } from '@/modules/media/media.module';
+import { SubscriptionsModule } from '@/modules/subscriptions/subscriptions.module';
 import { Profile } from '@/modules/profiles/entities/profile.entity';
 import { TrackPlayGlobalCount } from '@/modules/playback/entities/track-play-global-count.entity';
 import { TrackPlayUserCount } from '@/modules/playback/entities/track-play-user-count.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Work, Track, Chapter, Tag, WorkTag, DevTheme, WorkDevTheme, WorkLandingSample, Favorite, Profile, TrackPlayGlobalCount, TrackPlayUserCount]), MediaModule],
+  imports: [TypeOrmModule.forFeature([Work, Track, Chapter, Tag, WorkTag, DevTheme, WorkDevTheme, WorkLandingSample, Favorite, Profile, TrackPlayGlobalCount, TrackPlayUserCount]), MediaModule, SubscriptionsModule],
   providers: [CatalogService],
   controllers: [CatalogController, AdminCatalogController, AdminTagsController, AdminDevThemesController],
   exports: [CatalogService],

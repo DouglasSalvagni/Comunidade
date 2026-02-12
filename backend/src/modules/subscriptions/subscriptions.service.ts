@@ -665,6 +665,15 @@ export class SubscriptionsService {
   }
 
   /**
+   * Verifica se o usuário está no plano gratuito
+   */
+  async isFreePlan(userId: string): Promise<boolean> {
+    const subscription = await this.getCurrentSubscription(userId);
+    if (!subscription) return true;
+    return subscription.plan?.slug === this.freePlanSlug;
+  }
+
+  /**
    * Busca pagamentos de uma subscription no gateway Asaas
    */
   async getAsaasSubscription(asaasSubscriptionId: string): Promise<any> {

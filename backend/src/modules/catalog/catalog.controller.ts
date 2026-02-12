@@ -11,6 +11,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
@@ -18,11 +19,15 @@ import { SearchWorksDto } from './dto/search-works.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @ApiTags('Catalog')
 @Controller('works')
 export class CatalogController {
-  constructor(private readonly catalogService: CatalogService) { }
+  constructor(
+    private readonly catalogService: CatalogService,
+    private readonly subscriptionsService: SubscriptionsService,
+  ) { }
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -43,7 +48,7 @@ export class CatalogController {
   @ApiResponse({ status: 200, description: 'Landing samples retrieved successfully.' })
   async getLandingSamples(@Query('limit') limit = 3) {
     const works = await this.catalogService.getLandingSamplesFromTable(Math.min(3, Number(limit) || 3));
-    
+
     const items = (works || [])
       .map((w) => {
         const t = (w.tracks || [])
@@ -119,6 +124,9 @@ export class CatalogController {
   @ApiResponse({ status: 200, description: 'Favorite status toggled successfully.' })
   @ApiResponse({ status: 404, description: 'Work not found.' })
   async toggleFavorite(@Request() req, @Param('id') workId: string, @Query('profileId') profileId?: string) {
+    if (await this.subscriptionsService.isFreePlan(req.user.userId)) {
+      throw new ForbiddenException('Recurso disponível apenas para assinantes premium.');
+    }
     return this.catalogService.toggleFavorite(workId, req.user.userId, profileId);
   }
 }

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator, Image, ScrollView
 import { useState, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import { apiGetProfiles, apiCreateProfile } from '../services/api'
 import { validateBirthDate } from '../utils/birthDate'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,6 +13,7 @@ type Props = {
 
 export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
     const { accessToken, setActiveProfileId } = useAuth()
+    const { isFree } = useSubscription()
     const insets = useSafeAreaInsets()
     const [profiles, setProfiles] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -121,7 +123,7 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
         )
     }
 
-    // Empty state - no profiles
+    // Empty state - no profiles (always allow creating the first one)
     if (profiles.length === 0) {
         return (
             <View style={styles.container}>
@@ -188,6 +190,8 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
     }
 
     // Profile selection
+    const allowedProfileId = profiles.length > 0 ? profiles[0].id : null
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -199,36 +203,54 @@ export default function ProfileSelectionScreen({ onProfileSelected }: Props) {
                 contentContainerStyle={styles.profilesContainer}
                 showsVerticalScrollIndicator={false}
             >
-                {profiles.map((profile) => (
-                    <Pressable
-                        key={profile.id}
-                        style={({ pressed }) => [
-                            styles.profileCard,
-                            pressed && styles.profileCardPressed
-                        ]}
-                        onPress={() => handleSelectProfile(profile.id)}
-                    >
-                        {profile.avatarUrl ? (
-                            <Image
-                                source={{ uri: profile.avatarUrl }}
-                                style={styles.avatar}
-                            />
-                        ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <Text style={styles.avatarInitials}>
-                                    {getAvatarInitials(profile.name)}
-                                </Text>
+                {profiles.map((profile, index) => {
+                    const isLocked = isFree && profiles.length > 1 && profile.id !== allowedProfileId
+
+                    return (
+                        <Pressable
+                            key={profile.id}
+                            style={({ pressed }) => [
+                                styles.profileCard,
+                                pressed && !isLocked && styles.profileCardPressed,
+                                isLocked && styles.profileCardLocked
+                            ]}
+                            onPress={() => { if (!isLocked) handleSelectProfile(profile.id) }}
+                            disabled={isLocked}
+                        >
+                            {profile.avatarUrl ? (
+                                <Image
+                                    source={{ uri: profile.avatarUrl }}
+                                    style={[styles.avatar, isLocked && { opacity: 0.4 }]}
+                                />
+                            ) : (
+                                <View style={[styles.avatarPlaceholder, isLocked && { backgroundColor: '#4b5563' }]}>
+                                    <Text style={styles.avatarInitials}>
+                                        {getAvatarInitials(profile.name)}
+                                    </Text>
+                                </View>
+                            )}
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.profileName, isLocked && { color: '#6b7280' }]}>{profile.name}</Text>
+                                {isLocked && (
+                                    <Text style={styles.lockedHint}>Faça upgrade para usar este perfil</Text>
+                                )}
                             </View>
-                        )}
-                        <Text style={styles.profileName}>{profile.name}</Text>
-                        <Ionicons name="chevron-forward" size={24} color="#8b92b8" />
-                    </Pressable>
-                ))}
+                            {isLocked ? (
+                                <Ionicons name="lock-closed" size={22} color="#d4a017" />
+                            ) : (
+                                <Ionicons name="chevron-forward" size={24} color="#8b92b8" />
+                            )}
+                        </Pressable>
+                    )
+                })}
             </ScrollView>
 
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }] }>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
                 <Text style={styles.footerText}>
-                    Você pode trocar de perfil a qualquer momento nas configurações
+                    {isFree && profiles.length > 1
+                        ? 'O plano gratuito permite apenas 1 perfil ativo'
+                        : 'Você pode trocar de perfil a qualquer momento nas configurações'
+                    }
                 </Text>
             </View>
         </View>
@@ -379,5 +401,14 @@ const styles = StyleSheet.create({
         color: '#8b92b8',
         textAlign: 'center',
         lineHeight: 20,
+    },
+    profileCardLocked: {
+        opacity: 0.6,
+        borderColor: '#2b3448',
+    },
+    lockedHint: {
+        color: '#d4a017',
+        fontSize: 12,
+        marginTop: 2,
     },
 })

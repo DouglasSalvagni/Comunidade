@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Modal, TextInput } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../context/AuthContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import { apiGetProfiles, apiCreateProfile, apiUpdateProfile, apiDeleteProfile } from '../services/api'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
@@ -15,6 +16,7 @@ type Props = {
 export default function ProfilesScreen({ onBack }: Props) {
   const insets = useSafeAreaInsets()
   const { accessToken, activeProfileId, setActiveProfileId } = useAuth()
+  const { isFree } = useSubscription()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editIndex, setEditIndex] = useState<number | null>(null)
@@ -195,80 +197,97 @@ export default function ProfilesScreen({ onBack }: Props) {
             ))
           )}
           {!loading && items.length === 0 && <Text style={styles.empty}>Nenhum perfil encontrado</Text>}
-          {!loading && items.map((p, i) => (
-            <View key={p.id} style={styles.itemRow}>
-              {editIndex === i ? (
-                <View style={styles.editRow}>
-                  <View style={{ flex: 1 }}>
-                    <Input label={'Nome'} value={editName} onChangeText={setEditName} placeholder="Nome" />
-                    <Text style={styles.label}>Data de nascimento</Text>
-                    <TextInput
-                      style={styles.dateInput}
-                      placeholder="DD/MM/AAAA"
-                      placeholderTextColor="#8b92b8"
-                      value={editBirthDate}
-                      onChangeText={(text) => handleBirthDateChange(text, true)}
-                      keyboardType="numeric"
-                      maxLength={10}
-                    />
+          {!loading && items.map((p, i) => {
+            const isLocked = isFree && items.length > 1 && i > 0
+            return (
+              <View key={p.id} style={styles.itemRow}>
+                {editIndex === i && !isLocked ? (
+                  <View style={styles.editRow}>
+                    <View style={{ flex: 1 }}>
+                      <Input label={'Nome'} value={editName} onChangeText={setEditName} placeholder="Nome" />
+                      <Text style={styles.label}>Data de nascimento</Text>
+                      <TextInput
+                        style={styles.dateInput}
+                        placeholder="DD/MM/AAAA"
+                        placeholderTextColor="#8b92b8"
+                        value={editBirthDate}
+                        onChangeText={(text) => handleBirthDateChange(text, true)}
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
+                    </View>
+                    <View style={styles.actions}>
+                      <PrimaryButton title={editingSaving ? 'Salvando...' : 'Salvar'} onPress={() => saveEdit(i)} disabled={editingSaving} />
+                      <PrimaryButton title={'Cancelar'} variant="outline" onPress={() => { setEditIndex(null); setEditName(''); setEditBirthDate('') }} />
+                    </View>
                   </View>
-                  <View style={styles.actions}>
-                    <PrimaryButton title={editingSaving ? 'Salvando...' : 'Salvar'} onPress={() => saveEdit(i)} disabled={editingSaving} />
-                    <PrimaryButton title={'Cancelar'} variant="outline" onPress={() => { setEditIndex(null); setEditName(''); setEditBirthDate('') }} />
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.viewRow}>
-                  <Pressable accessibilityRole="button" onPress={() => activate(p.id)} style={{ paddingRight: 6 }}>
-                    <Ionicons name={activeProfileId === p.id ? 'radio-button-on' : 'radio-button-off'} size={20} color={activeProfileId === p.id ? '#A78BFA' : '#94a3b8'} />
-                  </Pressable>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>{p.name}</Text>
-                    <Text style={styles.itemSub}>{convertFromISO(p.birthDate) || '-'}</Text>
-                  </View>
-                  <View style={styles.actionsIcons}>
-                    <Pressable
-                      accessibilityRole="button"
-                      style={[styles.iconBtn, (deletingId === p.id) && styles.iconBtnDisabled]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      disabled={deletingId === p.id}
-                      onPress={() => { setEditIndex(i); setEditName(p.name); setEditBirthDate(convertFromISO(p.birthDate || '')) }}
-                    >
-                      <Ionicons name="create-outline" size={22} color="#cfd3ff" />
+                ) : (
+                  <View style={[styles.viewRow, isLocked && { opacity: 0.5 }]}>
+                    <Pressable accessibilityRole="button" onPress={() => { if (!isLocked) activate(p.id) }} style={{ paddingRight: 6 }} disabled={isLocked}>
+                      {isLocked ? (
+                        <Ionicons name="lock-closed" size={18} color="#d4a017" />
+                      ) : (
+                        <Ionicons name={activeProfileId === p.id ? 'radio-button-on' : 'radio-button-off'} size={20} color={activeProfileId === p.id ? '#A78BFA' : '#94a3b8'} />
+                      )}
                     </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      style={[styles.iconBtn, (deletingId === p.id) && styles.iconBtnDisabled]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      disabled={deletingId === p.id}
-                      onPress={() => setConfirmId(p.id)}
-                    >
-                      <Ionicons name="trash-outline" size={22} color="#cfd3ff" />
-                    </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemName}>{p.name}</Text>
+                      <Text style={styles.itemSub}>{convertFromISO(p.birthDate) || '-'}</Text>
+                      {isLocked && <Text style={styles.lockedHint}>Faça upgrade para usar este perfil</Text>}
+                    </View>
+                    {!isLocked && (
+                      <View style={styles.actionsIcons}>
+                        <Pressable
+                          accessibilityRole="button"
+                          style={[styles.iconBtn, (deletingId === p.id) && styles.iconBtnDisabled]}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          disabled={deletingId === p.id}
+                          onPress={() => { setEditIndex(i); setEditName(p.name); setEditBirthDate(convertFromISO(p.birthDate || '')) }}
+                        >
+                          <Ionicons name="create-outline" size={22} color="#cfd3ff" />
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          style={[styles.iconBtn, (deletingId === p.id) && styles.iconBtnDisabled]}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          disabled={deletingId === p.id}
+                          onPress={() => setConfirmId(p.id)}
+                        >
+                          <Ionicons name="trash-outline" size={22} color="#cfd3ff" />
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
-                </View>
-              )}
+                )}
+              </View>
+            )
+          })}
+        </View>
+        {(!isFree || items.length < 1) && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Adicionar novo perfil</Text>
+            <Input label={'Nome'} value={newName} onChangeText={setNewName} placeholder="Nome da criança" />
+            <Text style={styles.label}>Data de nascimento</Text>
+            <TextInput
+              style={styles.dateInput}
+              placeholder="DD/MM/AAAA"
+              placeholderTextColor="#8b92b8"
+              value={newBirthDate}
+              onChangeText={(text) => handleBirthDateChange(text, false)}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
+            <View style={{ marginTop: 12 }}>
+              <PrimaryButton title={saving ? 'Adicionando...' : 'Adicionar Perfil'} onPress={addNew} disabled={saving} />
             </View>
-          ))}
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Adicionar novo perfil</Text>
-          <Input label={'Nome'} value={newName} onChangeText={setNewName} placeholder="Nome da criança" />
-          <Text style={styles.label}>Data de nascimento</Text>
-          <TextInput
-            style={styles.dateInput}
-            placeholder="DD/MM/AAAA"
-            placeholderTextColor="#8b92b8"
-            value={newBirthDate}
-            onChangeText={(text) => handleBirthDateChange(text, false)}
-            keyboardType="numeric"
-            maxLength={10}
-          />
-          {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
-          <View style={{ marginTop: 12 }}>
-            <PrimaryButton title={saving ? 'Adicionando...' : 'Adicionar Perfil'} onPress={addNew} disabled={saving} />
           </View>
-        </View>
+        )}
+        {isFree && items.length >= 1 && (
+          <View style={styles.card}>
+            <Text style={styles.infoTextFree}>O plano gratuito permite apenas 1 perfil.</Text>
+          </View>
+        )}
       </ScrollView>
       <Modal visible={!!confirmId} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
@@ -325,4 +344,6 @@ const styles = StyleSheet.create({
   modalBtnCancel: {},
   modalBtnDelete: { borderColor: '#ef4444' },
   modalBtnText: { color: '#e6e9ff', fontWeight: '600' },
+  infoTextFree: { color: '#cfd3ff', fontSize: 14, textAlign: 'center' },
+  lockedHint: { color: '#d4a017', fontSize: 11, marginTop: 2 },
 })

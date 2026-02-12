@@ -51,6 +51,9 @@ export class Work {
   @Column({ name: 'artist_name', nullable: true })
   artistName: string;
 
+  @Column({ name: 'is_premium', default: false })
+  isPremium: boolean;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

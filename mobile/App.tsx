@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StyleSheet, View, ActivityIndicator } from 'react-native'
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
+import { SubscriptionProvider } from './src/context/SubscriptionContext'
 import { PlayerProvider } from './src/context/PlayerContext'
 import LoginScreen from './src/screens/LoginScreen'
 import RegisterScreen from './src/screens/RegisterScreen'
@@ -19,7 +20,7 @@ function Screens() {
   const [screen, setScreen] = useState<'login' | 'register' | 'verify' | 'verify_notice' | 'forgot' | 'profile_selection' | 'home'>('login')
   const [pendingEmail, setPendingEmail] = useState<string>('')
   const [legalBypassed, setLegalBypassed] = useState(false)
-  
+
   useEffect(() => {
     setLegalBypassed(false)
   }, [user?.id, accessToken])
@@ -41,9 +42,9 @@ function Screens() {
   return (
     <View style={styles.container}>
       {user && accessToken && !user?.acceptedLegal && !legalBypassed && (
-        <LegalAcceptScreen 
-          onContinue={() => setScreen('profile_selection')} 
-          onExit={() => setScreen('login')} 
+        <LegalAcceptScreen
+          onContinue={() => setScreen('profile_selection')}
+          onExit={() => setScreen('login')}
           canSkip={!!user?.hasAcceptedAnyRequired}
           onSkip={() => setLegalBypassed(true)}
         />
@@ -98,9 +99,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <PlayerProvider>
-          <Screens />
-        </PlayerProvider>
+        <SubscriptionProvider>
+          <PlayerProvider>
+            <Screens />
+          </PlayerProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </SafeAreaProvider>
   )

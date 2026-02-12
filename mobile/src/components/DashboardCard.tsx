@@ -9,6 +9,7 @@ type Work = {
     recommendedMinMonths?: number
     recommendedMaxMonths?: number
     recommendedAgeLabel?: string
+    isPremium?: boolean
 }
 
 type Props = {
@@ -36,11 +37,18 @@ export default function DashboardCard({ work, onPress, variant = 'square' }: Pro
 
     return (
         <Pressable style={[styles.card, getCardStyle()]} onPress={onPress}>
-            {(work.coverThumbUrl || work.coverUrl) ? (
-                <Image source={{ uri: work.coverThumbUrl || work.coverUrl! }} style={[styles.cover, getCoverStyle()]} />
-            ) : (
-                <View style={[styles.cover, getCoverStyle(), styles.coverPlaceholder]} />
-            )}
+            <View>
+                {(work.coverThumbUrl || work.coverUrl) ? (
+                    <Image source={{ uri: work.coverThumbUrl || work.coverUrl! }} style={[styles.cover, getCoverStyle()]} />
+                ) : (
+                    <View style={[styles.cover, getCoverStyle(), styles.coverPlaceholder]} />
+                )}
+                {work.isPremium && (
+                    <View style={styles.premiumBadge}>
+                        <Text style={styles.premiumBadgeText}>★ Premium</Text>
+                    </View>
+                )}
+            </View>
             <View style={styles.info}>
                 <Text style={styles.title} numberOfLines={2}>{work.title}</Text>
                 <Text style={styles.subtitle}>{work.type === 'music' ? 'Música' : 'Audiobook'}</Text>
@@ -64,4 +72,6 @@ const styles = StyleSheet.create({
     info: { paddingHorizontal: 4 },
     title: { color: '#e6e9ff', fontSize: 14, fontWeight: '600', marginBottom: 2 },
     subtitle: { color: '#8b92b8', fontSize: 12 },
+    premiumBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(180, 130, 20, 0.88)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    premiumBadgeText: { color: '#fff8e1', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
 })

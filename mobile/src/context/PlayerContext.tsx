@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Audio, AVPlaybackStatus } from 'expo-av'
 import { useAuth } from './AuthContext'
+import { useSubscription } from './SubscriptionContext'
 import {
   apiGetStreamingUrl,
   apiToggleFavorite,
@@ -19,7 +20,10 @@ import { Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 type PlayerTrack = { id: string; title?: string; workId: string; work?: any }
-type PlayerWork = { id: string; title?: string; coverUrl?: string; coverThumbUrl?: string; isFavorite?: boolean; tracks?: PlayerTrack[] }
+type PlayerWork = { id: string; title?: string; coverUrl?: string; coverThumbUrl?: string; isFavorite?: boolean; isPremium?: boolean; tracks?: PlayerTrack[] }
+
+const PREMIUM_PREVIEW_PERCENT = 0.30
+const FADEOUT_DURATION_SEC = 3
 
 type PlayerContextValue = {
   currentTrack: PlayerTrack | null
@@ -46,6 +50,8 @@ type PlayerContextValue = {
   togglePlaylist: () => Promise<void>
   setLoopPlaylist: (value: boolean) => Promise<void>
   setAutoPlayAfterTrack: (value: boolean) => Promise<void>
+  isPremiumPreview: boolean
+  premiumPreviewLimit: number
 }
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined)
@@ -85,6 +91,7 @@ async function computeHlsDuration(masterUrl: string): Promise<number> {
 
 export function PlayerProvider({ children }: { children: any }) {
   const { accessToken, activeProfileId } = useAuth()
+  const { isFree } = useSubscription()
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null)
   const [currentWork, setCurrentWork] = useState<PlayerWork | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -98,7 +105,10 @@ export function PlayerProvider({ children }: { children: any }) {
   const [queueIndex, setQueueIndex] = useState<number | null>(null)
   const [playlistItemId, setPlaylistItemId] = useState<string | null>(null)
   const [loopPlaylist, setLoopPlaylistState] = useState(false)
+  const [isPremiumPreview, setIsPremiumPreview] = useState(false)
+  const [premiumPreviewLimit, setPremiumPreviewLimit] = useState(0)
   const lastAdvanceDirection = useRef<'next' | 'prev' | null>(null)
+  const fadeoutStarted = useRef(false)
 
   const soundRef = useRef<Audio.Sound | null>(null)
   const isAudioConfigured = useRef(false)
@@ -210,6 +220,48 @@ export function PlayerProvider({ children }: { children: any }) {
       handleFinish()
         .catch(() => { })
         .finally(() => { isAutoAdvancing.current = false })
+    }
+
+    // Premium preview: fadeout and stop
+    if (isPremiumPreview && premiumPreviewLimit > 0 && status.isPlaying) {
+      const posSec = (status.positionMillis || 0) / 1000
+      const fadeStart = premiumPreviewLimit - FADEOUT_DURATION_SEC
+      if (posSec >= premiumPreviewLimit) {
+        // Stop playback at limit
+        fadeoutStarted.current = false
+        if (!isAutoAdvancing.current) {
+          isAutoAdvancing.current = true
+          const doStop = async () => {
+            try {
+              if (soundRef.current) {
+                await soundRef.current.setVolumeAsync(1.0)
+              }
+            } catch { }
+            if (queueSource === 'playlist') {
+              await advanceQueue('next')
+            } else if (autoPlayAfterTrack) {
+              await advanceOrBuildAutoQueue('next')
+            } else {
+              await stop()
+            }
+          }
+          doStop().catch(() => { }).finally(() => { isAutoAdvancing.current = false })
+        }
+      } else if (posSec >= fadeStart && !fadeoutStarted.current) {
+        fadeoutStarted.current = true
+        // Gradually fade volume
+        const fadeSteps = 6
+        const stepMs = (FADEOUT_DURATION_SEC * 1000) / fadeSteps
+        for (let i = 1; i <= fadeSteps; i++) {
+          setTimeout(async () => {
+            try {
+              if (soundRef.current) {
+                await soundRef.current.setVolumeAsync(Math.max(0, 1.0 - (i / fadeSteps)))
+              }
+            } catch { }
+          }, stepMs * i)
+        }
+      }
     }
   }
 
@@ -537,6 +589,12 @@ export function PlayerProvider({ children }: { children: any }) {
       setDuration(metaDuration)
       setIsPlaying(false)
 
+      // Determine premium preview state
+      const workIsPremium = Boolean((workData as any)?.isPremium)
+      const previewMode = isFree && workIsPremium
+      setIsPremiumPreview(previewMode)
+      fadeoutStarted.current = false
+
       // Get streaming URL from backend
       const res = await apiGetStreamingUrl(accessToken, track.id, 'original')
       const url = toSafeMediaUrl((res as any)?.url || '')
@@ -570,6 +628,13 @@ export function PlayerProvider({ children }: { children: any }) {
         effectiveDuration = 3600 // arbitrary long duration so progress can move; will cap when finish fires
       }
       setDuration(effectiveDuration)
+
+      // Set premium preview limit
+      if (isFree && Boolean((workData as any)?.isPremium) && effectiveDuration > 0) {
+        setPremiumPreviewLimit(effectiveDuration * PREMIUM_PREVIEW_PERCENT)
+      } else {
+        setPremiumPreviewLimit(0)
+      }
 
       setIsPlaying(true)
 
@@ -635,6 +700,9 @@ export function PlayerProvider({ children }: { children: any }) {
       setDuration(0)
       setIsFavorite(false)
       setPlaylistItemId(null)
+      setIsPremiumPreview(false)
+      setPremiumPreviewLimit(0)
+      fadeoutStarted.current = false
     } catch (error) {
       console.error('Error stopping playback:', error)
     }
@@ -643,7 +711,12 @@ export function PlayerProvider({ children }: { children: any }) {
   async function seekTo(seconds: number) {
     if (!soundRef.current || isLoadingTrack.current) return
     try {
-      const clamped = Math.max(0, Math.min(duration || seconds, seconds))
+      let maxSeek = duration || seconds
+      // Clamp seek for premium preview
+      if (isPremiumPreview && premiumPreviewLimit > 0) {
+        maxSeek = Math.min(maxSeek, premiumPreviewLimit)
+      }
+      const clamped = Math.max(0, Math.min(maxSeek, seconds))
 
       // Check current playback state before seeking
       const statusBefore = await soundRef.current.getStatusAsync()
@@ -757,9 +830,11 @@ export function PlayerProvider({ children }: { children: any }) {
       playlistItemId,
       togglePlaylist,
       setLoopPlaylist,
-      setAutoPlayAfterTrack
+      setAutoPlayAfterTrack,
+      isPremiumPreview,
+      premiumPreviewLimit
     }),
-    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading, loopPlaylist, autoPlayAfterTrack],
+    [currentTrack, currentWork, isPlaying, position, duration, isFavorite, accessToken, activeProfileId, hasNext, hasPrev, playlistItemId, isLoading, loopPlaylist, autoPlayAfterTrack, isPremiumPreview, premiumPreviewLimit],
   )
 
   return (

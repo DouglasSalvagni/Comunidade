@@ -1,13 +1,17 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { PlaylistsService } from './playlists.service';
+import { SubscriptionsService } from '@/modules/subscriptions/subscriptions.service';
 
 @ApiTags('Playlists')
 @Controller('playlists')
 @UseGuards(JwtAuthGuard)
 export class PlaylistsController {
-  constructor(private readonly playlistsService: PlaylistsService) {}
+  constructor(
+    private readonly playlistsService: PlaylistsService,
+    private readonly subscriptionsService: SubscriptionsService,
+  ) { }
 
   @Get()
   @ApiBearerAuth()
@@ -26,6 +30,9 @@ export class PlaylistsController {
     @Request() req,
     @Body() body: { name: string; profileId?: string },
   ) {
+    if (await this.subscriptionsService.isFreePlan(req.user.userId)) {
+      throw new ForbiddenException('Recurso disponível apenas para assinantes premium.');
+    }
     return this.playlistsService.create(body.name, req.user.userId, body.profileId);
   }
 
@@ -33,7 +40,10 @@ export class PlaylistsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add item to playlist' })
   @ApiResponse({ status: 201, description: 'Item added successfully.' })
-  async addItem(@Param('playlistId') playlistId: string, @Body() body: { trackId: string }) {
+  async addItem(@Request() req, @Param('playlistId') playlistId: string, @Body() body: { trackId: string }) {
+    if (await this.subscriptionsService.isFreePlan(req.user.userId)) {
+      throw new ForbiddenException('Recurso disponível apenas para assinantes premium.');
+    }
     return this.playlistsService.addItem(playlistId, body.trackId);
   }
 

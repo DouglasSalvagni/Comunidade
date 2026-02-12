@@ -346,3 +346,10 @@ export async function apiGetMyTopPlayed(accessToken: string, params?: {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 }
+
+export async function apiGetCurrentSubscription(accessToken: string): Promise<{ subscription: { plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }> {
+  return request<{ subscription: { plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }>('/subscriptions/current', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+}

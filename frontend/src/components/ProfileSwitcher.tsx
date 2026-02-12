@@ -10,27 +10,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown } from "lucide-react";
-import { api, Profile } from "@/services/api";
+import { ChevronsUpDown, Lock } from "lucide-react";
+import { api, Profile, Subscription } from "@/services/api";
+
+const FREE_PLAN_SLUG = "plano-gratuito";
 
 export const ProfileSwitcher = () => {
   const [items, setItems] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+  const [isFree, setIsFree] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const list = await api.getProfiles();
+        const [list, sub] = await Promise.all([
+          api.getProfiles(),
+          api.getCurrentSubscription(),
+        ]);
         if (!mounted) return;
         setItems(list);
+        const free = !sub || sub.plan?.slug === FREE_PLAN_SLUG;
+        setIsFree(free);
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') : null;
         const initial = (saved && list.find(p => p.id === saved)) || list[0] || null;
         setActiveProfile(initial || null);
         if (initial && typeof window !== 'undefined') {
           window.localStorage.setItem('activeProfileId', initial.id);
         }
-      } catch {}
+        // If free and the saved profile is not the first one, force to first
+        if (free && list.length > 1 && initial && initial.id !== list[0].id) {
+          setActiveProfile(list[0]);
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('activeProfileId', list[0].id);
+            window.dispatchEvent(new CustomEvent('profile-change', { detail: { profileId: list[0].id } }));
+          }
+        }
+      } catch { }
     };
     load();
     return () => { mounted = false; };
@@ -39,12 +55,17 @@ export const ProfileSwitcher = () => {
   useEffect(() => {
     const onRefresh = async () => {
       try {
-        const list = await api.getProfiles();
+        const [list, sub] = await Promise.all([
+          api.getProfiles(),
+          api.getCurrentSubscription(),
+        ]);
         setItems(list);
+        const free = !sub || sub.plan?.slug === FREE_PLAN_SLUG;
+        setIsFree(free);
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') : null;
         const current = (saved && list.find(p => p.id === saved)) || null;
         if (current) setActiveProfile(current);
-      } catch {}
+      } catch { }
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('profiles-refresh', onRefresh as EventListener);
@@ -56,7 +77,13 @@ export const ProfileSwitcher = () => {
     };
   }, []);
 
+  const allowedProfileId = items.length > 0 ? items[0].id : null;
+
   const onSelectProfile = (profile: Profile) => {
+    // Block if free and not the allowed profile
+    if (isFree && items.length > 1 && profile.id !== allowedProfileId) {
+      return;
+    }
     setActiveProfile(profile);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('activeProfileId', profile.id);
@@ -85,19 +112,24 @@ export const ProfileSwitcher = () => {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Selecionar Perfil</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {items.map((profile) => (
-          <DropdownMenuItem
-            key={profile.id}
-            onSelect={() => onSelectProfile(profile)}
-            className="flex items-center gap-3"
-          >
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={profile.avatarUrl} alt={profile.name} />
-              <AvatarFallback>{profile.name[0]}</AvatarFallback>
-            </Avatar>
-            <span>{profile.name}</span>
-          </DropdownMenuItem>
-        ))}
+        {items.map((profile) => {
+          const isLocked = isFree && items.length > 1 && profile.id !== allowedProfileId;
+          return (
+            <DropdownMenuItem
+              key={profile.id}
+              onSelect={() => onSelectProfile(profile)}
+              className={`flex items-center gap-3 ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={isLocked}
+            >
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+                <AvatarFallback>{profile.name[0]}</AvatarFallback>
+              </Avatar>
+              <span>{profile.name}</span>
+              {isLocked && <Lock className="w-3.5 h-3.5 ml-auto text-amber-500" />}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -2,12 +2,14 @@ import { View, Text, StyleSheet, Pressable, Image, Animated, PanResponder } from
 import { useEffect, useRef } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import appConfig from '../../app.json'
 
 type Props = { onOpen: () => void; bottomOffset?: number }
 
 export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
-  const { currentWork, currentTrack, isPlaying, togglePlay, toggleFavorite, isFavorite, stop, togglePlaylist, playlistItemId } = usePlayer()
+  const { currentWork, currentTrack, isPlaying, togglePlay, toggleFavorite, isFavorite, stop, togglePlaylist, playlistItemId, isPremiumPreview } = usePlayer()
+  const { isFree } = useSubscription()
   const translateX = useRef(new Animated.Value(0)).current
   const swipeX = useRef(0)
   const stopRef = useRef(stop)
@@ -68,18 +70,25 @@ export default function MiniPlayer({ onOpen, bottomOffset }: Props) {
           <View style={[styles.cover, styles.coverPlaceholder]} />
         )}
         <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.title} numberOfLines={1}>{currentTrack.title || currentWork.title || 'Faixa'}</Text>
+            {isPremiumPreview && <Text style={{ color: '#d4a017', fontSize: 11, fontWeight: '700' }}>★</Text>}
+          </View>
           <Text style={styles.subtitle} numberOfLines={1}>{(currentWork as any).artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
         </View>
         <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlay() }}>
           <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color={'#0b1023'} />
         </Pressable>
-        <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlaylist() }}>
-          <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={18} color={playlistItemId ? '#A78BFA' : '#0b1023'} />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite() }}>
-          <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={18} color={isFavorite ? '#cc8f00' : '#0b1023'} />
-        </Pressable>
+        {!isFree && (
+          <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); togglePlaylist() }}>
+            <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={18} color={playlistItemId ? '#A78BFA' : '#0b1023'} />
+          </Pressable>
+        )}
+        {!isFree && (
+          <Pressable style={styles.iconBtn} onPress={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite() }}>
+            <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={18} color={isFavorite ? '#cc8f00' : '#0b1023'} />
+          </Pressable>
+        )}
       </Pressable>
     </Animated.View>
   )

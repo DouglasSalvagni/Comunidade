@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, Image, ScrollView, ActivityIndicator
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
+import { useSubscription } from '../context/SubscriptionContext'
 import BottomNav from '../components/BottomNav'
 import MiniPlayer from '../components/MiniPlayer'
 import DashboardCard from '../components/DashboardCard'
@@ -10,11 +11,13 @@ import CuriosityAnimation from '../components/CuriosityAnimation'
 import { useEffect, useMemo, useState, useRef } from 'react'
 import ProfilesScreen from './ProfilesScreen'
 import AccountScreen from './AccountScreen'
+import SettingsScreen from './SettingsScreen'
 import CatalogScreen from './CatalogScreen'
 import FavoritesScreen from './FavoritesScreen'
 import PlaylistScreen from './PlaylistScreen'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlayer } from '../context/PlayerContext'
+import UpgradeModal from '../components/UpgradeModal'
 import { apiGetFavorites, apiGetWorks, apiGetProfiles, apiGetWork, apiGetTopPlayed, apiGetMyTopPlayed } from '../services/api'
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import appConfig from '../../app.json'
@@ -25,6 +28,7 @@ type Props = {
 
 export default function HomeScreen({ onLogout }: Props) {
   const { user, accessToken, activeProfileId } = useAuth()
+  const { isFree } = useSubscription()
   const insets = useSafeAreaInsets()
   const { height: screenHeight } = useWindowDimensions()
 
@@ -54,12 +58,15 @@ export default function HomeScreen({ onLogout }: Props) {
     togglePlaylist,
     playlistItemId,
     playWork,
-    autoPlayAfterTrack
+    autoPlayAfterTrack,
+    isPremiumPreview,
+    premiumPreviewLimit
   } = usePlayer()
   const [tab, setTab] = useState<'home' | 'catalog' | 'favorites' | 'playlist' | 'settings'>('home')
-  const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account'>('menu')
+  const [settingsView, setSettingsView] = useState<'menu' | 'profiles' | 'account' | 'playback'>('menu')
   const [bottomNavHeight, setBottomNavHeight] = useState(70)
   const [playerVisible, setPlayerVisible] = useState(false)
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false)
   const [progressBarWidth, setProgressBarWidth] = useState(1)
 
   // Use refs for ALL dragging state to ensure synchronous access and avoid flicker
@@ -270,7 +277,13 @@ export default function HomeScreen({ onLogout }: Props) {
 
     // Calculate relative position within the bar
     const relativeX = pageX - offsetX
-    const progress = relativeX / width
+    let progress = relativeX / width
+
+    // Clamp progress for premium preview
+    if (isPremiumPreview && premiumPreviewLimit > 0 && duration > 0) {
+      const maxProgress = premiumPreviewLimit / duration
+      progress = Math.min(progress, maxProgress)
+    }
 
     return Math.min(1, Math.max(0, progress))
   }
@@ -377,6 +390,8 @@ export default function HomeScreen({ onLogout }: Props) {
         <ProfilesScreen onBack={() => setSettingsView('menu')} />
       ) : tab === 'settings' && settingsView === 'account' ? (
         <AccountScreen onBack={() => setSettingsView('menu')} />
+      ) : tab === 'settings' && settingsView === 'playback' ? (
+        <SettingsScreen onBack={() => setSettingsView('menu')} />
       ) : (
         <View style={{ flex: 1 }}>
           <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
@@ -466,7 +481,7 @@ export default function HomeScreen({ onLogout }: Props) {
                 ) : (
                   <>
 
-                    {favorites.length > 0 && (
+                    {!isFree && favorites.length > 0 && (
                       <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                           <Text style={styles.sectionTitle}>Favoritos</Text>
@@ -620,28 +635,53 @@ export default function HomeScreen({ onLogout }: Props) {
             )}
 
             {tab === 'settings' ? (
-              <View style={styles.menu}>
-                <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
-                  <View style={styles.menuItemContent}>
-                    <Ionicons name="people-outline" size={20} color="#e6e9ff" />
-                    <Text style={styles.menuItemText}>Perfis</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
-                </Pressable>
-                <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
-                  <View style={styles.menuItemContent}>
-                    <Ionicons name="person-outline" size={20} color="#e6e9ff" />
-                    <Text style={styles.menuItemText}>Conta</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
-                </Pressable>
-                <Pressable style={[styles.menuItem, styles.logoutButton]} onPress={() => { stop(); onLogout() }}>
-                  <View style={styles.menuItemContent}>
-                    <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-                    <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
-                  </View>
-                </Pressable>
-              </View>
+              <>
+                <View style={styles.menu}>
+                  <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
+                    <View style={styles.menuItemContent}>
+                      <Ionicons name="people-outline" size={20} color="#e6e9ff" />
+                      <Text style={styles.menuItemText}>Perfis</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                  </Pressable>
+                  <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
+                    <View style={styles.menuItemContent}>
+                      <Ionicons name="person-outline" size={20} color="#e6e9ff" />
+                      <Text style={styles.menuItemText}>Conta</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                  </Pressable>
+                  {!isFree && (
+                    <Pressable style={styles.menuItem} onPress={() => setSettingsView('playback')}>
+                      <View style={styles.menuItemContent}>
+                        <Ionicons name="settings-outline" size={20} color="#e6e9ff" />
+                        <Text style={styles.menuItemText}>Configurações</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                    </Pressable>
+                  )}
+                  {isFree && (
+                    <Pressable style={[styles.menuItem, { borderColor: 'rgba(212, 160, 23, 0.3)' }]} onPress={() => setUpgradeModalVisible(true)}>
+                      <View style={styles.menuItemContent}>
+                        <Ionicons name="diamond-outline" size={20} color="#d4a017" />
+                        <Text style={[styles.menuItemText, { color: '#d4a017' }]}>Fazer upgrade</Text>
+                      </View>
+                      <Ionicons name="open-outline" size={18} color="#d4a017" />
+                    </Pressable>
+                  )}
+                  <Pressable style={[styles.menuItem, styles.logoutButton]} onPress={() => { stop(); onLogout() }}>
+                    <View style={styles.menuItemContent}>
+                      <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+                      <Text style={[styles.menuItemText, styles.logoutText]}>Sair</Text>
+                    </View>
+                  </Pressable>
+                </View>
+                <UpgradeModal
+                  visible={upgradeModalVisible}
+                  url={`${(appConfig as any)?.expo?.extra?.siteBaseUrl || 'http://localhost:3000'}/dashboard/subscriptions`}
+                  onClose={() => setUpgradeModalVisible(false)}
+                />
+              </>
             ) : (
               <View />
             )}
@@ -654,8 +694,8 @@ export default function HomeScreen({ onLogout }: Props) {
         tabs={[
           { key: 'home', label: 'Início' },
           { key: 'catalog', label: 'Catálogo' },
-          { key: 'favorites', label: 'Favoritos' },
-          { key: 'playlist', label: 'Playlist' },
+          ...(!isFree ? [{ key: 'favorites', label: 'Favoritos' }] : []),
+          ...(!isFree ? [{ key: 'playlist', label: 'Playlist' }] : []),
           { key: 'settings', label: 'Mais' },
         ]}
         current={tab}
@@ -685,6 +725,11 @@ export default function HomeScreen({ onLogout }: Props) {
                 )}
               </View>
               <Text style={styles.playerTitle} numberOfLines={1}>{playerCardTrack?.title || playerCardWork?.title || 'Faixa'}</Text>
+              {isPremiumPreview && (
+                <View style={styles.premiumPlayerBadge}>
+                  <Text style={styles.premiumPlayerBadgeText}>★ PREMIUM</Text>
+                </View>
+              )}
               <Text style={[styles.playerSubtitle, { marginBottom: mediumMargin }]} numberOfLines={2}>{(playerCardWork as any)?.artistName || (appConfig as any)?.name || 'Ninaro'}</Text>
 
               <View
@@ -706,6 +751,12 @@ export default function HomeScreen({ onLogout }: Props) {
               >
                 <View style={styles.progressBar}>
                   <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                  {isPremiumPreview && premiumPreviewLimit > 0 && duration > 0 && (
+                    <View style={[
+                      styles.progressForbidden,
+                      { left: `${(premiumPreviewLimit / duration) * 100}%`, right: 0 }
+                    ]} />
+                  )}
                 </View>
                 <View
                   style={[
@@ -754,28 +805,30 @@ export default function HomeScreen({ onLogout }: Props) {
                   )}
                 </View>
               </View>
-              <View style={styles.playerActions}>
-                <Pressable
-                  accessibilityRole="button"
-                  style={styles.actionBtn}
-                  onPress={togglePlaylist}
-                >
-                  <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
-                  <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
-                    {playlistItemId ? 'Na Playlist' : 'Playlist'}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  style={styles.actionBtn}
-                  onPress={toggleFavorite}
-                >
-                  <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
-                  <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
-                    {isFavorite ? 'Favorito' : 'Favoritar'}
-                  </Text>
-                </Pressable>
-              </View>
+              {!isFree && (
+                <View style={styles.playerActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.actionBtn}
+                    onPress={togglePlaylist}
+                  >
+                    <Ionicons name={playlistItemId ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={playlistItemId ? '#A78BFA' : '#cfd3ff'} />
+                    <Text style={[styles.actionBtnText, playlistItemId && styles.actionBtnTextActive]}>
+                      {playlistItemId ? 'Na Playlist' : 'Playlist'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.actionBtn}
+                    onPress={toggleFavorite}
+                  >
+                    <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={24} color={isFavorite ? '#facc15' : '#cfd3ff'} />
+                    <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
+                      {isFavorite ? 'Favorito' : 'Favoritar'}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </SafeAreaView>
         </Animated.View>
@@ -868,4 +921,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   headerLogo: { width: 200, height: 46, marginBottom: 8, alignSelf: 'center' },
+  premiumPlayerBadge: { alignSelf: 'center', backgroundColor: 'rgba(180, 130, 20, 0.22)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(212, 160, 23, 0.5)', marginTop: 6 },
+  premiumPlayerBadgeText: { color: '#d4a017', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  progressForbidden: { position: 'absolute', top: 0, bottom: 0, backgroundColor: 'rgba(239, 68, 68, 0.35)', borderTopRightRadius: 4, borderBottomRightRadius: 4 },
 })

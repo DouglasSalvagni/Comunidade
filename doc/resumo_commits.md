@@ -408,3 +408,151 @@ const mediumMargin = isSmallScreen ? 20 : 40
    - 429 → "Muitas requisições..."
    - Outros → "Erro de conexão (HTTP X)"
 3. Respostas HTML (não-JSON) agora nunca são expostas ao usuário — sempre usa a mensagem amigável
+
+---
+
+## 2026-02-12 - Limitações do Plano Gratuito (Free vs Premium)
+
+**Arquivos modificados:**
+
+**Backend:**
+- `backend/src/modules/subscriptions/subscriptions.service.ts`
+- `backend/src/modules/playlists/playlists.controller.ts`
+- `backend/src/modules/playlists/playlists.module.ts`
+- `backend/src/modules/catalog/catalog.controller.ts`
+- `backend/src/modules/catalog/catalog.module.ts`
+- `backend/src/modules/profiles/profiles.controller.ts`
+- `backend/src/modules/profiles/profiles.module.ts`
+
+**Mobile:**
+- `mobile/src/context/SubscriptionContext.tsx` (NOVO)
+- `mobile/src/services/api.ts`
+- `mobile/App.tsx`
+- `mobile/src/screens/HomeScreen.tsx`
+- `mobile/src/screens/ProfilesScreen.tsx`
+- `mobile/src/screens/AccountScreen.tsx`
+
+**Descrição:** Implementadas limitações para diferenciar usuários do plano gratuito (`plano-gratuito`) de assinantes premium/cortesia.
+
+**Alterações Backend:**
+1. Adicionado método `isFreePlan(userId)` ao `SubscriptionsService`
+2. Protegidos endpoints com `ForbiddenException`:
+   - `POST /playlists` — criar playlist bloqueado para free
+   - `POST /playlists/:id/items` — adicionar item à playlist bloqueado para free
+   - `POST /works/:id/favorite` — favoritar bloqueado para free
+   - `POST /profiles` — limitado a 1 perfil para free (valida contagem de perfis ativos)
+3. Wiring: `SubscriptionsModule` importado nos módulos de playlists, catalog e profiles
+
+**Alterações Mobile:**
+1. Criado `SubscriptionContext.tsx`:
+   - Estados: `planSlug`, `isFree`, `isPremium`, `isLoaded`
+   - Cache local via AsyncStorage
+   - Sincronização automática após login e ao retornar do background (AppState)
+   - Não bloqueia renderização — UI usa cache, atualiza em background
+2. Adicionada função `apiGetCurrentSubscription` em `api.ts`
+3. `SubscriptionProvider` inserido no `App.tsx` (dentro de AuthProvider, acima de PlayerProvider)
+4. `HomeScreen.tsx`:
+   - Bottom nav: tabs Favoritos e Playlist removidas para free
+   - Dashboard: seção Favoritos oculta para free
+   - Player fullscreen: botões Playlist e Favoritar ocultos para free
+5. `ProfilesScreen.tsx`: formulário "Adicionar novo perfil" oculto quando free já possui 1 perfil; texto informativo exibido
+6. `AccountScreen.tsx`: seções "Reprodução" e "Reprodução da playlist" (toggles autoplay/loop) ocultas para free
+
+---
+
+## 2026-02-12 - Obras Premium (Preview limitado para free)
+
+**Arquivos modificados/criados:**
+
+**Backend:**
+- `backend/src/database/migrations/1771000000000-add-is-premium-to-works.ts` (NOVO)
+- `backend/src/modules/catalog/entities/work.entity.ts`
+
+**Frontend Admin:**
+- `frontend/src/services/api.ts`
+- `frontend/src/app/admin/catalog/page.tsx`
+
+**Mobile:**
+- `mobile/src/context/PlayerContext.tsx`
+- `mobile/src/components/DashboardCard.tsx`
+- `mobile/src/components/MiniPlayer.tsx`
+- `mobile/src/screens/CatalogScreen.tsx`
+- `mobile/src/screens/HomeScreen.tsx`
+
+**Descrição:** Implementado conceito de "obra premium". Obras marcadas como premium podem ser ouvidas por usuários free, porém apenas 30% da duração, com fadeout nos últimos 3 segundos.
+
+**Alterações Backend:**
+1. Migration: coluna `is_premium` (boolean, default false) na tabela `works`
+2. Entity: campo `isPremium` adicionado ao `Work`
+
+**Alterações Admin:**
+1. Interface `Work`: adicionado `isPremium`
+2. Formulário de criação: Switch "Obra Premium"
+3. Dialog de edição: Switch "Obra Premium" + inclusão no payload de update
+4. Tabela de obras: coluna "Premium" com badge dourado
+
+**Alterações Mobile:**
+1. `PlayerContext.tsx`:
+   - Constantes `PREMIUM_PREVIEW_PERCENT = 0.30` e `FADEOUT_DURATION_SEC = 3`
+   - Estados: `isPremiumPreview`, `premiumPreviewLimit`
+   - `playTrack()`: detecta obra premium + user free → ativa preview mode
+   - `onPlaybackStatusUpdate()`: fadeout gradual via `setVolumeAsync()` nos últimos 3s, stop na posição limite
+   - `seekTo()`: clamp máximo em `premiumPreviewLimit`
+   - `stop()`: reseta estados de premium preview
+2. `DashboardCard.tsx`: badge "★ Premium" dourado sobre a cover
+3. `CatalogScreen.tsx`: badge "★ Premium" dourado sobre a cover no card
+4. `MiniPlayer.tsx`: estrela dourada "★" ao lado do título quando em preview
+5. `HomeScreen.tsx` (player fullscreen):
+   - Badge "★ PREMIUM" dourado abaixo do título
+   - Timeline: zona vermelha semi-transparente da posição limite até o final
+   - Thumb clamped — não pode ser arrastado além do limite
+
+---
+
+## 2026-02-12 - Bloqueio de perfis extras para plano free (Web + Mobile)
+
+**Arquivos modificados:**
+
+**Frontend Web:**
+- `frontend/src/app/dashboard/profiles/page.tsx`
+- `frontend/src/components/ProfileSwitcher.tsx`
+
+**Mobile:**
+- `mobile/src/screens/ProfilesScreen.tsx`
+
+**Descrição:** Usuários free com 2+ perfis agora só podem usar o primeiro (principal). Perfis extras ficam visíveis porém bloqueados com ícone de cadeado e CTA de upgrade. Criação de novos perfis é bloqueada para free.
+
+**Regras implementadas:**
+1. **Free → bloqueia criação** de novos perfis (web + mobile)
+2. **Free com 2+ perfis → somente o primeiro é utilizável**, demais ficam bloqueados
+3. **Perfis bloqueados**: exibem ícone de cadeado (Lock), hint "Faça upgrade" (mobile) ou botão "Fazer upgrade" (web)
+4. **ProfileSwitcher (web)**: auto-corrige para primeiro perfil se free user tinha selecionado outro; itens bloqueados ficam desabilitados no dropdown
+
+**Alterações Web:**
+1. `profiles/page.tsx`: busca subscription, calcula `isFree`, perfis com `i > 0` ficam `isLocked` (opacity + Lock icon + botão upgrade → `/dashboard/subscriptions`), seção de criação substituída por mensagem de upgrade
+2. `ProfileSwitcher.tsx`: busca subscription, bloqueia seleção de perfis extras, auto-corrige perfil ativo para o primeiro se necessário
+
+**Alterações Mobile:**
+1. `ProfilesScreen.tsx`: perfis com `i > 0` quando `isFree` ficam `isLocked` (opacity 0.5, ícone Lock dourado, hint "Faça upgrade", botões edit/delete ocultados, radio desabilitado)
+2. `ProfileSelectionScreen.tsx`: tela pós-login "Quem está ouvindo?" — perfis extras (além do primeiro) ficam bloqueados com cadeado dourado, hint "Faça upgrade", card dimmed. Footer muda mensagem para free users.
+
+**Fix:** Corrigido slug do plano free de `plano-free` para `plano-gratuito` (valor real no banco de dados) nos arquivos web.
+
+---
+
+## 2026-02-12 - Reestruturação do menu Mais + SettingsScreen + UpgradeModal
+
+**Arquivos criados:**
+- `mobile/src/screens/SettingsScreen.tsx` — tela dedicada para configurações de reprodução (reprodução contínua, loop de playlist)
+- `mobile/src/components/UpgradeModal.tsx` — modal de upgrade com lista de benefícios premium e redirecionamento externo
+
+**Arquivos modificados:**
+- `mobile/src/screens/AccountScreen.tsx` — removidos toggles de reprodução (movidos para SettingsScreen)
+- `mobile/src/screens/HomeScreen.tsx` — menu "Mais" reestruturado com novos itens
+
+**Descrição:** Refatoração da seção "Mais" do app mobile:
+1. **Configurações** (apenas para premium): abre tela dedicada com opções de reprodução contínua e loop
+2. **Fazer upgrade** (apenas para free): botão dourado que abre modal com benefícios e redireciona para site externo
+3. **UpgradeModal**: usa padrão do ExternalLinkModal, com ícone diamond dourado, lista de 5 benefícios premium, nota de redirecionamento, e botões "Agora não" / "Ver planos"
+4. **AccountScreen**: simplificada — mantém apenas dados pessoais (nome, email) e alteração de senha
+5. URL de upgrade usa `siteBaseUrl` de `app.json` + `/dashboard/subscriptions`

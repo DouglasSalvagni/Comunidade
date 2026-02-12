@@ -5,11 +5,12 @@ import { PlaylistsController } from './playlists.controller';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistItem } from './entities/playlist-item.entity';
 import { Track } from '@/modules/catalog/entities/track.entity';
+import { SubscriptionsModule } from '@/modules/subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Playlist, PlaylistItem, Track])],
+  imports: [TypeOrmModule.forFeature([Playlist, PlaylistItem, Track]), SubscriptionsModule],
   providers: [PlaylistsService],
   controllers: [PlaylistsController],
   exports: [PlaylistsService],
 })
-export class PlaylistsModule {}
+export class PlaylistsModule { }

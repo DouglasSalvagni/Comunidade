@@ -21,6 +21,7 @@ type Work = {
   devThemes?: { id: string; name: string }[]
   tracks?: { id: string; title?: string; workId: string }[]
   isFavorite?: boolean
+  isPremium?: boolean
 }
 
 export default function CatalogScreen() {
@@ -272,11 +273,18 @@ export default function CatalogScreen() {
                     } catch { }
                   }
                 }}>
-                  {(w.coverThumbUrl || w.coverUrl) ? (
-                    <Image source={{ uri: w.coverThumbUrl || w.coverUrl! }} style={styles.cover} />
-                  ) : (
-                    <View style={[styles.cover, styles.coverPlaceholder]} />
-                  )}
+                  <View style={{ width: 90, alignSelf: 'stretch' }}>
+                    {(w.coverThumbUrl || w.coverUrl) ? (
+                      <Image source={{ uri: w.coverThumbUrl || w.coverUrl! }} style={[styles.cover, { flex: 1 }]} />
+                    ) : (
+                      <View style={[styles.cover, styles.coverPlaceholder, { flex: 1 }]} />
+                    )}
+                    {w.isPremium && (
+                      <View style={styles.premiumBadge}>
+                        <Text style={styles.premiumBadgeText}>★ Premium</Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.cardBody}>
                     <Text style={styles.workType}>
                       {w.type === 'music' ? 'Música' :
@@ -352,4 +360,6 @@ const styles = StyleSheet.create({
   workTag: { color: '#cfd3ff', fontSize: 12, opacity: 0.8 },
   skelLine: { height: 12, backgroundColor: '#171a2f', borderRadius: 6, marginTop: 6 },
   skelTag: { width: 50, height: 12, backgroundColor: '#171a2f', borderRadius: 6 },
+  premiumBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(180, 130, 20, 0.88)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  premiumBadgeText: { color: '#fff8e1', fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
 })

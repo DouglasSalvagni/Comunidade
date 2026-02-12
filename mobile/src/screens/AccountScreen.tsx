@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
 import { apiProfile, apiUpdateMyProfile, apiChangeMyPassword } from '../services/api'
-import { usePlayer } from '../context/PlayerContext'
 
 type Props = {
   onBack: () => void
@@ -13,7 +12,6 @@ type Props = {
 
 export default function AccountScreen({ onBack }: Props) {
   const { accessToken, user, refreshProfile } = useAuth()
-  const { loopPlaylist, setLoopPlaylist, autoPlayAfterTrack, setAutoPlayAfterTrack } = usePlayer()
   const insets = useSafeAreaInsets()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -118,42 +116,6 @@ export default function AccountScreen({ onBack }: Props) {
 
             <PrimaryButton title={saving ? 'Salvando...' : 'Salvar'} onPress={onSave} disabled={saving || !name.trim()} />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Reprodução</Text>
-              <View style={styles.toggleRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleLabel}>Reprodução contínua</Text>
-                  <Text style={styles.toggleDescription}>
-                    Quando ativado, ao terminar uma música o app sugere e toca automaticamente a próxima.
-                  </Text>
-                </View>
-                <Switch
-                  value={autoPlayAfterTrack}
-                  onValueChange={setAutoPlayAfterTrack}
-                  thumbColor={autoPlayAfterTrack ? '#A78BFA' : '#f4f4f5'}
-                  trackColor={{ false: '#4b5563', true: '#4c1d95' }}
-                />
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Reprodução da playlist</Text>
-              <View style={styles.toggleRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleLabel}>Repetir playlist quando terminar</Text>
-                  <Text style={styles.toggleDescription}>
-                    Quando ativado, ao chegar na última música a reprodução volta para a primeira.
-                  </Text>
-                </View>
-                <Switch
-                  value={loopPlaylist}
-                  onValueChange={setLoopPlaylist}
-                  thumbColor={loopPlaylist ? '#A78BFA' : '#f4f4f5'}
-                  trackColor={{ false: '#4b5563', true: '#4c1d95' }}
-                />
-              </View>
-            </View>
-
             {authProvider === 'local' ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Alterar Senha</Text>
@@ -199,7 +161,4 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 14, color: '#cfd3ff' },
   back: { paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#1d2340', borderRadius: 8 },
   backText: { color: '#cfd3ff' },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  toggleLabel: { fontSize: 14, color: '#e6e9ff', marginBottom: 4 },
-  toggleDescription: { fontSize: 12, color: '#9ca3af' },
 })

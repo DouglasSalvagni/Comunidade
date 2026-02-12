@@ -11,18 +11,23 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ProfilesService } from './profiles.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @ApiTags('Profiles')
 @Controller('profiles')
 @UseGuards(JwtAuthGuard)
 export class ProfilesController {
-  constructor(private readonly profilesService: ProfilesService) {}
+  constructor(
+    private readonly profilesService: ProfilesService,
+    private readonly subscriptionsService: SubscriptionsService,
+  ) { }
 
   @Post()
   @ApiBearerAuth()
@@ -30,6 +35,12 @@ export class ProfilesController {
   @ApiResponse({ status: 201, description: 'Profile created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async create(@Request() req, @Body() createProfileDto: CreateProfileDto) {
+    if (await this.subscriptionsService.isFreePlan(req.user.userId)) {
+      const existing = await this.profilesService.findAllByUser(req.user.userId);
+      if (existing.length >= 1) {
+        throw new ForbiddenException('Plano gratuito permite apenas 1 perfil.');
+      }
+    }
     return this.profilesService.create(req.user.userId, createProfileDto);
   }
 

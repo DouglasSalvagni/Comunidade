@@ -52,6 +52,8 @@ const AdminCatalogPage = () => {
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [editThumbInputKey, setEditThumbInputKey] = useState(0);
   const [editIsLandingSample, setEditIsLandingSample] = useState(false);
+  const [editIsPremium, setEditIsPremium] = useState(false);
+  const [isPremiumNew, setIsPremiumNew] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -163,6 +165,7 @@ const AdminCatalogPage = () => {
                 recommendedMaxMonths: Number(maxMonths || 0),
                 recommendedAgeLabel: ageLabel || undefined,
                 artistName: artistName || undefined,
+                isPremium: isPremiumNew,
                 tagIds: selectedTagIds,
                 devThemeIds: selectedDevThemeIds,
                 coverUrl,
@@ -175,7 +178,7 @@ const AdminCatalogPage = () => {
               await api.processMedia({ storageKey, type: "audio", workId: workData.id });
               const refreshed = await api.adminGetWorks();
               setWorks(Array.isArray((refreshed as any)?.data) ? (refreshed as any).data : (Array.isArray(refreshed as any) ? (refreshed as any) : []));
-              setTitle(""); setDescription(""); setType(""); setMinMonths(""); setMaxMonths(""); setAgeLabel(""); setArtistName(""); setSelectedTagIds([]); setAudioFile(null); setThumbnailFile(null);
+              setTitle(""); setDescription(""); setType(""); setMinMonths(""); setMaxMonths(""); setAgeLabel(""); setArtistName(""); setSelectedTagIds([]); setSelectedDevThemeIds([]); setIsPremiumNew(false); setAudioFile(null); setThumbnailFile(null);
               setAudioInputKey((k) => k + 1);
               setThumbInputKey((k) => k + 1);
               setUploading(false);
@@ -255,6 +258,10 @@ const AdminCatalogPage = () => {
                 ))}
               </div>
             </div>
+            <div className="pt-2 flex items-center space-x-2">
+              <Switch id="premium-new-toggle" checked={isPremiumNew} onCheckedChange={setIsPremiumNew} />
+              <Label htmlFor="premium-new-toggle">Obra Premium</Label>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="file">Arquivo da Obra</Label>
               <Input key={audioInputKey} id="file" type="file" accept="audio/*" onChange={(e) => setAudioFile(e.target.files?.[0] || null)} />
@@ -290,6 +297,7 @@ const AdminCatalogPage = () => {
               <TableRow>
                 <TableHead>Título</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Premium</TableHead>
                 <TableHead>Idade</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -300,6 +308,7 @@ const AdminCatalogPage = () => {
                 <TableRow key={work.id}>
                   <TableCell className="font-medium">{work.title}</TableCell>
                   <TableCell>{work.type}</TableCell>
+                  <TableCell>{work.isPremium ? <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500 ring-1 ring-inset ring-amber-500/20">★ Premium</span> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
                   <TableCell>{work.recommendedAgeLabel || (work.recommendedMinMonths !== undefined && work.recommendedMaxMonths !== undefined ? `${work.recommendedMinMonths}–${work.recommendedMaxMonths} meses` : "-")}</TableCell>
                   <TableCell>
                     <Switch checked={work.isActive} onCheckedChange={() => handleToggleStatus(work.id)} />
@@ -316,7 +325,8 @@ const AdminCatalogPage = () => {
                       setEditArtistName((work as any).artistName || "");
                       setEditSelectedTagIds((work.tags || []).map(t => t.id));
                       setEditSelectedDevThemeIds((work.devThemes || []).map(t => t.id));
-                      
+                      setEditIsPremium(!!work.isPremium);
+
                       try {
                         const fullWork = await api.adminGetWork(work.id);
                         setEditIsLandingSample(fullWork.isLandingSample);
@@ -422,7 +432,7 @@ const AdminCatalogPage = () => {
                     if (!editingWork) return;
                     try {
                       if (checked) {
-                         // Check if HLS is ready
+                        // Check if HLS is ready
                         const hasHls = (editingWork.tracks || []).some(t => !!(t.hlsMasterKey || t.hlsManifestStorageKey));
                         if (!hasHls) {
                           toast.error('Esta obra ainda não está processada em HLS. Processe o áudio antes de ativar na Landing.');
@@ -431,8 +441,8 @@ const AdminCatalogPage = () => {
                         // Check limit
                         const currentSamples = await api.getLandingSamples(100);
                         if (currentSamples.length >= 3) {
-                           toast.error('Limite de 3 amostras na landing atingido');
-                           return;
+                          toast.error('Limite de 3 amostras na landing atingido');
+                          return;
                         }
                         await api.adminAddLandingSample(editingWork.id);
                         setEditIsLandingSample(true);
@@ -462,6 +472,10 @@ const AdminCatalogPage = () => {
                   </div>
                 ))}
               </div>
+            </div>
+            <div className="pt-2 flex items-center space-x-2">
+              <Switch id="edit-premium-toggle" checked={editIsPremium} onCheckedChange={setEditIsPremium} />
+              <Label htmlFor="edit-premium-toggle">Obra Premium</Label>
             </div>
             <div className="space-y-2">
               <Label htmlFor="editThumbnail">Imagem Thumbnail (opcional)</Label>
@@ -496,6 +510,7 @@ const AdminCatalogPage = () => {
                   recommendedMaxMonths: editMaxMonths ? Number(editMaxMonths) : undefined,
                   recommendedAgeLabel: editAgeLabel || undefined,
                   artistName: editArtistName || undefined,
+                  isPremium: editIsPremium,
                   tagIds: editSelectedTagIds,
                   devThemeIds: editSelectedDevThemeIds,
                 };

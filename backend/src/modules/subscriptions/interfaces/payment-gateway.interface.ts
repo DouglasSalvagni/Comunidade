@@ -15,7 +15,7 @@ export interface IPaymentGateway {
   createCheckoutLink(
     userId: string,
     planValue: number,
-    cycle: 'MONTHLY' | 'YEARLY',
+    cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY',
     planName: string,
     planDescription: string,
     options?: {

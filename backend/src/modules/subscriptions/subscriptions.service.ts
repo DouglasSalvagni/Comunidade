@@ -32,6 +32,89 @@ export class SubscriptionsService {
   private readonly freePlanSlug = 'plano-gratuito';
   private readonly courtesyPlanSlug = 'plano-cortesia';
 
+  private getPeriodEnd(start: Date, billingPeriod: Plan['billingPeriod']): Date {
+    const periodEnd = new Date(start);
+
+    if (billingPeriod === 'weekly') {
+      periodEnd.setDate(periodEnd.getDate() + 7);
+      return periodEnd;
+    }
+
+    if (billingPeriod === 'biweekly') {
+      periodEnd.setDate(periodEnd.getDate() + 14);
+      return periodEnd;
+    }
+
+    if (billingPeriod === 'monthly') {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      return periodEnd;
+    }
+
+    if (billingPeriod === 'quarterly') {
+      periodEnd.setMonth(periodEnd.getMonth() + 3);
+      return periodEnd;
+    }
+
+    if (billingPeriod === 'semiannually') {
+      periodEnd.setMonth(periodEnd.getMonth() + 6);
+      return periodEnd;
+    }
+
+    periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    return periodEnd;
+  }
+
+  private getAsaasCycle(billingPeriod: Plan['billingPeriod']): 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY' {
+    if (billingPeriod === 'weekly') return 'WEEKLY';
+    if (billingPeriod === 'biweekly') return 'BIWEEKLY';
+    if (billingPeriod === 'monthly') return 'MONTHLY';
+    if (billingPeriod === 'quarterly') return 'QUARTERLY';
+    if (billingPeriod === 'semiannually') return 'SEMIANNUALLY';
+    return 'YEARLY';
+  }
+
+  private parseDateOnly(value?: string): Date | null {
+    if (!value) return null;
+    const parts = value.split('-').map((part) => Number(part));
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts;
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    return new Date(year, month - 1, day);
+  }
+
+  private toDateOnly(value: Date): Date {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  async renewSubscriptionPeriod(subscriptionId: string, paymentDueDate?: string): Promise<Subscription> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+      relations: ['plan'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription ${subscriptionId} não encontrada`);
+    }
+
+    if (!subscription.plan) {
+      throw new NotFoundException(`Plano da subscription ${subscriptionId} não encontrado`);
+    }
+
+    const parsedDueDate = this.parseDateOnly(paymentDueDate) ?? null;
+    const periodEndDateOnly = subscription.periodEnd ? this.toDateOnly(subscription.periodEnd) : null;
+    if (parsedDueDate && periodEndDateOnly && parsedDueDate.getTime() < periodEndDateOnly.getTime()) {
+      return subscription;
+    }
+
+    const now = new Date();
+    const baseDate = subscription.periodEnd && subscription.periodEnd > now
+      ? subscription.periodEnd
+      : (parsedDueDate ?? now);
+
+    subscription.periodEnd = this.getPeriodEnd(baseDate, subscription.plan.billingPeriod);
+    return this.subscriptionRepository.save(subscription);
+  }
+
   private async getCourtesyPlan(): Promise<Plan | null> {
     return this.planRepository.findOne({ where: { slug: this.courtesyPlanSlug } });
   }
@@ -195,13 +278,7 @@ export class SubscriptionsService {
 
     // Criar nova assinatura
     const now = new Date();
-    const periodEnd = new Date(now);
-
-    if (plan.billingPeriod === 'monthly') {
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-    } else if (plan.billingPeriod === 'yearly') {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-    }
+    const periodEnd = this.getPeriodEnd(now, plan.billingPeriod);
 
     const newSubscription = this.subscriptionRepository.create({
       userId,
@@ -316,7 +393,7 @@ export class SubscriptionsService {
     }
 
     // Cria Checkout Link
-    const cycle = plan.billingPeriod === 'monthly' ? 'MONTHLY' : 'YEARLY';
+    const cycle = this.getAsaasCycle(plan.billingPeriod);
     const basePlanValue = plan.priceCents / 100;
 
     const activeCoupon = await this.couponsService.getActiveCoupon(userId);
@@ -555,13 +632,7 @@ export class SubscriptionsService {
 
     // Calcula period_end baseado no ciclo do plano
     const now = new Date();
-    const periodEnd = new Date(now);
-
-    if (plan.billingPeriod === 'monthly') {
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-    } else if (plan.billingPeriod === 'yearly') {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-    }
+    const periodEnd = this.getPeriodEnd(now, plan.billingPeriod);
 
     // Cria nova assinatura
     const newSubscription = this.subscriptionRepository.create({

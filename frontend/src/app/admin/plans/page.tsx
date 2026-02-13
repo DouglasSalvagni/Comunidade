@@ -14,6 +14,17 @@ import { api, Plan } from "@/services/api";
 import { toast } from "sonner";
 
 const courtesySlug = "plano-cortesia";
+type BillingPeriod = Plan["billingPeriod"];
+const billingPeriodOptions: Array<{ value: BillingPeriod; label: string }> = [
+  { value: "weekly", label: "Semanal" },
+  { value: "biweekly", label: "Quinzenal" },
+  { value: "monthly", label: "Mensal" },
+  { value: "quarterly", label: "Trimestral" },
+  { value: "semiannually", label: "Semestral" },
+  { value: "yearly", label: "Anual" },
+];
+const getBillingPeriodLabel = (value: BillingPeriod) =>
+  billingPeriodOptions.find((option) => option.value === value)?.label ?? value;
 
 const featuresToText = (features?: string[]) => {
   if (!features || features.length === 0) return "";
@@ -33,7 +44,7 @@ const AdminPlansPage = () => {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [priceCents, setPriceCents] = useState("1990");
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const [description, setDescription] = useState("");
   const [featuresText, setFeaturesText] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -45,7 +56,7 @@ const AdminPlansPage = () => {
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [editPriceCents, setEditPriceCents] = useState("1990");
-  const [editBillingPeriod, setEditBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [editBillingPeriod, setEditBillingPeriod] = useState<BillingPeriod>("monthly");
   const [editDescription, setEditDescription] = useState("");
   const [editFeaturesText, setEditFeaturesText] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
@@ -216,13 +227,16 @@ const AdminPlansPage = () => {
             </div>
             <div className="space-y-2">
               <Label>Ciclo</Label>
-              <Select value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as "monthly" | "yearly")}>
+              <Select value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as BillingPeriod)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
+                  {billingPeriodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -294,13 +308,16 @@ const AdminPlansPage = () => {
             </div>
             <div className="space-y-2">
               <Label>Ciclo</Label>
-              <Select value={editBillingPeriod} onValueChange={(value) => setEditBillingPeriod(value as "monthly" | "yearly")}>
+              <Select value={editBillingPeriod} onValueChange={(value) => setEditBillingPeriod(value as BillingPeriod)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
+                  {billingPeriodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -372,7 +389,7 @@ const AdminPlansPage = () => {
                   <TableCell className="font-medium">{plan.name}</TableCell>
                   <TableCell className="font-mono text-xs">{plan.slug}</TableCell>
                   <TableCell>{(plan.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
-                  <TableCell>{plan.billingPeriod === "monthly" ? "Mensal" : "Anual"}</TableCell>
+                  <TableCell>{getBillingPeriodLabel(plan.billingPeriod)}</TableCell>
                   <TableCell>{plan.isActive ? "Sim" : "Não"}</TableCell>
                   <TableCell>{plan.slug === courtesySlug ? "Sim" : "Não"}</TableCell>
                   <TableCell className="text-right">

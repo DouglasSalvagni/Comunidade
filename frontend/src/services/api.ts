@@ -80,7 +80,7 @@ export interface Plan {
   name: string;
   description?: string;
   priceCents: number;
-  billingPeriod: 'monthly' | 'yearly';
+  billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
   features: string[];
   isActive?: boolean;
   courtesyDurationMonths?: number | null;
@@ -765,7 +765,7 @@ class ApiService {
     slug?: string;
     description?: string;
     priceCents: number;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
     features?: string[];
     isActive?: boolean;
     isCourtesy?: boolean;
@@ -780,7 +780,7 @@ class ApiService {
     slug: string;
     description?: string;
     priceCents: number;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
     features?: string[];
     isActive?: boolean;
     isCourtesy?: boolean;

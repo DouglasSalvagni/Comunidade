@@ -60,28 +60,53 @@ export class AsaasPaymentGateway implements IPaymentGateway {
     return response.json();
   }
 
+  private getNextDueDate(cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY'): Date {
+    const today = new Date();
+    const nextDueDate = new Date(today);
+
+    if (cycle === 'WEEKLY') {
+      nextDueDate.setDate(nextDueDate.getDate() + 7);
+      return nextDueDate;
+    }
+
+    if (cycle === 'BIWEEKLY') {
+      nextDueDate.setDate(nextDueDate.getDate() + 14);
+      return nextDueDate;
+    }
+
+    if (cycle === 'MONTHLY') {
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+      return nextDueDate;
+    }
+
+    if (cycle === 'QUARTERLY') {
+      nextDueDate.setMonth(nextDueDate.getMonth() + 3);
+      return nextDueDate;
+    }
+
+    if (cycle === 'SEMIANNUALLY') {
+      nextDueDate.setMonth(nextDueDate.getMonth() + 6);
+      return nextDueDate;
+    }
+
+    nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+    return nextDueDate;
+  }
+
   /**
    * Cria um Checkout Session
    */
   async createCheckoutLink(
     userId: string,
     planValue: number,
-    cycle: 'MONTHLY' | 'YEARLY',
+    cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY',
     planName: string,
     planDescription: string,
     options?: {
       splits?: Array<{ walletId: string; fixedValue?: number; percentageValue?: number }>;
     },
   ): Promise<{ checkoutUrl: string; checkoutId: string }> {
-    // Calcula nextDueDate (hoje + 1 mês ou 1 ano)
-    const today = new Date();
-    const nextDueDate = new Date(today);
-
-    if (cycle === 'MONTHLY') {
-      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-    } else {
-      nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
-    }
+    const nextDueDate = this.getNextDueDate(cycle);
 
     const body: any = {
       billingTypes: ['CREDIT_CARD'],
@@ -207,7 +232,7 @@ export class AsaasPaymentGateway implements IPaymentGateway {
   async createSubscription(
     customerId: string,
     planValue: number,
-    cycle: 'MONTHLY' | 'YEARLY',
+    cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY',
     description: string,
   ): Promise<{ subscriptionId: string; status: string; nextDueDate: string }> {
     const subscription = await this.request<{

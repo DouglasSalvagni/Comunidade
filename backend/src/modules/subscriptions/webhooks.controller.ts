@@ -312,7 +312,10 @@ export class WebhooksController {
       this.logger.log(`✅ Invoice confirmada: ${payment.id}`);
     }
 
-    // Ativa a assinatura quando o pagamento é confirmado
+    await this.subscriptionsService.renewSubscriptionPeriod(
+      subscription.id,
+      payment.originalDueDate || payment.dueDate,
+    );
     await this.subscriptionsService.activateSubscription(subscription.id);
     
     // Marca cupom como usado (caso não tenha sido marcado na criação)

@@ -105,6 +105,15 @@ const PlanSelector = ({ currentPlanId, activeCoupon }: PlanSelectorProps) => {
     return Math.max(0, priceCents - fixedDiscountCents);
   };
 
+  const periodLabel = (period: Plan["billingPeriod"]) => {
+    if (period === "weekly") return "semana";
+    if (period === "biweekly") return "quinzena";
+    if (period === "monthly") return "mês";
+    if (period === "quarterly") return "trimestre";
+    if (period === "semiannually") return "semestre";
+    return "ano";
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -112,12 +121,12 @@ const PlanSelector = ({ currentPlanId, activeCoupon }: PlanSelectorProps) => {
           {plans.map((plan) => {
             const displayPriceCents = calcDiscountedPriceCents(plan.priceCents);
             const hasDiscount = plan.priceCents > 0 && displayPriceCents < plan.priceCents;
-            const periodLabel = plan.billingPeriod === 'monthly' ? 'mês' : 'ano';
+            const periodLabelValue = periodLabel(plan.billingPeriod);
             const formattedPlan = {
               name: plan.name,
-              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}`,
-              originalPrice: hasDiscount ? `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
-              discountedPrice: hasDiscount ? `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabel}` : undefined,
+              price: plan.priceCents === 0 ? "Grátis" : `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabelValue}`,
+              originalPrice: hasDiscount ? `R$ ${(plan.priceCents / 100).toFixed(2).replace('.', ',')}/${periodLabelValue}` : undefined,
+              discountedPrice: hasDiscount ? `R$ ${(displayPriceCents / 100).toFixed(2).replace('.', ',')}/${periodLabelValue}` : undefined,
               features: plan.features,
             };
 

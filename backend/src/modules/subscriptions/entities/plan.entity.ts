@@ -23,7 +23,7 @@ export class Plan {
   priceCents: number;
 
   @Column({ name: 'billing_period' })
-  billingPeriod: 'monthly' | 'yearly';
+  billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
 
   @Column({ type: 'jsonb', nullable: true })
   features: any;

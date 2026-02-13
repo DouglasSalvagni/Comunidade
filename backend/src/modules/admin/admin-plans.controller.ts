@@ -43,7 +43,7 @@ export class AdminPlansController {
     slug?: string;
     description?: string;
     priceCents: number;
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
     features?: string[];
     isActive?: boolean;
     isCourtesy?: boolean;
@@ -97,7 +97,7 @@ export class AdminPlansController {
       slug: string;
       description?: string;
       priceCents: number;
-      billingPeriod: 'monthly' | 'yearly';
+      billingPeriod: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannually' | 'yearly';
       features?: string[];
       isActive?: boolean;
       isCourtesy?: boolean;

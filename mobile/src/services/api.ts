@@ -347,8 +347,8 @@ export async function apiGetMyTopPlayed(accessToken: string, params?: {
   })
 }
 
-export async function apiGetCurrentSubscription(accessToken: string): Promise<{ subscription: { plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }> {
-  return request<{ subscription: { plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }>('/subscriptions/current', {
+export async function apiGetCurrentSubscription(accessToken: string): Promise<{ subscription: { id: string; status: string; periodEnd?: string; plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }> {
+  return request<{ subscription: { id: string; status: string; periodEnd?: string; plan: { slug: string; name: string; priceCents: number; billingPeriod: string } } }>('/subscriptions/current', {
     method: 'GET',
     headers: { Authorization: `Bearer ${accessToken}` },
   })

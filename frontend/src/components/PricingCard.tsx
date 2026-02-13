@@ -29,14 +29,16 @@ const PricingCard = ({ plan, isCurrentPlan, disabled = false, onSelectPlan }: Pr
               <div className="text-2xl font-bold text-foreground">{plan.discountedPrice}</div>
             </div>
           ) : (
-            <div className="text-2xl font-bold text-foreground">{plan.price}</div>
+            <div className={`text-2xl font-bold text-foreground ${plan.price === "Grátis" ? "invisible" : ""}`}>
+              {plan.price}
+            </div>
           )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 flex-1">
         {plan.features.map((feature, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-primary" />
+          <div key={index} className="flex items-start gap-2">
+            <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <span>{feature}</span>
           </div>
         ))}

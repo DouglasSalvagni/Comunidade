@@ -12,9 +12,8 @@ type Props = {
 const BENEFITS = [
     { icon: 'musical-notes' as const, text: 'Acesso completo a obras premium' },
     { icon: 'people' as const, text: 'Perfis ilimitados para suas crianças' },
-    { icon: 'star' as const, text: 'Favoritos e playlists' },
+    { icon: 'star' as const, text: 'Favoritos e playlist' },
     { icon: 'settings' as const, text: 'Opções avançadas' },
-    { icon: 'play-circle' as const, text: 'Obras premium sem limite de tempo' },
 ]
 
 export default function UpgradeModal({ visible, url, onClose }: Props) {

@@ -97,7 +97,7 @@ const Pricing = () => {
                 <div className="space-y-4 pt-4">
                   {plan.features.map((feature, idx) => (
                     <div key={idx} className="flex items-start gap-3">
-                      <div className="mt-1 p-1 rounded-full bg-success/10">
+                      <div className="mt-1 p-1 rounded-full bg-success/10 shrink-0">
                         <Check className="w-4 h-4 text-success" />
                       </div>
                       <span className="text-sm">{feature}</span>

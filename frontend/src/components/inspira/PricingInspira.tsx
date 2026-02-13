@@ -8,14 +8,14 @@ const PricingCard = ({ title, price, features, recommended = false }: { title: s
       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-brand-teal text-brand-dark font-bold px-4 py-1 rounded-full text-sm shadow-lg">Mais Popular</div>
     )}
     <h3 className="text-xl font-bold mb-2">{title}</h3>
-    <div className="mb-6">
+    <div className={`mb-6 ${price === "Grátis" ? "invisible" : ""}`}>
       <span className="text-4xl font-bold">{price}</span>
       <span className="text-gray-400 text-sm">/mês</span>
     </div>
     <ul className="flex-1 space-y-4 mb-8">
       {features.map((feat, i) => (
-        <li key={i} className="flex items-center gap-3 text-gray-300 text-sm">
-          <div className="w-5 h-5 rounded-full bg-brand-teal/20 flex items-center justify-center flex-shrink-0">
+        <li key={i} className="flex items-start gap-3 text-gray-300 text-sm">
+          <div className="w-5 h-5 rounded-full bg-brand-teal/20 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Check className="w-3 h-3 text-brand-teal" />
           </div>
           {feat}

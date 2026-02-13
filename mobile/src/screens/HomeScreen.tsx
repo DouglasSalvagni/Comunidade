@@ -637,17 +637,17 @@ export default function HomeScreen({ onLogout }: Props) {
             {tab === 'settings' ? (
               <>
                 <View style={styles.menu}>
-                  <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
-                    <View style={styles.menuItemContent}>
-                      <Ionicons name="people-outline" size={20} color="#e6e9ff" />
-                      <Text style={styles.menuItemText}>Perfis</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
-                  </Pressable>
                   <Pressable style={styles.menuItem} onPress={() => setSettingsView('account')}>
                     <View style={styles.menuItemContent}>
                       <Ionicons name="person-outline" size={20} color="#e6e9ff" />
                       <Text style={styles.menuItemText}>Conta</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
+                  </Pressable>
+                  <Pressable style={styles.menuItem} onPress={() => setSettingsView('profiles')}>
+                    <View style={styles.menuItemContent}>
+                      <Ionicons name="people-outline" size={20} color="#e6e9ff" />
+                      <Text style={styles.menuItemText}>Perfis</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
                   </Pressable>

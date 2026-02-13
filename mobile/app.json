@@ -36,7 +36,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://cde0-2804-7f4-c9c3-a806-2467-e949-28bb-a8b4.ngrok-free.app/api/v1",
+      "apiBaseUrl": "https://ec67-2804-7f4-c9c3-a806-d99f-4d49-ed0e-9a16.ngrok-free.app/api/v1",
       "siteBaseUrl": "http://ninaro.com.br",
       "googleOAuth": {
         "expoClientId": "138589572018-4htk4o9k84oembmlhq91acib0tnkstcp.apps.googleusercontent.com",

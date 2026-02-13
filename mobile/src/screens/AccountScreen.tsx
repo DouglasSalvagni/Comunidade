@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
+import AccountSkeleton from '../components/AccountSkeleton'
 import { useAuth } from '../context/AuthContext'
 import { apiProfile, apiUpdateMyProfile, apiChangeMyPassword, apiGetCurrentSubscription } from '../services/api'
 
@@ -180,7 +181,7 @@ export default function AccountScreen({ onBack }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         
         {loading ? (
-          <Text style={styles.loading}>Carregando...</Text>
+          <AccountSkeleton />
         ) : (
           <>
             <View style={{ marginBottom: 20 }}>
@@ -235,7 +236,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 4, color: '#e6e9ff' },
   subtitle: { fontSize: 14, color: '#cfd3ff', marginBottom: 16 },
-  loading: { color: '#cfd3ff', marginTop: 20 },
   card: { backgroundColor: '#0e1430', borderWidth: 1, borderColor: '#1d2340', borderRadius: 12, padding: 16 },
   error: { color: '#ef4444', marginBottom: 8 },
   success: { color: '#22c55e', marginBottom: 8 },

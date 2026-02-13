@@ -258,7 +258,7 @@ export class SubscriptionsService {
 
   async createFreeSubscription(userId: string): Promise<Subscription> {
     const freePlan = await this.planRepository.findOne({
-      where: { priceCents: 0, isActive: true }
+      where: { slug: this.freePlanSlug, isActive: true }
     });
 
     if (!freePlan) {

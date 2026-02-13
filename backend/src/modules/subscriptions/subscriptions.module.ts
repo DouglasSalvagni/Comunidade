@@ -23,6 +23,7 @@ import { AsaasPaymentGateway } from './providers/asaas-payment.gateway';
 import { PremiumGuard } from './guards/premium.guard';
 import { SubscriptionsCouponsController } from './subscriptions-coupons.controller';
 import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
+import { SettingsModule } from '@/modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
       User,
     ]),
     ConfigModule,
+    SettingsModule,
   ],
   providers: [
     SubscriptionsService,

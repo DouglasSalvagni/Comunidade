@@ -71,6 +71,19 @@ const AdminDashboardPage = () => {
             </Link>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Configurações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Gerenciar parâmetros globais do sistema.
+            </p>
+            <Link href="/admin/settings" className="text-sm font-medium text-primary hover:underline mt-4 block">
+              Acessar
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import { Partnership } from '@/modules/subscriptions/entities/partnership.entity
 import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnership-affiliate.entity';
 import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity';
 import { AuditLog } from '@/modules/audit/entities/audit-log.entity';
+import { SystemSetting } from '@/modules/settings/entities/system-setting.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -71,6 +72,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     PartnershipAffiliate,
     UserActiveCoupon,
     AuditLog,
+    SystemSetting,
   ],
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',

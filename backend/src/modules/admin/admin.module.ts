@@ -14,6 +14,8 @@ import { AdminAntiAbuseController } from './admin-anti-abuse.controller';
 import { AdminAffiliatesController } from './admin-affiliates.controller';
 import { AdminPartnershipsController } from './admin-partnerships.controller';
 import { AdminPlansController } from './admin-plans.controller';
+import { SettingsModule } from '@/modules/settings/settings.module';
+import { AdminSettingsController } from './admin-settings.controller';
 
 @Module({
   imports: [
@@ -21,8 +23,15 @@ import { AdminPlansController } from './admin-plans.controller';
     UsersModule,
     CatalogModule,
     AuthModule,
+    SettingsModule,
   ],
   providers: [],
-  controllers: [AdminAntiAbuseController, AdminAffiliatesController, AdminPartnershipsController, AdminPlansController],
+  controllers: [
+    AdminAntiAbuseController,
+    AdminAffiliatesController,
+    AdminPartnershipsController,
+    AdminPlansController,
+    AdminSettingsController,
+  ],
 })
 export class AdminModule {}

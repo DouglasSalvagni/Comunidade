@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Package, Users, Tag, BookOpen, FileText, Shield, CreditCard } from 'lucide-react';
+import { Home, Package, Users, Tag, BookOpen, FileText, Shield, CreditCard, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/services/api';
@@ -115,6 +115,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link href="/admin/affiliates" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <Users className="h-4 w-4" />
                 Afiliados
+              </Link>
+              <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+                <Settings className="h-4 w-4" />
+                Configurações
               </Link>
             </nav>
           </div>

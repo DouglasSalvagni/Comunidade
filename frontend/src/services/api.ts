@@ -52,6 +52,14 @@ export interface ActiveLegal {
   terms: LegalDocument | null;
 }
 
+export interface SystemSetting {
+  id: string;
+  key: string;
+  value: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AntiAbuseSnapshot {
   now: number;
   counters: Array<{ key: string; count: number; expiresAt: number; remainingMs: number }>;
@@ -348,6 +356,21 @@ class ApiService {
 
   async adminListLegalDocuments(type?: 'PRIVACY_POLICY' | 'TERMS_OF_USE'): Promise<LegalDocument[]> {
     const response = await this.client.get<ApiResponse<LegalDocument[]>>('/admin/legal/documents', { params: { type } });
+    return response.data.data;
+  }
+
+  async adminListSettings(): Promise<SystemSetting[]> {
+    const response = await this.client.get<ApiResponse<SystemSetting[]>>('/admin/settings');
+    return response.data.data;
+  }
+
+  async adminGetSetting(key: string): Promise<{ key: string; value: string | null }> {
+    const response = await this.client.get<ApiResponse<{ key: string; value: string | null }>>(`/admin/settings/${key}`);
+    return response.data.data;
+  }
+
+  async adminSetSetting(key: string, value: string | null): Promise<SystemSetting> {
+    const response = await this.client.put<ApiResponse<SystemSetting>>(`/admin/settings/${key}`, { value });
     return response.data.data;
   }
 

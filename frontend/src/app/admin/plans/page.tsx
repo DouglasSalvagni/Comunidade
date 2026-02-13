@@ -9,6 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, Plan } from "@/services/api";
 import { toast } from "sonner";
@@ -62,6 +72,8 @@ const AdminPlansPage = () => {
   const [editIsActive, setEditIsActive] = useState(true);
   const [editIsCourtesy, setEditIsCourtesy] = useState(false);
   const [editCourtesyDurationMonths, setEditCourtesyDurationMonths] = useState<string>("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -196,6 +208,27 @@ const AdminPlansPage = () => {
       toast.success("Plano atualizado");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao atualizar plano");
+    }
+  };
+
+  const handleToggleActive = async (plan: Plan) => {
+    const nextActive = !(plan.isActive !== false);
+    try {
+      const updated = await api.adminUpdatePlan(plan.id, { isActive: nextActive });
+      setPlans(plans.map((p) => (p.id === plan.id ? updated : p)));
+      toast.success(updated.isActive ? "Plano ativado" : "Plano desativado");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao atualizar status");
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await api.adminDeletePlan(id);
+      setPlans(plans.filter((plan) => plan.id !== id));
+      toast.success("Plano removido");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao remover plano");
     }
   };
 
@@ -390,11 +423,23 @@ const AdminPlansPage = () => {
                   <TableCell className="font-mono text-xs">{plan.slug}</TableCell>
                   <TableCell>{(plan.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                   <TableCell>{getBillingPeriodLabel(plan.billingPeriod)}</TableCell>
-                  <TableCell>{plan.isActive ? "Sim" : "Não"}</TableCell>
+                  <TableCell>
+                    <Switch checked={plan.isActive !== false} onCheckedChange={() => handleToggleActive(plan)} />
+                  </TableCell>
                   <TableCell>{plan.slug === courtesySlug ? "Sim" : "Não"}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => openEdit(plan)}>
+                    <Button variant="outline" size="sm" className="mr-2" onClick={() => openEdit(plan)}>
                       Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setDeleteId(plan.id);
+                        setConfirmOpen(true);
+                      }}
+                    >
+                      Remover
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -410,6 +455,29 @@ const AdminPlansPage = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover plano?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é permanente e não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId) {
+                  handleRemove(deleteId);
+                }
+                setConfirmOpen(false);
+                setDeleteId(null);
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

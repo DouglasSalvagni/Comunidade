@@ -813,6 +813,10 @@ class ApiService {
     return response.data.data;
   }
 
+  async adminDeletePlan(id: string): Promise<void> {
+    await this.client.delete(`/admin/plans/${id}`);
+  }
+
   async getUploadUrl(params: { fileName: string; fileType: string; fileSize: number }): Promise<{ uploadUrl: string; storageKey: string; expiresAt: string }> {
     const response = await this.client.post<ApiResponse<{ uploadUrl: string; storageKey: string; expiresAt: string }>>('/media/upload-url', params);
     return response.data.data;

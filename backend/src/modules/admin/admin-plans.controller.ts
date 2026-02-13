@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   ConflictException,
   Param,
@@ -16,6 +19,7 @@ import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { Roles } from '@/modules/auth/decorators/roles.decorator';
 import { Plan } from '@/modules/subscriptions/entities/plan.entity';
+import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
 
 @ApiTags('Admin - Plans')
 @Controller('admin/plans')
@@ -25,6 +29,8 @@ export class AdminPlansController {
   constructor(
     @InjectRepository(Plan)
     private readonly planRepository: Repository<Plan>,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepository: Repository<Subscription>,
   ) {}
 
   @Get()
@@ -168,5 +174,25 @@ export class AdminPlansController {
     }
 
     return this.planRepository.save(plan);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remover plano' })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 404, description: 'Plano não encontrado.' })
+  @ApiResponse({ status: 409, description: 'Plano possui assinaturas.' })
+  async remove(@Param('id') id: string) {
+    const plan = await this.planRepository.findOne({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+    const subscriptionsCount = await this.subscriptionRepository.count({ where: { planId: id } });
+    if (subscriptionsCount > 0) {
+      throw new ConflictException('Plano possui assinaturas');
+    }
+    await this.planRepository.remove(plan);
+    return;
   }
 }

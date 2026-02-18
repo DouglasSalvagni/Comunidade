@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, List, Trash, ChevronUp, ChevronDown } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, List, Trash, ChevronUp, ChevronDown, X } from "lucide-react";
 import { usePlayerHeight } from "@/context/PlayerHeightContext";
 import Image from "next/image";
 import fallbackAudio from "@/assets/fallback-audio.jpg";
@@ -13,7 +13,12 @@ import { api } from "@/services/api";
 import Hls from "hls.js";
 import { toast } from "sonner";
 
-const AudioPlayer = () => {
+type Props = {
+  autoAdvance?: boolean;
+  onEnded?: () => void;
+};
+
+const AudioPlayer = ({ autoAdvance = true, onEnded }: Props) => {
   const playerRef = useRef<HTMLDivElement>(null);
   const { setPlayerHeight } = usePlayerHeight();
   type PlayerTrack = Track & { coverUrl?: string };
@@ -109,7 +114,7 @@ const AudioPlayer = () => {
         setNowTrack(t ?? null);
         return nextIdx;
       });
-    } else {
+    } else if (autoAdvance) {
       await playRandomFromCatalog();
     }
   };
@@ -122,7 +127,7 @@ const AudioPlayer = () => {
         setNowTrack(t ?? null);
         return nextIdx;
       });
-    } else {
+    } else if (autoAdvance) {
       await playRandomFromCatalog();
     }
   };
@@ -150,6 +155,16 @@ const AudioPlayer = () => {
     }
   };
 
+  const closePlayer = () => {
+    const el = audioRef.current;
+    try { el?.pause(); } catch { }
+    setIsPlaying(false);
+    setPosition(0);
+    setDuration(0);
+    setNowTrack(null);
+    if (onEnded) onEnded();
+  };
+
   useEffect(() => {
     const updateHeight = () => {
       if (playerRef.current) {
@@ -160,7 +175,10 @@ const AudioPlayer = () => {
     updateHeight();
     window.addEventListener('resize', updateHeight);
 
-    return () => window.removeEventListener('resize', updateHeight);
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+      setPlayerHeight(0);
+    };
   }, [setPlayerHeight]);
 
   useEffect(() => {
@@ -236,7 +254,17 @@ const AudioPlayer = () => {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    const onEnded = () => nextTrack();
+    const onEnded = () => {
+      if (autoAdvance) {
+        nextTrack();
+        return;
+      }
+      setIsPlaying(false);
+      setPosition(0);
+      setDuration(0);
+      setNowTrack(null);
+      if (onEnded) onEnded();
+    };
     const onTimeUpdate = () => setPosition(el.currentTime || 0);
     const onLoaded = () => setDuration(el.duration || 0);
     const onDurationChange = () => setDuration(el.duration || 0);
@@ -256,10 +284,10 @@ const AudioPlayer = () => {
       el.removeEventListener('play', onPlay);
       el.removeEventListener('pause', onPause);
     };
-  }, [nextTrack]);
+  }, [autoAdvance, nextTrack, onEnded]);
 
   useEffect(() => {
-    (window as any).__player_addTrack = (t: PlayerTrack) => {
+    const addTrack = (t: PlayerTrack) => {
       setPlaylist(prev => {
         if (prev.find(p => p.id === t.id)) return prev;
         return [...prev, t];
@@ -289,9 +317,11 @@ const AudioPlayer = () => {
       };
       ensureAndAdd();
     };
-    (window as any).__player_playTrack = (t: PlayerTrack) => {
+    const playTrack = (t: PlayerTrack) => {
       setNowTrack(t);
     };
+    (window as any).__player_addTrack = addTrack;
+    (window as any).__player_playTrack = playTrack;
     const onProfileChange = () => {
       setPlaylist([]);
       setCurrentIndex(0);
@@ -326,6 +356,12 @@ const AudioPlayer = () => {
     window.addEventListener('profile-change', onProfileChange as EventListener);
     return () => {
       window.removeEventListener('profile-change', onProfileChange as EventListener);
+      if ((window as any).__player_addTrack === addTrack) {
+        delete (window as any).__player_addTrack;
+      }
+      if ((window as any).__player_playTrack === playTrack) {
+        delete (window as any).__player_playTrack;
+      }
     };
   }, [playlistId]);
 
@@ -428,6 +464,14 @@ const AudioPlayer = () => {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Fechar player"
+            onClick={closePlayer}
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
         <div className="flex items-center gap-2 my-3">
           <span className="text-xs w-10 text-center">{formatTime(position)}</span>
@@ -576,6 +620,15 @@ const AudioPlayer = () => {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Fechar player"
+          className="bg-transparent border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          onClick={closePlayer}
+        >
+          <X className="w-5 h-5" />
+        </Button>
       </div>
       <audio ref={audioRef} hidden preload="metadata" />
     </div>

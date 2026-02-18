@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api, Tag, Work, DevTheme } from "@/services/api";
+import { api, Tag, Work, DevTheme, Track } from "@/services/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import AudioPlayer from "@/components/AudioPlayer";
+import { Play } from "lucide-react";
 
 const AdminCatalogPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,6 +57,8 @@ const AdminCatalogPage = () => {
   const [editIsPremium, setEditIsPremium] = useState(false);
   const [isPremiumNew, setIsPremiumNew] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [pendingTrack, setPendingTrack] = useState<(Track & { coverUrl?: string }) | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -73,6 +77,26 @@ const AdminCatalogPage = () => {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (!pendingTrack || !showPlayer) return;
+    let attempts = 0;
+    const interval = setInterval(() => {
+      const play = (window as any).__player_playTrack;
+      if (typeof play === "function") {
+        play(pendingTrack);
+        setPendingTrack(null);
+        clearInterval(interval);
+        return;
+      }
+      attempts += 1;
+      if (attempts >= 20) {
+        setPendingTrack(null);
+        clearInterval(interval);
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, [pendingTrack, showPlayer]);
 
   const handleRemoveWork = async (id: string) => {
     try {
@@ -102,6 +126,35 @@ const AdminCatalogPage = () => {
   const currentWorks = filteredWorks.slice(indexOfFirstWork, indexOfLastWork);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const handlePlayWork = async (work: Work) => {
+    try {
+      let fullWork = work;
+      let firstTrack = (work.tracks || [])[0];
+      if (!firstTrack) {
+        fullWork = await api.adminGetWork(work.id);
+        firstTrack = (fullWork.tracks || [])[0];
+      }
+      if (!firstTrack) {
+        toast.error("Obra sem faixa disponível");
+        return;
+      }
+      const playerTrack = {
+        ...firstTrack,
+        title: firstTrack.title || fullWork.title,
+        coverUrl: fullWork.coverUrl,
+      } as Track & { coverUrl?: string };
+      const play = (window as any).__player_playTrack;
+      if (showPlayer && typeof play === "function") {
+        play(playerTrack);
+        return;
+      }
+      setPendingTrack(playerTrack);
+      setShowPlayer(true);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao iniciar reprodução");
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -314,6 +367,9 @@ const AdminCatalogPage = () => {
                     <Switch checked={work.isActive} onCheckedChange={() => handleToggleStatus(work.id)} />
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button variant="secondary" size="sm" className="mr-2" onClick={() => handlePlayWork(work)}>
+                      <Play className="w-4 h-4" />
+                    </Button>
                     <Button variant="outline" size="sm" className="mr-2" onClick={async () => {
                       setEditingWork(work);
                       setEditTitle(work.title || "");
@@ -543,6 +599,12 @@ const AdminCatalogPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {showPlayer && (
+        <AudioPlayer
+          autoAdvance={false}
+          onEnded={() => setShowPlayer(false)}
+        />
+      )}
     </div>
   );
 };

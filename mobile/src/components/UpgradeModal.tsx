@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, Modal, Pressable, Linking } from 'react-native'
+import { View, Text, StyleSheet, Modal, Pressable, Linking, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import PrimaryButton from './PrimaryButton'
 
@@ -17,6 +17,8 @@ const BENEFITS = [
 ]
 
 export default function UpgradeModal({ visible, url, onClose }: Props) {
+    const isIOS = Platform.OS === 'ios'
+
     const handleConfirm = () => {
         Linking.openURL(url)
         onClose()
@@ -35,9 +37,11 @@ export default function UpgradeModal({ visible, url, onClose }: Props) {
                     <View style={styles.iconContainer}>
                         <Ionicons name="diamond" size={32} color="#d4a017" />
                     </View>
-                    <Text style={styles.title}>Faça upgrade!</Text>
+                    <Text style={styles.title}>{isIOS ? 'Conteúdo Premium' : 'Faça upgrade!'}</Text>
                     <Text style={styles.message}>
-                        Aproveite tudo o que o app oferece com um plano completo:
+                        {isIOS
+                            ? 'Este conteúdo é exclusivo para assinantes. Se você já possui uma assinatura ativa, o acesso será liberado automaticamente.'
+                            : 'Aproveite tudo o que o app oferece com um plano completo:'}
                     </Text>
 
                     <View style={styles.benefitsList}>
@@ -49,17 +53,27 @@ export default function UpgradeModal({ visible, url, onClose }: Props) {
                         ))}
                     </View>
 
-                    <Text style={styles.redirectNote}>
-                        Você será redirecionado para o site para concluir a assinatura.
-                    </Text>
+                    {!isIOS && (
+                        <Text style={styles.redirectNote}>
+                            Você será redirecionado para o site para concluir a assinatura.
+                        </Text>
+                    )}
 
                     <View style={styles.buttonContainer}>
-                        <Pressable style={styles.cancelButton} onPress={onClose}>
-                            <Text style={styles.cancelButtonText}>Agora não</Text>
-                        </Pressable>
-                        <View style={styles.confirmButtonWrapper}>
-                            <PrimaryButton title="Ver planos" onPress={handleConfirm} />
-                        </View>
+                        {isIOS ? (
+                            <View style={styles.confirmButtonWrapper}>
+                                <PrimaryButton title="Entendi" onPress={onClose} />
+                            </View>
+                        ) : (
+                            <>
+                                <Pressable style={styles.cancelButton} onPress={onClose}>
+                                    <Text style={styles.cancelButtonText}>Agora não</Text>
+                                </Pressable>
+                                <View style={styles.confirmButtonWrapper}>
+                                    <PrimaryButton title="Ver planos" onPress={handleConfirm} />
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </View>

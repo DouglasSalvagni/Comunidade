@@ -26,13 +26,13 @@
 - `eas update --branch production --message "ajustes player screed"`
 
 ### build docker frontned
-- `docker build -f Dockerfile -t ninaro-frontend:v1.0.0 .`
-- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-frontend.tar" ninaro-frontend:v1.0.0`
+- `docker build -f Dockerfile -t ninaro-frontend:v1.0.1 .`
+- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-frontend.tar" ninaro-frontend:v1.0.1`
 
 ### build docker backend
-- `docker build -f Dockerfile -t ninaro-backend:v1.0.0 .`
-- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-backend.tar" ninaro-backend:v1.0.0`
+- `docker build -f Dockerfile -t ninaro-backend:v1.0.1 .`
+- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-backend.tar" ninaro-backend:v1.0.1`
 
 ### build docker worker
-- `docker build -f Dockerfile.worker -t ninaro-worker:v1.0.0 .`
-- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-worker.tar" ninaro-worker:v1.0.0`
+- `docker build -f Dockerfile.worker -t ninaro-worker:v1.0.1 .`
+- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-worker.tar" ninaro-worker:v1.0.1`

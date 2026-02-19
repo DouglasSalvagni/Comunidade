@@ -650,10 +650,10 @@ class ApiService {
 
   // ===== ADMIN =====
   async adminGetWorks(params?: any): Promise<{ data: Work[]; meta: any }> {
-    const response = await this.client.get<ApiResponse<{ data: Work[]; meta: any }>>('/admin/works', {
+    const response = await this.client.get<{ data: Work[]; meta: any }>('/admin/works', {
       params,
     });
-    return response.data.data;
+    return response.data;
   }
 
   async adminCreateWork(data: any): Promise<Work> {

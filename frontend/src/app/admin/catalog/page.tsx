@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,22 @@ import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import AudioPlayer from "@/components/AudioPlayer";
 import { Play } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const AdminCatalogPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [works, setWorks] = useState<Work[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const worksPerPage = 5;
+  const [totalPages, setTotalPages] = useState(1);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -63,20 +73,35 @@ const AdminCatalogPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [tagsList, themesList, worksList] = await Promise.all([
+        const [tagsList, themesList] = await Promise.all([
           api.adminGetTags(),
           api.adminGetDevThemes(),
-          api.adminGetWorks(),
         ]);
         setTags(tagsList);
         setDevThemes(themesList);
-        setWorks(Array.isArray((worksList as any)?.data) ? (worksList as any).data : (Array.isArray(worksList as any) ? (worksList as any) : []));
       } catch (e: any) {
         toast.error(e?.message || "Falha ao carregar catálogo");
       }
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadWorks = async () => {
+      try {
+        const worksList = await api.adminGetWorks({
+          page: currentPage,
+          limit: worksPerPage,
+          search: searchTerm || undefined,
+        });
+        setWorks(Array.isArray((worksList as any)?.data) ? (worksList as any).data : (Array.isArray(worksList as any) ? (worksList as any) : []));
+        setTotalPages((worksList as any)?.meta?.totalPages ?? 1);
+      } catch (e: any) {
+        toast.error(e?.message || "Falha ao carregar catálogo");
+      }
+    };
+    loadWorks();
+  }, [currentPage, searchTerm]);
 
   useEffect(() => {
     if (!pendingTrack || !showPlayer) return;
@@ -101,7 +126,13 @@ const AdminCatalogPage = () => {
   const handleRemoveWork = async (id: string) => {
     try {
       await api.adminDeleteWork(id);
-      setWorks(works.filter((work) => work.id !== id));
+      const refreshed = await api.adminGetWorks({
+        page: currentPage,
+        limit: worksPerPage,
+        search: searchTerm || undefined,
+      });
+      setWorks(Array.isArray((refreshed as any)?.data) ? (refreshed as any).data : (Array.isArray(refreshed as any) ? (refreshed as any) : []));
+      setTotalPages((refreshed as any)?.meta?.totalPages ?? 1);
       toast.success("Obra removida");
     } catch (e: any) {
       toast.error(e?.message || "Erro ao remover obra");
@@ -117,15 +148,42 @@ const AdminCatalogPage = () => {
     }
   };
 
-  const filteredWorks = useMemo(() => (works ?? []).filter((work) =>
-    work.title.toLowerCase().includes(searchTerm.toLowerCase())
-  ), [works, searchTerm]);
-
-  const indexOfLastWork = currentPage * worksPerPage;
-  const indexOfFirstWork = indexOfLastWork - worksPerPage;
-  const currentWorks = filteredWorks.slice(indexOfFirstWork, indexOfLastWork);
+  const currentWorks = works ?? [];
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const pageItems = (() => {
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = new Set<number>();
+    pages.add(1);
+    pages.add(totalPages);
+    pages.add(currentPage);
+    pages.add(currentPage - 1);
+    pages.add(currentPage + 1);
+    if (currentPage <= 3) {
+      pages.add(2);
+      pages.add(3);
+    }
+    if (currentPage >= totalPages - 2) {
+      pages.add(totalPages - 1);
+      pages.add(totalPages - 2);
+    }
+    const sorted = Array.from(pages)
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
+    const items: Array<number | "ellipsis"> = [];
+    let last = 0;
+    sorted.forEach((p) => {
+      if (last && p - last > 1) {
+        items.push("ellipsis");
+      }
+      items.push(p);
+      last = p;
+    });
+    return items;
+  })();
 
   const handlePlayWork = async (work: Work) => {
     try {
@@ -229,8 +287,13 @@ const AdminCatalogPage = () => {
                 storageKey,
               });
               await api.processMedia({ storageKey, type: "audio", workId: workData.id });
-              const refreshed = await api.adminGetWorks();
+              const refreshed = await api.adminGetWorks({
+                page: currentPage,
+                limit: worksPerPage,
+                search: searchTerm || undefined,
+              });
               setWorks(Array.isArray((refreshed as any)?.data) ? (refreshed as any).data : (Array.isArray(refreshed as any) ? (refreshed as any) : []));
+              setTotalPages((refreshed as any)?.meta?.totalPages ?? 1);
               setTitle(""); setDescription(""); setType(""); setMinMonths(""); setMaxMonths(""); setAgeLabel(""); setArtistName(""); setSelectedTagIds([]); setSelectedDevThemeIds([]); setIsPremiumNew(false); setAudioFile(null); setThumbnailFile(null);
               setAudioInputKey((k) => k + 1);
               setThumbInputKey((k) => k + 1);
@@ -342,7 +405,10 @@ const AdminCatalogPage = () => {
             <Input
               placeholder="Buscar por título..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
           <Table>
@@ -404,16 +470,28 @@ const AdminCatalogPage = () => {
               ))}
             </TableBody>
           </Table>
-          <div className="flex justify-center space-x-2 mt-4">
-            {Array.from({ length: Math.ceil(filteredWorks.length / worksPerPage) }, (_, i) => (
-              <Button
-                key={i + 1}
-                variant={currentPage === i + 1 ? "default" : "outline"}
-                onClick={() => paginate(i + 1)}
-              >
-                {i + 1}
-              </Button>
-            ))}
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) paginate(currentPage - 1); }} />
+                </PaginationItem>
+                {pageItems.map((item, index) => (
+                  <PaginationItem key={`${item}-${index}`}>
+                    {item === "ellipsis" ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink href="#" isActive={currentPage === item} onClick={(e) => { e.preventDefault(); paginate(item); }}>
+                        {item}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < totalPages) paginate(currentPage + 1); }} />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         </CardContent>
       </Card>

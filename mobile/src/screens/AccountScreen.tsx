@@ -19,7 +19,7 @@ export default function AccountScreen({ onBack }: Props) {
   const [savingPwd, setSavingPwd] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [authProvider, setAuthProvider] = useState<'local' | 'google' | undefined>(undefined)
+  const [authProvider, setAuthProvider] = useState<'local' | 'google' | 'apple' | undefined>(undefined)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
@@ -34,12 +34,12 @@ export default function AccountScreen({ onBack }: Props) {
       setError('')
       try {
         if (!accessToken) throw new Error('Não autenticado')
-        
+
         const [me, subData] = await Promise.all([
           apiProfile(accessToken),
           apiGetCurrentSubscription(accessToken).catch(() => ({ subscription: null }))
         ])
-        
+
         if (!mounted) return
         setName(me?.name || '')
         setEmail(me?.email || '')
@@ -141,7 +141,7 @@ export default function AccountScreen({ onBack }: Props) {
             <Text style={styles.planName}>{subscription.plan.name}</Text>
           </View>
           <View style={[styles.badge, isActiveOrCourtesy ? styles.badgeSuccess : styles.badgeError]}>
-             <Text style={styles.badgeText}>{statusLabel}</Text>
+            <Text style={styles.badgeText}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -151,7 +151,7 @@ export default function AccountScreen({ onBack }: Props) {
           {subscription.status === 'expiring' ? (
             <Text style={styles.infoText}>
               {subscription.periodEnd ? (
-                isCourtesyPlan ? 
+                isCourtesyPlan ?
                   `Seu plano cortesia seguirá ativo até ${formatDate(subscription.periodEnd)}.` :
                   `Seu plano seguirá ativo até ${formatDate(subscription.periodEnd)}. Você não receberá cobranças novamente.`
               ) : (
@@ -179,13 +179,13 @@ export default function AccountScreen({ onBack }: Props) {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
-        
+
         {loading ? (
           <AccountSkeleton />
         ) : (
           <>
             <View style={{ marginBottom: 20 }}>
-               {renderSubscriptionCard()}
+              {renderSubscriptionCard()}
             </View>
 
             <Text style={styles.subtitle}>Atualize seu nome de exibição.</Text>
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
   badgeError: { backgroundColor: '#ef4444' },
   badgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: '#1d2340', marginVertical: 12 },
-  subContent: { },
+  subContent: {},
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 })

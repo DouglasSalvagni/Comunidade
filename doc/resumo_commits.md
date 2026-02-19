@@ -556,3 +556,39 @@ const mediumMargin = isSmallScreen ? 20 : 40
 3. **UpgradeModal**: usa padrão do ExternalLinkModal, com ícone diamond dourado, lista de 5 benefícios premium, nota de redirecionamento, e botões "Agora não" / "Ver planos"
 4. **AccountScreen**: simplificada — mantém apenas dados pessoais (nome, email) e alteração de senha
 5. URL de upgrade usa `siteBaseUrl` de `app.json` + `/dashboard/subscriptions`
+
+---
+
+## 2026-02-19 - Login Social com Apple (Backend + Mobile)
+
+**Arquivos criados:**
+- `backend/src/modules/auth/dto/apple-oauth.dto.ts` — DTO com `identityToken`, `appleUserId` e `user` (nome/email opcionais)
+- `backend/src/database/migrations/1774000000000-add-apple-user-id.ts` — Migration para coluna `apple_user_id` (unique, nullable) na tabela `users`
+
+**Arquivos modificados:**
+
+**Backend:**
+- `backend/src/modules/users/entities/user.entity.ts` — Adicionado campo `appleUserId` e `authProvider` aceita `'apple'`
+- `backend/src/modules/users/users.service.ts` — `createWithPasswordHash` aceita `appleUserId`; novo método `findByAppleUserId`
+- `backend/src/modules/auth/auth.service.ts` — Método `loginWithApple`: valida JWT Apple via JWKS (chaves públicas), busca usuário por `appleUserId`, cria usuário se novo, rejeita se email já existe com outro provider
+- `backend/src/modules/auth/auth.controller.ts` — Endpoint `POST /auth/oauth/apple` com anti-abuse
+- `backend/src/common/anti-abuse/auth-anti-abuse.guard.ts` — Action `oauth_apple` adicionada
+
+**Mobile:**
+- `mobile/app.json` — `usesAppleSignIn: true` + plugin `expo-apple-authentication`
+- `mobile/src/services/api.ts` — Função `apiAppleOAuth`
+- `mobile/src/context/AuthContext.tsx` — Método `appleOAuth`, tipo `authProvider` inclui `'apple'`
+- `mobile/src/screens/LoginScreen.tsx` — Botão Apple nativo (iOS only), handler `handleAppleLogin`
+- `mobile/src/screens/AccountScreen.tsx` — Tipo `authProvider` inclui `'apple'`
+
+**Dependências adicionadas:**
+- Backend: `jsonwebtoken`, `jwks-rsa`, `@types/jsonwebtoken`
+- Mobile: `expo-apple-authentication`
+
+**Decisões técnicas:**
+- JWT Apple validado criptograficamente via JWKS (chaves públicas da Apple) ao invés de API de token info
+- `apple_user_id` armazenado para logins futuros quando Apple não retorna email
+- Email não encontrado → gera fictício `apple_{slug}_{timestamp}@privaterelay.appleid.com`
+- Email já existente → rejeita com `ConflictException` (não vincula automaticamente)
+- Botão Apple só renderiza no iOS via `AppleAuthentication.isAvailableAsync()`
+

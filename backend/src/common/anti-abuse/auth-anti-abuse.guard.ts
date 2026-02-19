@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable, S
 import { Reflector } from '@nestjs/core';
 import { AntiAbuseService } from './anti-abuse.service';
 
-type AntiAbuseAction = 'login' | 'register' | 'forgot' | 'reset' | 'oauth_google';
+type AntiAbuseAction = 'login' | 'register' | 'forgot' | 'reset' | 'oauth_google' | 'oauth_apple';
 
 const ANTI_ABUSE_ACTION = 'antiAbuseAction';
 
@@ -40,7 +40,7 @@ export class AuthAntiAbuseGuard implements CanActivate {
       ip,
       networkKey,
       ua,
-      accountKey: action === 'reset' || action === 'oauth_google' ? undefined : accountKey,
+      accountKey: action === 'reset' || action === 'oauth_google' || action === 'oauth_apple' ? undefined : accountKey,
     };
 
     this.assertNotCoolingDown(ctx);

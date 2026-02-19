@@ -21,6 +21,7 @@
 - `eas build --profile preview --platform ios`
 - `eas build -p android --profile production`
 - `eas build --profile development --platform android`
+- `eas build --profile production --platform ios`
 
 ### update EAS
 - `eas update --branch production --message "ajustes player screed"`

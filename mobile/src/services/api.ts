@@ -120,6 +120,17 @@ export async function apiGoogleOAuth(idToken: string) {
   })
 }
 
+export async function apiAppleOAuth(data: {
+  identityToken: string
+  appleUserId: string
+  user?: { name?: { firstName?: string; lastName?: string }; email?: string }
+}) {
+  return request<{ user: any; accessToken: string; refreshToken: string }>('/auth/oauth/apple', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function apiAcceptLegal(accessToken: string) {
   return request<{ ok: boolean }>('/legal/accept', {
     method: 'POST',

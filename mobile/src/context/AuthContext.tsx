@@ -1,13 +1,13 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiLogin, apiRegister, apiVerifyEmail, apiForgotPassword, apiResetPassword, apiProfile, apiGoogleOAuth, setUnauthorizedHandler } from '../services/api'
+import { apiLogin, apiRegister, apiVerifyEmail, apiForgotPassword, apiResetPassword, apiProfile, apiGoogleOAuth, apiAppleOAuth, setUnauthorizedHandler } from '../services/api'
 
 type AuthUser = {
   id: string
   email: string
   name?: string
   role?: string
-  authProvider?: 'local' | 'google'
+  authProvider?: 'local' | 'google' | 'apple'
   acceptedLegal?: boolean
   hasAcceptedAnyRequired?: boolean
 }
@@ -25,6 +25,7 @@ type AuthContextValue = {
   forgotPassword: (email: string) => Promise<void>
   resetPassword: (token: string, newPassword: string) => Promise<void>
   googleOAuth: (idToken: string) => Promise<void>
+  appleOAuth: (data: { identityToken: string; appleUserId: string; user?: { name?: { firstName?: string; lastName?: string }; email?: string } }) => Promise<void>
   refreshProfile: () => Promise<void>
   logout: () => void
 }
@@ -76,10 +77,10 @@ export function AuthProvider({ children }: { children: any }) {
     const res = await apiLogin(email, password)
     const token = res.accessToken || null
     const userData = res.user || null
-    
+
     setAccessToken(token)
     setUser(userData)
-    
+
     if (token) await AsyncStorage.setItem('accessToken', token)
     if (userData) await AsyncStorage.setItem('user', JSON.stringify(userData))
   }
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: any }) {
     const res = await apiVerifyEmail(token)
     const newToken = res.accessToken || null
     const newUser = res.user || null
-    
+
     setAccessToken(newToken)
     setUser(newUser)
 
@@ -118,14 +119,31 @@ export function AuthProvider({ children }: { children: any }) {
       const res = await apiGoogleOAuth(idToken)
       const token = res.accessToken || null
       const userData = res.user || null
-      
+
       setAccessToken(token)
       setUser(userData)
 
       if (token) await AsyncStorage.setItem('accessToken', token)
       if (userData) await AsyncStorage.setItem('user', JSON.stringify(userData))
     } catch (e: any) {
-      try { console.error('[Mobile][Auth] googleOAuth falhou', { message: e?.message }) } catch {}
+      try { console.error('[Mobile][Auth] googleOAuth falhou', { message: e?.message }) } catch { }
+      throw e
+    }
+  }
+
+  async function appleOAuth(data: { identityToken: string; appleUserId: string; user?: { name?: { firstName?: string; lastName?: string }; email?: string } }) {
+    try {
+      const res = await apiAppleOAuth(data)
+      const token = res.accessToken || null
+      const userData = res.user || null
+
+      setAccessToken(token)
+      setUser(userData)
+
+      if (token) await AsyncStorage.setItem('accessToken', token)
+      if (userData) await AsyncStorage.setItem('user', JSON.stringify(userData))
+    } catch (e: any) {
+      try { console.error('[Mobile][Auth] appleOAuth falhou', { message: e?.message }) } catch { }
       throw e
     }
   }
@@ -136,7 +154,7 @@ export function AuthProvider({ children }: { children: any }) {
       const me = await apiProfile(accessToken)
       setUser(me || null)
       if (me) await AsyncStorage.setItem('user', JSON.stringify(me))
-    } catch {}
+    } catch { }
   }
 
   function logout() {
@@ -162,21 +180,22 @@ export function AuthProvider({ children }: { children: any }) {
   }
 
   const value = useMemo(
-    () => ({ 
-      user, 
-      accessToken, 
+    () => ({
+      user,
+      accessToken,
       isLoading,
-      setTokens, 
-      activeProfileId, 
-      setActiveProfileId: setActiveProfileIdWithPersistence, 
-      login, 
-      register, 
-      verifyEmail, 
-      forgotPassword, 
-      resetPassword, 
-      googleOAuth, 
-      refreshProfile, 
-      logout 
+      setTokens,
+      activeProfileId,
+      setActiveProfileId: setActiveProfileIdWithPersistence,
+      login,
+      register,
+      verifyEmail,
+      forgotPassword,
+      resetPassword,
+      googleOAuth,
+      appleOAuth,
+      refreshProfile,
+      logout
     }),
     [user, accessToken, activeProfileId, isLoading],
   )

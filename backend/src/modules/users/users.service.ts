@@ -13,7 +13,7 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = this.userRepository.create(createUserDto);
@@ -27,7 +27,8 @@ export class UsersService {
     role?: 'user' | 'admin';
     isActive?: boolean;
     emailVerified?: boolean;
-    authProvider?: 'local' | 'google';
+    authProvider?: 'local' | 'google' | 'apple';
+    appleUserId?: string;
   }): Promise<User> {
     const user = this.userRepository.create({
       name: data.name,
@@ -37,6 +38,7 @@ export class UsersService {
       isActive: data.isActive ?? true,
       emailVerified: data.emailVerified ?? true,
       authProvider: data.authProvider ?? 'local',
+      appleUserId: data.appleUserId ?? null,
     } as User);
     return this.userRepository.save(user);
   }
@@ -75,12 +77,16 @@ export class UsersService {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  async findByAppleUserId(appleUserId: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { appleUserId } });
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     Object.assign(user, updateUserDto);
     return this.userRepository.save(user);
   }
@@ -99,7 +105,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     await this.userRepository.remove(user);
   }
 
@@ -108,7 +114,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     user.isActive = !user.isActive;
     return this.userRepository.save(user);
   }

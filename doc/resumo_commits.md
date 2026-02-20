@@ -592,3 +592,36 @@ const mediumMargin = isSmallScreen ? 20 : 40
 - Email já existente → rejeita com `ConflictException` (não vincula automaticamente)
 - Botão Apple só renderiza no iOS via `AppleAuthentication.isAvailableAsync()`
 
+---
+
+## 2026-02-20 - Correção de Login iOS (ATS + APPLE_CLIENT_ID em Produção)
+
+**Arquivos modificados:**
+- `mobile/app.json`
+- `docker-compose-prod.yml`
+
+**Problema:**
+- Login (e-mail/senha, Google e Apple) não funcionava em dispositivos iOS, enquanto no Android funcionava normalmente tanto em desenvolvimento quanto em produção.
+
+**Causas raiz identificadas:**
+
+1. **App Transport Security (ATS) do iOS:**
+   - A `apiBaseUrl` no `app.json` estava configurada como `http://api.ninaro.com.br` (HTTP)
+   - O iOS bloqueia conexões HTTP por padrão (ATS policy), diferente do Android que permite
+   - Resultado: todas as requisições do app iOS para a API eram silenciosamente bloqueadas
+
+2. **`APPLE_CLIENT_ID` ausente em produção:**
+   - A variável `APPLE_CLIENT_ID` estava definida no `.env` de desenvolvimento mas NÃO era passada no `docker-compose-prod.yml`
+   - Sem essa variável, a verificação de `audience` do JWT da Apple era ignorada em produção
+   - Risco de segurança (aceitar tokens destinados a outro app) e potenciais falhas de validação
+
+**Correções:**
+1. `app.json`: Alterado `apiBaseUrl` de `http://` para `https://api.ninaro.com.br/api/v1`
+2. `app.json`: Alterado `siteBaseUrl` de `http://` para `https://ninaro.com.br`
+3. `docker-compose-prod.yml`: Adicionado `APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}` nas variáveis de ambiente do service `babytune_backend`
+
+**Resultado:**
+- Login iOS compliance com ATS (HTTPS obrigatório)
+- Validação de audience do Apple JWT ativa em produção
+- Necessário redeploy do backend com a env `APPLE_CLIENT_ID=com.wizer.ninaro.ios`
+

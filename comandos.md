@@ -23,8 +23,16 @@
 - `eas build --profile development --platform android`
 - `eas build --profile production --platform ios`
 
+#### build EAS para produção
+- `eas build -p ios --profile production-ios`
+- `eas build -p android --profile production-android`
+
 ### update EAS
 - `eas update --branch production --message "ajustes player screed"`
+
+#### update EAS OTA para produção por plataforma
+- `eas update --branch production-ios --message "..."`
+- `eas update --branch production-android --message "..."`
 
 ### build docker frontned
 - `docker build -f Dockerfile -t ninaro-frontend:v1.0.1 .`

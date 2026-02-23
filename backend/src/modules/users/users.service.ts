@@ -67,6 +67,73 @@ export class UsersService {
     }));
   }
 
+  async findAllPaginated(
+    page = 1,
+    limit = 20,
+    search?: string,
+  ): Promise<{ data: Array<User & { currentSubscription?: Subscription | null }>; meta: any }> {
+    const queryBuilder = this.userRepository
+      .createQueryBuilder('user')
+      .orderBy('user.createdAt', 'DESC');
+
+    if (search) {
+      queryBuilder.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    const [data, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    if (data.length === 0) {
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    }
+
+    const userIds = data.map((user) => user.id);
+    const now = new Date();
+    const subscriptions = await this.subscriptionRepository
+      .createQueryBuilder('subscription')
+      .leftJoinAndSelect('subscription.plan', 'plan')
+      .where('subscription.userId IN (:...userIds)', { userIds })
+      .andWhere('subscription.status IN (:...statuses)', { statuses: ['active', 'expiring'] })
+      .andWhere('subscription.periodStart <= :now OR subscription.periodStart IS NULL', { now })
+      .andWhere('(subscription.periodEnd >= :now OR subscription.periodEnd IS NULL)', { now })
+      .orderBy('subscription.createdAt', 'DESC')
+      .getMany();
+
+    const subscriptionByUser = new Map<string, Subscription>();
+    for (const subscription of subscriptions) {
+      if (!subscriptionByUser.has(subscription.userId)) {
+        subscriptionByUser.set(subscription.userId, subscription);
+      }
+    }
+
+    const users = data.map((user) => ({
+      ...user,
+      currentSubscription: subscriptionByUser.get(user.id) ?? null,
+    }));
+
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async findOne(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
   }

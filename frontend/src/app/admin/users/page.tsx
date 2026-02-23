@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,13 +10,14 @@ import { api, User } from "@/services/api";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 const AdminUsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 5;
+  const [totalPages, setTotalPages] = useState(1);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -28,17 +29,26 @@ const AdminUsersPage = () => {
   const courtesySlug = "plano-cortesia";
   const freeSlug = "plano-gratuito";
 
+  const loadUsers = async (page = currentPage, search = searchTerm) => {
+    try {
+      const result = await api.adminGetUsers({
+        page,
+        limit: usersPerPage,
+        search: search || undefined,
+      });
+      const list = Array.isArray(result?.data) ? result.data : [];
+      setUsers(list);
+      setTotalPages(result?.meta?.totalPages ?? 1);
+      return result;
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao carregar usuários");
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const list = await api.adminGetUsers();
-        setUsers(list);
-      } catch (e: any) {
-        toast.error(e?.message || "Falha ao carregar usuários");
-      }
-    };
-    load();
-  }, []);
+    loadUsers(currentPage, searchTerm);
+  }, [currentPage, searchTerm]);
 
   useEffect(() => {
     const loadCourtesyToggle = async () => {
@@ -79,8 +89,7 @@ const AdminUsersPage = () => {
     try {
       await api.adminGrantCourtesy(userId);
       toast.success("Plano cortesia concedido");
-      const list = await api.adminGetUsers();
-      setUsers(list);
+      await loadUsers();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao conceder cortesia");
     }
@@ -90,24 +99,46 @@ const AdminUsersPage = () => {
     try {
       await api.adminRevokeCourtesy(userId);
       toast.success("Plano cortesia revogado");
-      const list = await api.adminGetUsers();
-      setUsers(list);
+      await loadUsers();
     } catch (e: any) {
       toast.error(e?.message || "Erro ao revogar cortesia");
     }
   };
 
-  const filteredUsers = useMemo(() => (users ?? []).filter(
-    (user) =>
-      (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.email || "").toLowerCase().includes(searchTerm.toLowerCase())
-  ), [users, searchTerm]);
-
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  const currentUsers = users ?? [];
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const pageItems = (() => {
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = new Set<number>();
+    pages.add(1);
+    pages.add(totalPages);
+    pages.add(currentPage);
+    pages.add(currentPage - 1);
+    pages.add(currentPage + 1);
+    if (currentPage <= 3) {
+      pages.add(2);
+      pages.add(3);
+    }
+    if (currentPage >= totalPages - 2) {
+      pages.add(totalPages - 1);
+      pages.add(totalPages - 2);
+    }
+    const sorted = Array.from(pages)
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
+    const items: Array<number | "ellipsis"> = [];
+    let last = 0;
+    sorted.forEach((p) => {
+      if (last && p - last > 1) {
+        items.push("ellipsis");
+      }
+      items.push(p);
+      last = p;
+    });
+    return items;
+  })();
 
   return (
     <div className="space-y-8">
@@ -141,7 +172,10 @@ const AdminUsersPage = () => {
             <Input
               placeholder="Buscar por nome ou email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
           <Table>
@@ -203,11 +237,15 @@ const AdminUsersPage = () => {
                 <PaginationItem>
                   <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) paginate(currentPage - 1); }} />
                 </PaginationItem>
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink href="#" isActive={currentPage === i + 1} onClick={(e) => { e.preventDefault(); paginate(i + 1); }}>
-                      {i + 1}
-                    </PaginationLink>
+                {pageItems.map((item, index) => (
+                  <PaginationItem key={`${item}-${index}`}>
+                    {item === "ellipsis" ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink href="#" isActive={currentPage === item} onClick={(e) => { e.preventDefault(); paginate(item); }}>
+                        {item}
+                      </PaginationLink>
+                    )}
                   </PaginationItem>
                 ))}
                 <PaginationItem>
@@ -283,7 +321,11 @@ const AdminUsersPage = () => {
               if (!removeId) return;
               try {
                 await api.adminDeleteUser(removeId);
-                setUsers((prev) => prev.filter(u => u.id !== removeId));
+                const result = await loadUsers();
+                const nextTotalPages = result?.meta?.totalPages ?? 1;
+                if (currentPage > nextTotalPages) {
+                  setCurrentPage(Math.max(1, nextTotalPages));
+                }
                 toast.success("Usuário removido");
               } catch (e: any) {
                 toast.error(e?.message || "Erro ao remover usuário");

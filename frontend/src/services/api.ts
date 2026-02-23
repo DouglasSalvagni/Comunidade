@@ -680,11 +680,11 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminGetUsers(params?: any): Promise<User[]> {
-    const response = await this.client.get<ApiResponse<User[]>>('/users', {
+  async adminGetUsers(params?: any): Promise<{ data: User[]; meta: any }> {
+    const response = await this.client.get<{ data: User[]; meta: any }>('/users', {
       params,
     });
-    return response.data.data;
+    return response.data;
   }
 
   async adminToggleUserStatus(id: string): Promise<User> {

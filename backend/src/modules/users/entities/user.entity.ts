@@ -22,7 +22,7 @@ export class User {
   passwordHash: string;
 
   @Column({ name: 'auth_provider', default: 'local' })
-  authProvider: 'local' | 'google';
+  authProvider: 'local' | 'google' | 'apple';
 
   @Column()
   name: string;
@@ -50,6 +50,9 @@ export class User {
 
   @OneToMany(() => Favorite, (favorite) => favorite.user)
   favorites: Favorite[];
+
+  @Column({ name: 'apple_user_id', type: 'varchar', nullable: true, unique: true })
+  appleUserId?: string | null;
 
   @Column({ name: 'password_reset_token_hash', type: 'varchar', nullable: true })
   passwordResetTokenHash?: string | null;

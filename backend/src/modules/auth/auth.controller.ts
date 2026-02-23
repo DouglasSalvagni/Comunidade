@@ -19,6 +19,7 @@ import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleOAuthDto } from './dto/google-oauth.dto';
+import { AppleOAuthDto } from './dto/apple-oauth.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -157,6 +158,43 @@ export class AuthController {
       return result;
     } catch (err) {
       this.antiAbuse.recordAuthFailure('oauth_google', { ip, networkKey });
+      throw err;
+    }
+  }
+
+  @Post('oauth/apple')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthAntiAbuseGuard)
+  @AntiAbuse('oauth_apple')
+  @ApiOperation({ summary: 'Login with Apple Sign-In' })
+  @ApiResponse({ status: 200, description: 'User logged in via Apple' })
+  @ApiResponse({ status: 401, description: 'Invalid Apple token' })
+  @ApiResponse({ status: 409, description: 'Email already in use with another login method' })
+  async oauthApple(@Body() body: AppleOAuthDto, @Request() req, @Res({ passthrough: true }) res: Response) {
+    const ip = this.antiAbuse.getClientIp(req);
+    const asn = this.antiAbuse.getClientAsn(req);
+    const networkKey = this.antiAbuse.getNetworkKey(ip, asn);
+
+    try {
+      const result = await this.authService.loginWithApple(body);
+      const email = (result?.user?.email || '').toString().trim().toLowerCase();
+      const accountKey = email ? this.antiAbuse.hash(email) : undefined;
+      if (accountKey) {
+        this.antiAbuse.recordAuthSuccess('oauth_apple', { ip, networkKey, accountKey });
+      } else {
+        this.antiAbuse.recordAuthSuccess('oauth_apple', { ip, networkKey });
+      }
+
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' ? true : false,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+      return result;
+    } catch (err) {
+      this.antiAbuse.recordAuthFailure('oauth_apple', { ip, networkKey });
       throw err;
     }
   }

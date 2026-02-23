@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException, ConflictException, Optional } from '
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
+import * as jwksClient from 'jwks-rsa';
 import { MailService } from './mail.service';
 import { LegalService } from '../legal/legal.service';
 
@@ -9,6 +11,7 @@ import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { AppleOAuthDto } from './dto/apple-oauth.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
@@ -20,7 +23,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly subscriptionsService: SubscriptionsService,
     @Optional() private readonly legalService?: LegalService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
@@ -120,7 +123,7 @@ export class AuthService {
     try {
       const payload = this.jwtService.verify(refreshToken);
       const user = await this.usersService.findOne(payload.sub);
-      
+
       if (!user || !user.isActive) {
         throw new UnauthorizedException('Refresh token inválido');
       }
@@ -207,6 +210,107 @@ export class AuthService {
       user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
+    };
+  }
+
+  /* ───────── Apple Sign-In ───────── */
+
+  private appleJwksClient = jwksClient({
+    jwksUri: 'https://appleid.apple.com/auth/keys',
+    cache: true,
+    cacheMaxEntries: 5,
+    cacheMaxAge: 600_000, // 10 min
+  });
+
+  private getAppleSigningKey(header: jwt.JwtHeader): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.appleJwksClient.getSigningKey(header.kid, (err, key) => {
+        if (err) return reject(err);
+        resolve(key.getPublicKey());
+      });
+    });
+  }
+
+  async loginWithApple(dto: AppleOAuthDto) {
+    // 1. Decode header to get kid
+    const decoded = jwt.decode(dto.identityToken, { complete: true });
+    if (!decoded || typeof decoded === 'string') {
+      throw new UnauthorizedException('Token da Apple inválido');
+    }
+
+    // 2. Get signing key and verify JWT
+    let payload: any;
+    try {
+      const publicKey = await this.getAppleSigningKey(decoded.header);
+      const expectedAud = process.env.APPLE_CLIENT_ID;
+      payload = jwt.verify(dto.identityToken, publicKey, {
+        issuer: 'https://appleid.apple.com',
+        audience: expectedAud || undefined,
+        algorithms: ['RS256'],
+      });
+    } catch (e: any) {
+      throw new UnauthorizedException('Token da Apple inválido');
+    }
+
+    const appleSub = payload.sub as string; // Apple user identifier
+    const tokenEmail = payload.email as string | undefined;
+
+    // 3. Try to find user by appleUserId (repeat login — Apple may not send email again)
+    let user = await this.usersService.findByAppleUserId(appleSub);
+    if (user) {
+      const jwtPayload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+      const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+      const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
+      return {
+        user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+        accessToken: this.jwtService.sign(jwtPayload),
+        refreshToken: this.generateRefreshToken(jwtPayload),
+      };
+    }
+
+    // 4. Resolve email: token > dto > fictitious
+    let email = tokenEmail || dto.user?.email || undefined;
+    if (!email) {
+      const slug = appleSub.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+      email = `apple_${slug}_${Date.now()}@privaterelay.appleid.com`;
+    }
+    email = email.trim().toLowerCase();
+
+    // 5. Check if email already exists
+    const existingUser = await this.usersService.findByEmail(email);
+    if (existingUser) {
+      throw new ConflictException('Este e-mail já está em uso com outro método de login. Use o método original para entrar.');
+    }
+
+    // 6. Resolve name
+    const firstName = dto.user?.name?.firstName || '';
+    const lastName = dto.user?.name?.lastName || '';
+    const name = [firstName, lastName].filter(Boolean).join(' ') || 'Usuário Apple';
+
+    // 7. Create user
+    const pseudoHash = await bcrypt.hash(String(Date.now()), 10);
+    user = await this.usersService.createWithPasswordHash({
+      email,
+      name,
+      passwordHash: pseudoHash,
+      role: 'user',
+      isActive: true,
+      emailVerified: true,
+      authProvider: 'apple',
+      appleUserId: appleSub,
+    });
+
+    try {
+      await this.subscriptionsService.tryAutoGrantCourtesy(user.id);
+    } catch { }
+
+    const jwtPayload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
+    const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
+    const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
+    return {
+      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+      accessToken: this.jwtService.sign(jwtPayload),
+      refreshToken: this.generateRefreshToken(jwtPayload),
     };
   }
 

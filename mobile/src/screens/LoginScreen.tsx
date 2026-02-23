@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Pressable, KeyboardAvoidingView, Platform, Keyboard, Animated } from 'react-native'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import { useAuth } from '../context/AuthContext'
@@ -19,7 +20,7 @@ type Props = {
 WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerificationNotice }: Props) {
-  const { login, googleOAuth } = useAuth()
+  const { login, googleOAuth, appleOAuth } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,11 +31,13 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
   const [resendLoading, setResendLoading] = useState(false)
   const shift = useRef(new Animated.Value(0)).current
   const [logs, setLogs] = useState<string[]>([])
+  const [appleAvailable, setAppleAvailable] = useState(false)
+  const [aLoading, setALoading] = useState(false)
   const appendLog = (msg: string, data?: any) => {
     const ts = new Date().toISOString()
     let line = `[${ts}] ${msg}`
     if (data !== undefined) {
-      try { line += ` ${JSON.stringify(data)}` } catch {}
+      try { line += ` ${JSON.stringify(data)}` } catch { }
     }
     setLogs(prev => [...prev, line])
   }
@@ -138,7 +141,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
         setError('Login Google cancelado ou sem credenciais')
       }
     } catch (e: any) {
-      try { console.error('[Mobile][GoogleLogin] erro', { code: e?.code, message: e?.message }) } catch {}
+      try { console.error('[Mobile][GoogleLogin] erro', { code: e?.code, message: e?.message }) } catch { }
       if (isErrorWithCode(e)) {
         appendLog('Erro do Google Sign-In', { code: e.code, message: e.message, userInfo: (e as any)?.userInfo })
         switch (e.code) {
@@ -187,6 +190,55 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
     return () => { showSub.remove(); hideSub.remove() }
   }, [shift])
 
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false))
+    }
+  }, [])
+
+  async function handleAppleLogin() {
+    try {
+      setALoading(true)
+      setError(null)
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      })
+
+      if (!credential.identityToken) {
+        throw new Error('Apple Sign-In não retornou identityToken')
+      }
+
+      const userData: { name?: { firstName?: string; lastName?: string }; email?: string } = {}
+      if (credential.fullName?.givenName || credential.fullName?.familyName) {
+        userData.name = {
+          firstName: credential.fullName?.givenName ?? undefined,
+          lastName: credential.fullName?.familyName ?? undefined,
+        }
+      }
+      if (credential.email) {
+        userData.email = credential.email
+      }
+
+      await appleOAuth({
+        identityToken: credential.identityToken,
+        appleUserId: credential.user,
+        user: Object.keys(userData).length > 0 ? userData : undefined,
+      })
+      onLoggedIn()
+    } catch (e: any) {
+      if (e?.code === 'ERR_REQUEST_CANCELED') {
+        setError('Login Apple cancelado')
+      } else {
+        setError(friendlyError(e?.message || 'Erro ao entrar com Apple'))
+      }
+    } finally {
+      setALoading(false)
+    }
+  }
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <Animated.View style={{ transform: [{ translateY: shift }] }}>
@@ -217,6 +269,17 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
           disabled={gLoading}
           rightIcon={<AntDesign name="google" size={18} color="#DB4437" />}
         />
+        {appleAvailable && (
+          <View style={{ marginTop: 10 }}>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
+              cornerRadius={8}
+              style={{ width: '100%', height: 48 }}
+              onPress={handleAppleLogin}
+            />
+          </View>
+        )}
       </Animated.View>
     </KeyboardAvoidingView>
   )

@@ -556,3 +556,72 @@ const mediumMargin = isSmallScreen ? 20 : 40
 3. **UpgradeModal**: usa padrão do ExternalLinkModal, com ícone diamond dourado, lista de 5 benefícios premium, nota de redirecionamento, e botões "Agora não" / "Ver planos"
 4. **AccountScreen**: simplificada — mantém apenas dados pessoais (nome, email) e alteração de senha
 5. URL de upgrade usa `siteBaseUrl` de `app.json` + `/dashboard/subscriptions`
+
+---
+
+## 2026-02-19 - Login Social com Apple (Backend + Mobile)
+
+**Arquivos criados:**
+- `backend/src/modules/auth/dto/apple-oauth.dto.ts` — DTO com `identityToken`, `appleUserId` e `user` (nome/email opcionais)
+- `backend/src/database/migrations/1774000000000-add-apple-user-id.ts` — Migration para coluna `apple_user_id` (unique, nullable) na tabela `users`
+
+**Arquivos modificados:**
+
+**Backend:**
+- `backend/src/modules/users/entities/user.entity.ts` — Adicionado campo `appleUserId` e `authProvider` aceita `'apple'`
+- `backend/src/modules/users/users.service.ts` — `createWithPasswordHash` aceita `appleUserId`; novo método `findByAppleUserId`
+- `backend/src/modules/auth/auth.service.ts` — Método `loginWithApple`: valida JWT Apple via JWKS (chaves públicas), busca usuário por `appleUserId`, cria usuário se novo, rejeita se email já existe com outro provider
+- `backend/src/modules/auth/auth.controller.ts` — Endpoint `POST /auth/oauth/apple` com anti-abuse
+- `backend/src/common/anti-abuse/auth-anti-abuse.guard.ts` — Action `oauth_apple` adicionada
+
+**Mobile:**
+- `mobile/app.json` — `usesAppleSignIn: true` + plugin `expo-apple-authentication`
+- `mobile/src/services/api.ts` — Função `apiAppleOAuth`
+- `mobile/src/context/AuthContext.tsx` — Método `appleOAuth`, tipo `authProvider` inclui `'apple'`
+- `mobile/src/screens/LoginScreen.tsx` — Botão Apple nativo (iOS only), handler `handleAppleLogin`
+- `mobile/src/screens/AccountScreen.tsx` — Tipo `authProvider` inclui `'apple'`
+
+**Dependências adicionadas:**
+- Backend: `jsonwebtoken`, `jwks-rsa`, `@types/jsonwebtoken`
+- Mobile: `expo-apple-authentication`
+
+**Decisões técnicas:**
+- JWT Apple validado criptograficamente via JWKS (chaves públicas da Apple) ao invés de API de token info
+- `apple_user_id` armazenado para logins futuros quando Apple não retorna email
+- Email não encontrado → gera fictício `apple_{slug}_{timestamp}@privaterelay.appleid.com`
+- Email já existente → rejeita com `ConflictException` (não vincula automaticamente)
+- Botão Apple só renderiza no iOS via `AppleAuthentication.isAvailableAsync()`
+
+---
+
+## 2026-02-20 - Correção de Login iOS (ATS + APPLE_CLIENT_ID em Produção)
+
+**Arquivos modificados:**
+- `mobile/app.json`
+- `docker-compose-prod.yml`
+
+**Problema:**
+- Login (e-mail/senha, Google e Apple) não funcionava em dispositivos iOS, enquanto no Android funcionava normalmente tanto em desenvolvimento quanto em produção.
+
+**Causas raiz identificadas:**
+
+1. **App Transport Security (ATS) do iOS:**
+   - A `apiBaseUrl` no `app.json` estava configurada como `http://api.ninaro.com.br` (HTTP)
+   - O iOS bloqueia conexões HTTP por padrão (ATS policy), diferente do Android que permite
+   - Resultado: todas as requisições do app iOS para a API eram silenciosamente bloqueadas
+
+2. **`APPLE_CLIENT_ID` ausente em produção:**
+   - A variável `APPLE_CLIENT_ID` estava definida no `.env` de desenvolvimento mas NÃO era passada no `docker-compose-prod.yml`
+   - Sem essa variável, a verificação de `audience` do JWT da Apple era ignorada em produção
+   - Risco de segurança (aceitar tokens destinados a outro app) e potenciais falhas de validação
+
+**Correções:**
+1. `app.json`: Alterado `apiBaseUrl` de `http://` para `https://api.ninaro.com.br/api/v1`
+2. `app.json`: Alterado `siteBaseUrl` de `http://` para `https://ninaro.com.br`
+3. `docker-compose-prod.yml`: Adicionado `APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}` nas variáveis de ambiente do service `babytune_backend`
+
+**Resultado:**
+- Login iOS compliance com ATS (HTTPS obrigatório)
+- Validação de audience do Apple JWT ativa em produção
+- Necessário redeploy do backend com a env `APPLE_CLIENT_ID=com.wizer.ninaro.ios`
+

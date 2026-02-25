@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Sparkles } from "lucide-react";
+import { Play, Sparkles, Download } from "lucide-react";
 
 interface HangingPropProps {
   children: React.ReactNode;
@@ -177,29 +177,36 @@ export const HeroInspira: React.FC = () => {
           <div className="absolute right-0 -top-[1.5px] w-[4px] h-[4px] bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,1)] animate-pulse"></div>
         </div>
       </motion.div>
-      <div className="container mx-auto px-6 z-10 relative h-full flex flex-col lg:flex-row items-center">
+      <div className="container mx-auto px-6 z-10 relative h-full lg:h-[90vh] min-[1700px]:h-screen flex flex-col lg:flex-row items-center">
         <div className="lg:w-1/2 text-center lg:text-left pt-10 lg:pt-0 relative z-30">
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
             <span className="inline-block py-1 px-3 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-sm font-bold mb-6 backdrop-blur-sm">
               ✨ Aventuras Noturnas
             </span>
-            <h1 className="text-5xl lg:text-7xl font-bold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-teal-200 drop-shadow-sm">
+            <h1 className="text-5xl lg:text-7xl font-bold leading-[1.2] pb-2 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-teal-200">
               Histórias que ganham vida
             </h1>
             <p className="text-lg lg:text-xl text-indigo-200/80 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Um palco mágico onde músicas e contos de ninar se encontram para encantar as noites dos pequenos.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <a href="#preview">
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-brand-orange hover:bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_25px_rgba(251,146,60,0.4)] flex items-center justify-center gap-2 transition-colors">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start w-full sm:w-auto">
+              <a href="#download" className="w-full sm:w-auto">
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full bg-brand-orange hover:bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_25px_rgba(251,146,60,0.4)] flex items-center justify-center gap-2 transition-colors">
+                   <motion.div
+                      animate={{ y: [0, 2, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Download className="w-5 h-5" />
+                    </motion.div>
+                    Download
+                  </motion.button>
+              </a>
+              <a href="#preview" className="w-full sm:w-auto">
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-colors">
                   <Play className="w-5 h-5 fill-current" />
-                  Ouvir Agora
+                  Ouvir Músicas
                 </motion.button>
               </a>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-colors">
-                <Sparkles className="w-5 h-5" />
-                Conhecer Personagens
-              </motion.button>
             </div>
           </motion.div>
         </div>

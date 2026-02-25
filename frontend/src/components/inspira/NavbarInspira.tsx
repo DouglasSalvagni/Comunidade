@@ -18,9 +18,10 @@ export const NavbarInspira: React.FC = () => {
   }, []);
 
   const navLinks = [
-    { name: "Histórias", href: "/#features" },
+    { name: "Diferenciais", href: "/#features" },
     { name: "Músicas", href: "/#preview" },
-    { name: "Sobre", href: "/#footer" },
+    { name: "Benefícios", href: "/#benefits" },
+    { name: "Download", href: "/#download" },
   ];
 
   return (

@@ -22,9 +22,10 @@ export const FooterInspira: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6">Explorar</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><a href="/#features" className="hover:text-brand-teal">Histórias</a></li>
+              <li><a href="/#features" className="hover:text-brand-teal">Diferenciais</a></li>
               <li><a href="/#preview" className="hover:text-brand-teal">Músicas</a></li>
-              <li><a href="/#footer" className="hover:text-brand-teal">Sobre</a></li>
+              <li><a href="/#benefits" className="hover:text-brand-teal">Benefícios</a></li>
+              <li><a href="/#download" className="hover:text-brand-teal">Download</a></li>
             </ul>
           </div>
           <div>

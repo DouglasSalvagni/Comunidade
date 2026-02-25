@@ -169,7 +169,7 @@ export default function BenefitsInspira() {
   const visibleBenefits = showAll ? BENEFITS : BENEFITS.slice(0, 8);
 
   return (
-    <section className="py-20 bg-brand-dark/50 relative overflow-hidden">
+    <section id="benefits" className="py-20 bg-brand-dark/50 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
          <div className="absolute top-10 right-10 w-96 h-96 bg-brand-purple/20 rounded-full blur-3xl" />

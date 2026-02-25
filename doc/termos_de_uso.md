@@ -1,5 +1,3 @@
-# Termos de Uso — Ninaro
-
 Estes Termos de Uso ("Termos") regem o acesso e uso da plataforma **Ninaro**, incluindo nosso site, aplicativo móvel e serviços de streaming de áudio (coletivamente, "Serviços").
 
 Ao criar uma conta ou utilizar os Serviços, você concorda em cumprir estes Termos. Se você não concordar, não poderá utilizar o Ninaro.
@@ -12,7 +10,7 @@ Ao criar uma conta ou utilizar os Serviços, você concorda em cumprir estes Ter
 - **Conta:** O registro de usuário criado por um responsável legal (adulto).
 - **Perfil Infantil:** Sub-perfis criados dentro de uma Conta para uso por crianças.
 - **Conteúdo:** Músicas, áudios, imagens, textos e outros materiais disponibilizados no Serviço.
-- **Assinatura:** O plano pago que concede acesso total ou parcial ao Conteúdo.
+- **Assinatura:** O plano (pago, gratuito ou de cortesia) que concede acesso total ou parcial ao Conteúdo.
 
 ---
 
@@ -28,8 +26,9 @@ Ao criar uma conta ou utilizar os Serviços, você concorda em cumprir estes Ter
 
 - **Credenciais:** Você é responsável por manter a confidencialidade de sua senha. Não compartilhe suas credenciais com terceiros.
 - **Veracidade:** Você concorda em fornecer informações verdadeiras, exatas e completas no cadastro (como nome e e-mail).
-- **Uso Indevido:** Qualquer atividade realizada através da sua conta é de sua responsabilidade. Notifique-nos imediatamente em `privacidade@empresa.com` se suspeitar de uso não autorizado.
-- **Login Social:** Se utilizar login via terceiros (ex: Google), você também está sujeito aos termos desse provedor.
+- **Uso Indevido:** Qualquer atividade realizada através da sua conta é de sua responsabilidade. Notifique-nos imediatamente em `privacidade@ninaro.com.br` se suspeitar de uso não autorizado.
+- **Login Social:** Se utilizar login via terceiros (ex: Google, Apple), você também está sujeito aos termos desse provedor.
+- **Aceite de Documentos Legais:** Para utilizar determinadas funcionalidades, pode ser necessário aceitar a versão vigente destes Termos e da Política de Privacidade, inclusive em caso de atualizações.
 
 ---
 
@@ -49,11 +48,13 @@ A violação destas regras pode resultar na suspensão ou banimento imediato da 
 
 ## 5. Assinatura, Pagamentos e Cancelamento
 
-- **Planos:** O acesso ao catálogo completo pode exigir uma Assinatura paga. Detalhes sobre preço, periodicidade e recursos estão disponíveis na página de assinatura.
+- **Planos:** O acesso ao catálogo completo pode exigir uma Assinatura. Detalhes sobre preço, periodicidade e recursos estão disponíveis na página de assinatura.
+- **Plano Cortesia/Gratuito:** Podemos disponibilizar planos sem cobrança (por tempo determinado ou indeterminado). O acesso e a vigência seguem as regras informadas na Plataforma, e podem ser encerrados a qualquer momento, respeitados direitos adquiridos e a legislação aplicável.
 - **Cobrança:** Os pagamentos são processados por gateways parceiros (ex: Asaas). Ao assinar, você autoriza a cobrança recorrente no método de pagamento escolhido.
+- **Checkout Externo:** Para contratar uma assinatura, você pode ser redirecionado para páginas externas do parceiro de pagamento. Nesses casos, aplicam-se também os termos e políticas do serviço acessado.
 - **Renovação Automática:** As assinaturas são renovadas automaticamente ao final de cada período, a menos que você cancele antes da data de renovação.
 - **Cancelamento:** Você pode cancelar a renovação automática a qualquer momento nas configurações da conta. O acesso permanecerá ativo até o fim do período já pago.
-- **Reembolso:** O direito de arrependimento será respeitado conforme o Código de Defesa do Consumidor (7 dias para compras online), a contar da data da assinatura inicial. Solicitações devem ser enviadas ao nosso suporte.
+- **Reembolso:** O direito de arrependimento será respeitado conforme o Código de Defesa do Consumidor (7 dias para compras online), a contar da data da assinatura inicial. Solicitações devem ser enviadas ao nosso suporte em `privacidade@ninaro.com.br`.
 - **Reajustes:** Reservamo-nos o direito de alterar os preços das assinaturas, mediante aviso prévio razoável.
 
 ---
@@ -68,10 +69,13 @@ A violação destas regras pode resultar na suspensão ou banimento imediato da 
 
 ## 7. Recursos Offline (Downloads)
 
-- Se o Serviço permitir o download de conteúdo para ouvir offline:
-  - O conteúdo baixado só pode ser reproduzido dentro do aplicativo Ninaro.
-  - O acesso offline é temporário e vinculado à validade da sua assinatura.
-  - Se você cancelar a assinatura, sair da conta (logout) ou desinstalar o app, o conteúdo baixado será removido ou perderá o acesso.
+Atualmente, o Ninaro **não disponibiliza** recurso de downloads/offline.
+
+Se, no futuro, o Serviço permitir o download de conteúdo para ouvir offline, poderão se aplicar regras como:
+- O conteúdo baixado só poderá ser reproduzido dentro do aplicativo Ninaro.
+- O acesso offline poderá ser temporário e vinculado à validade da sua assinatura, podendo haver expiração de licença.
+- Poderão existir limites por dispositivo e/ou por perfil infantil, e o acesso offline poderá depender de identificadores do dispositivo.
+- Se você cancelar a assinatura, sair da conta (logout) ou desinstalar o app, o conteúdo baixado poderá ser removido ou perder o acesso.
 
 ---
 
@@ -107,7 +111,7 @@ Podemos alterar estes Termos a qualquer momento.
 ---
 
 **Contato:**
-Dúvidas sobre os Termos? Fale conosco em: `suporte@empresa.com` ou `privacidade@empresa.com`.
+Dúvidas sobre os Termos? Fale conosco em: `privacidade@ninaro.com.br`.
 
 **Dados da Empresa:**
 Wiser Wizer Tecnologia Aplicada LTDA

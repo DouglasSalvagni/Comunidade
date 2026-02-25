@@ -8,7 +8,7 @@ export const FooterInspira: React.FC = () => {
   return (
     <footer id="footer" className="bg-black/30 pt-20 pb-10 border-t border-white/5">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+        <div className="grid md:grid-cols-3 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
               <a href="/">
@@ -34,20 +34,6 @@ export const FooterInspira: React.FC = () => {
               <li><a href="/privacy" className="hover:text-brand-teal">Política de Privacidade</a></li>
               <li><a href="/terms" className="hover:text-brand-teal">Termos de Uso</a></li>
             </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-6">Siga a gente</h4>
-            <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-teal hover:text-brand-dark transition-colors">
-                <Instagram size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-blue hover:text-white transition-colors">
-                <Facebook size={18} />
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-teal hover:text-brand-dark transition-colors">
-                <Twitter size={18} />
-              </a>
-            </div>
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-500">

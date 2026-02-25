@@ -131,7 +131,31 @@ export const AppDownloadInspira: React.FC = () => {
               </div>
               
               {/* Decorative Elements behind phone */}
-              <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[600px] bg-gradient-to-tr from-brand-teal/20 to-brand-purple/20 rounded-full blur-2xl"></div>
+              <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%]">
+                 <motion.div 
+                   animate={{ 
+                     opacity: [0.6, 0.9, 0.6],
+                     scale: [1, 1.1, 1],
+                   }}
+                   transition={{ 
+                     duration: 4, 
+                     repeat: Infinity, 
+                     ease: "easeInOut" 
+                   }}
+                   className="absolute inset-0 bg-gradient-to-tr from-brand-teal/30 via-brand-purple/30 to-brand-orange/20 rounded-full blur-[80px]"
+                 />
+                 <motion.div 
+                   animate={{ 
+                     rotate: 360,
+                   }}
+                   transition={{ 
+                     duration: 20, 
+                     repeat: Infinity, 
+                     ease: "linear" 
+                   }}
+                   className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0_deg,rgba(255,255,255,0.1)_180deg,transparent_360deg)] rounded-full blur-3xl opacity-30"
+                 />
+              </div>
             </motion.div>
           </div>
 

@@ -177,7 +177,7 @@ export const HeroInspira: React.FC = () => {
           <div className="absolute right-0 -top-[1.5px] w-[4px] h-[4px] bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,1)] animate-pulse"></div>
         </div>
       </motion.div>
-      <div className="container mx-auto px-6 z-10 relative h-full lg:h-[90vh] min-[1700px]:h-screen flex flex-col lg:flex-row items-center">
+      <div className="container mx-auto px-6 z-30 relative h-full flex flex-col lg:flex-row items-center">
         <div className="lg:w-1/2 text-center lg:text-left pt-10 lg:pt-0 relative z-30">
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
             <span className="inline-block py-1 px-3 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-sm font-bold mb-6 backdrop-blur-sm">

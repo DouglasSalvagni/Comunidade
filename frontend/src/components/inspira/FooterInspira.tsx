@@ -3,8 +3,10 @@ import React from "react";
 import { Instagram, Twitter, Facebook } from "lucide-react";
 import Image from "next/image";
 import logo from "@/assets/logoninaro.webp";
+import { useCookieConsent } from "@/context/CookieConsentContext";
 
 export const FooterInspira: React.FC = () => {
+  const { openModal } = useCookieConsent();
   return (
     <footer id="footer" className="bg-black/30 pt-20 pb-10 border-t border-white/5">
       <div className="container mx-auto px-6">
@@ -33,6 +35,7 @@ export const FooterInspira: React.FC = () => {
             <ul className="space-y-3 text-sm text-gray-400">
               <li><a href="/privacy" className="hover:text-brand-teal">Política de Privacidade</a></li>
               <li><a href="/terms" className="hover:text-brand-teal">Termos de Uso</a></li>
+              <li><button onClick={openModal} className="hover:text-brand-teal text-left">Gerenciar Cookies</button></li>
             </ul>
           </div>
         </div>

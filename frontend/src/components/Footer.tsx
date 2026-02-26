@@ -1,6 +1,11 @@
+"use client";
+
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
+import { useCookieConsent } from "@/context/CookieConsentContext";
 
 const Footer = () => {
+  const { openModal } = useCookieConsent();
+
   return (
     <footer className="bg-muted/30 border-t">
       <div className="container mx-auto px-4 py-12">
@@ -51,8 +56,9 @@ const Footer = () => {
             <h4 className="font-bold mb-4">Suporte</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="#" className="hover:text-primary transition-smooth">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-primary transition-smooth">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-primary transition-smooth">Privacidade</a></li>
+              <li><a href="/terms" className="hover:text-primary transition-smooth">Termos de Uso</a></li>
+              <li><a href="/privacy" className="hover:text-primary transition-smooth">Privacidade</a></li>
+              <li><button onClick={openModal} className="hover:text-primary transition-smooth text-left">Gerenciar Cookies</button></li>
               <li><a href="#" className="hover:text-primary transition-smooth">FAQ</a></li>
             </ul>
           </div>

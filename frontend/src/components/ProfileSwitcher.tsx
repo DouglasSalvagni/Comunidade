@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronsUpDown, Lock } from "lucide-react";
 import { api, Profile, Subscription } from "@/services/api";
+import { useCookieConsent } from "@/context/CookieConsentContext";
 
 const FREE_PLAN_SLUG = "plano-gratuito";
 
@@ -19,6 +20,7 @@ export const ProfileSwitcher = () => {
   const [items, setItems] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [isFree, setIsFree] = useState(false);
+  const { hasConsentedTo } = useCookieConsent();
 
   useEffect(() => {
     let mounted = true;
@@ -35,13 +37,13 @@ export const ProfileSwitcher = () => {
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem('activeProfileId') : null;
         const initial = (saved && list.find(p => p.id === saved)) || list[0] || null;
         setActiveProfile(initial || null);
-        if (initial && typeof window !== 'undefined') {
+        if (initial && typeof window !== 'undefined' && hasConsentedTo('functional')) {
           window.localStorage.setItem('activeProfileId', initial.id);
         }
         // If free and the saved profile is not the first one, force to first
         if (free && list.length > 1 && initial && initial.id !== list[0].id) {
           setActiveProfile(list[0]);
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined' && hasConsentedTo('functional')) {
             window.localStorage.setItem('activeProfileId', list[0].id);
             window.dispatchEvent(new CustomEvent('profile-change', { detail: { profileId: list[0].id } }));
           }
@@ -85,7 +87,7 @@ export const ProfileSwitcher = () => {
       return;
     }
     setActiveProfile(profile);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && hasConsentedTo('functional')) {
       window.localStorage.setItem('activeProfileId', profile.id);
       window.dispatchEvent(new CustomEvent('profile-change', { detail: { profileId: profile.id } }));
     }

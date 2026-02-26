@@ -11,6 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/services/api";
 import { useEffect } from "react";
+import { useCookieConsent } from "@/context/CookieConsentContext";
 
 const RegisterPage = () => {
   const router = useRouter();
@@ -22,6 +23,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [legalLinks, setLegalLinks] = useState<{ hasPrivacy: boolean; hasTerms: boolean }>({ hasPrivacy: false, hasTerms: false });
+  const { hasConsentedTo } = useCookieConsent();
 
   useEffect(() => {
     api.getActiveLegal().then((active) => {
@@ -42,7 +44,7 @@ const RegisterPage = () => {
       const auth = await api.register(name, email, password, true);
       if (auth?.user?.authProvider === 'local' && auth?.user?.emailVerified === false) {
         await api.clearToken();
-        if (typeof window !== 'undefined') window.localStorage.setItem('pendingEmail', email);
+        if (typeof window !== 'undefined' && hasConsentedTo('functional')) window.localStorage.setItem('pendingEmail', email);
         router.push('/auth/pending');
       } else {
         router.push("/dashboard");

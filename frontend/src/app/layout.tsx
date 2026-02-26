@@ -7,6 +7,8 @@ import { PlayerHeightProvider, usePlayerHeight } from "@/context/PlayerHeightCon
 import { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
+import { CookieConsentProvider } from "@/context/CookieConsentContext";
+import { CookieBanner } from "@/components/cookie-consent/CookieBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +36,7 @@ const AppBody = ({ children }: { children: ReactNode }) => {
     >
       {children}
       <Toaster richColors position="top-right" />
+      <CookieBanner />
     </body>
   );
 };
@@ -45,11 +48,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <PlayerHeightProvider>
-        <SessionProvider>
-          <AppBody>{children}</AppBody>
-        </SessionProvider>
-      </PlayerHeightProvider>
+      <CookieConsentProvider>
+        <PlayerHeightProvider>
+          <SessionProvider>
+            <AppBody>{children}</AppBody>
+          </SessionProvider>
+        </PlayerHeightProvider>
+      </CookieConsentProvider>
     </html>
   );
 }

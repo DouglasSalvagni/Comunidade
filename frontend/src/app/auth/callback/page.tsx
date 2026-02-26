@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { api } from "@/services/api";
 import { Loader2 } from "lucide-react";
 
-export default function AuthCallbackPage() {
+const AuthCallbackContent = () => {
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params.get('next');
@@ -40,6 +40,14 @@ export default function AuthCallbackPage() {
         <p className="text-sm text-muted-foreground">Concluindo login...</p>
       </div>
     </div>
+  );
+};
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
 

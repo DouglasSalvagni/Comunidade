@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -8,11 +8,11 @@ import { api } from "@/services/api";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
-export default function DashboardLayout({
+const DashboardLayoutContent = ({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [verifying, setVerifying] = useState(true);
@@ -73,5 +73,17 @@ export default function DashboardLayout({
         </>
       )}
     </div>
+  );
+};
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
   );
 }

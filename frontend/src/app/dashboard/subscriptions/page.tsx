@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import PlanSelector from "@/components/PlanSelector";
 import { api, Subscription, Invoice, ActiveCoupon } from "@/services/api";
@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const SubscriptionPage = () => {
+const SubscriptionPageContent = () => {
   const searchParams = useSearchParams();
   const checkout = searchParams.get('checkout');
 
@@ -424,6 +424,14 @@ const SubscriptionPage = () => {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const SubscriptionPage = () => {
+  return (
+    <Suspense>
+      <SubscriptionPageContent />
+    </Suspense>
   );
 };
 

@@ -17,9 +17,9 @@ export default function middleware(req: NextRequest) {
       return NextResponse.redirect(url)
     }
     if (pathname.startsWith('/dashboard')) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/auth/login'
-      return NextResponse.redirect(url)
+      const loginUrl = new URL('/auth/login', req.url)
+      loginUrl.searchParams.set('next', `${req.nextUrl.pathname}${req.nextUrl.search}`)
+      return NextResponse.redirect(loginUrl)
     }
   }
 

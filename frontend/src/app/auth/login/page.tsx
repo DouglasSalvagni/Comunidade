@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,9 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
   const [showPassword, setShowPassword] = useState(false);
+  const params = useSearchParams();
+  const nextParam = params.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/dashboard') ? nextParam : null;
 
   
 
@@ -32,7 +35,7 @@ const LoginPage = () => {
             router.replace('/admin');
           } else {
             const accepted = !!(me as any)?.acceptedLegal;
-            router.replace(accepted ? '/dashboard' : '/auth/legal');
+            router.replace(accepted ? (safeNext ?? '/dashboard') : '/auth/legal');
           }
           return;
         }
@@ -48,7 +51,7 @@ const LoginPage = () => {
           router.replace("/admin");
         } else {
           const accepted = !!(auth?.user as any)?.acceptedLegal;
-          router.replace(accepted ? "/dashboard" : "/auth/legal");
+          router.replace(accepted ? (safeNext ?? "/dashboard") : "/auth/legal");
         }
       } catch (err: any) {
         // Se falhar, permanece na página de login
@@ -67,7 +70,7 @@ const LoginPage = () => {
         router.push("/admin");
       } else {
         const accepted = !!(auth?.user as any)?.acceptedLegal;
-        router.push(accepted ? "/dashboard" : "/auth/legal");
+        router.push(accepted ? (safeNext ?? "/dashboard") : "/auth/legal");
       }
     } catch (err: any) {
       setError(err?.message || "Falha no login");
@@ -116,7 +119,7 @@ const LoginPage = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Entrando..." : "Login"}
             </Button>
-            <Button type="button" variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: '/auth/callback' })}>
+            <Button type="button" variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}>
               Login com Google
             </Button>
           </form>

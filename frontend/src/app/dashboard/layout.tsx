@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -17,6 +17,10 @@ export default function DashboardLayout({
   const [authorized, setAuthorized] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const nextPath = `${pathname}${search ? `?${search}` : ""}`;
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -37,7 +41,8 @@ export default function DashboardLayout({
           setAuthorized(true);
         }
       } catch (e: any) {
-        router.replace("/auth/login");
+        const next = nextPath.startsWith("/dashboard") ? nextPath : "/dashboard";
+        router.replace(`/auth/login?next=${encodeURIComponent(next)}`);
       }
       setVerifying(false);
     };

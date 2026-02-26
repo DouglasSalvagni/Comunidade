@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { api } from "@/services/api";
 import { Loader2 } from "lucide-react";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const params = useSearchParams();
+  const nextParam = params.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/dashboard') ? nextParam : null;
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -20,7 +23,7 @@ export default function AuthCallbackPage() {
             router.replace("/admin");
           } else {
             const accepted = !!(auth?.user as any)?.acceptedLegal;
-            router.replace(accepted ? "/dashboard" : "/auth/legal");
+            router.replace(accepted ? (safeNext ?? "/dashboard") : "/auth/legal");
           }
         }
       } catch {

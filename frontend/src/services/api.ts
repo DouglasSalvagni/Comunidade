@@ -266,7 +266,9 @@ class ApiService {
             if (msg.includes('E-mail não verificado')) {
               window.location.href = '/auth/pending';
             } else {
-              window.location.href = '/auth/login';
+              const search = window.location.search || '';
+              const next = path.startsWith('/dashboard') ? `${path}${search}` : '';
+              window.location.href = next ? `/auth/login?next=${encodeURIComponent(next)}` : '/auth/login';
             }
           }
         }

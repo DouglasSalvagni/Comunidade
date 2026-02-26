@@ -79,8 +79,8 @@ export default function ManifestoInspira() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="bg-white/5 backdrop-blur-sm border border-white/10 p-6 rounded-2xl hover:border-brand-purple/30 transition-colors group"
                 >
-                  <div className="mb-4 bg-gradient-to-br from-white/10 to-white/5 w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <item.icon className="w-6 h-6 text-brand-purple" />
+                  <div className="mb-4 bg-brand-purple/10 border border-brand-purple/20 w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <item.icon className="w-6 h-6 text-brand-purple brightness-125" />
                   </div>
                   <h3 className="text-white font-semibold text-lg mb-2">{item.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">

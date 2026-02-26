@@ -1,6 +1,6 @@
 "use client";
 
-import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { useCookieConsent } from "@/context/CookieConsentContext";
 
 const Footer = () => {
@@ -18,17 +18,8 @@ const Footer = () => {
               Criando momentos especiais de aprendizado e diversão para famílias.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-smooth">
-                <Facebook className="w-5 h-5 text-primary" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-smooth">
+              <a href="https://www.instagram.com/ninaroapp" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-smooth">
                 <Instagram className="w-5 h-5 text-primary" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-smooth">
-                <Twitter className="w-5 h-5 text-primary" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-smooth">
-                <Youtube className="w-5 h-5 text-primary" />
               </a>
             </div>
           </div>

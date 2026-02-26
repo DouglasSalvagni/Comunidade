@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Instagram, Twitter, Facebook } from "lucide-react";
+import { Instagram } from "lucide-react";
 import Image from "next/image";
 import logo from "@/assets/logoninaro.webp";
 import { useCookieConsent } from "@/context/CookieConsentContext";
@@ -10,7 +10,7 @@ export const FooterInspira: React.FC = () => {
   return (
     <footer id="footer" className="bg-black/30 pt-20 pb-10 border-t border-white/5">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-3 gap-12 mb-12">
+        <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-2 mb-6">
               <a href="/">
@@ -37,6 +37,14 @@ export const FooterInspira: React.FC = () => {
               <li><a href="/terms" className="hover:text-brand-teal">Termos de Uso</a></li>
               <li><button onClick={openModal} className="hover:text-brand-teal text-left">Gerenciar Cookies</button></li>
             </ul>
+          </div>
+          <div>
+            <h4 className="font-bold mb-6">Siga o Ninaro</h4>
+            <div className="flex gap-4">
+              <a href="https://www.instagram.com/ninaroapp" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 group">
+                <Instagram className="w-5 h-5 text-gray-400 group-hover:text-brand-teal transition-colors" />
+              </a>
+            </div>
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-500">

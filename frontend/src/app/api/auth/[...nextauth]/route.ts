@@ -36,9 +36,65 @@ const handler = NextAuth({
       sessionData.oauthProvider = tokenData.oauthProvider
       return session
     },
+    async redirect({ url, baseUrl }) {
+      const resolved = url.startsWith('/') ? `${baseUrl}${url}` : url
+      if (resolved === baseUrl || resolved === `${baseUrl}/`) {
+        return `${baseUrl}/auth/callback`
+      }
+      if (resolved.startsWith(baseUrl)) {
+        return resolved
+      }
+      return baseUrl
+    },
   },
   pages: {
     signIn: '/auth/login',
+  },
+  cookies: {
+    sessionToken: {
+      name: '__Secure-next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    callbackUrl: {
+      name: '__Secure-next-auth.callback-url',
+      options: {
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    pkceCodeVerifier: {
+      name: '__Secure-next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    state: {
+      name: '__Secure-next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+    nonce: {
+      name: '__Secure-next-auth.nonce',
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 })

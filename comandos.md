@@ -35,12 +35,12 @@
 - `eas update --branch production-android --message "..."`
 
 ### build docker frontned
-- `docker build -f Dockerfile -t ninaro-frontend:v1.0.3 .`
-- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-frontend.tar" ninaro-frontend:v1.0.3`
+- `docker build -f Dockerfile -t ninaro-frontend:v1.0.4 .`
+- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-frontend.tar" ninaro-frontend:v1.0.4`
 
 ### build docker backend
-- `docker build -f Dockerfile -t ninaro-backend:v1.0.3 .`
-- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-backend.tar" ninaro-backend:v1.0.3`
+- `docker build -f Dockerfile -t ninaro-backend:v1.0.4 .`
+- `docker save -o "C:/Users/Douglas/Desktop/wizer/MVPs/images/ninaro-backend.tar" ninaro-backend:v1.0.4`
 
 ### build docker worker
 - `docker build -f Dockerfile.worker -t ninaro-worker:v1.0.3 .`

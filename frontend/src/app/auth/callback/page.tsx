@@ -20,6 +20,19 @@ const getAppleUserIdFromToken = (token: string): string | null => {
   }
 };
 
+const getProviderFromToken = (token: string): "apple" | "google" | null => {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(window.atob(padded));
+    return payload?.iss === "https://appleid.apple.com" ? "apple" : "google";
+  } catch {
+    return null;
+  }
+};
+
 const AuthCallbackContent = () => {
   const router = useRouter();
   const params = useSearchParams();
@@ -33,13 +46,18 @@ const AuthCallbackContent = () => {
         const idToken = (session as any)?.idToken as string | undefined;
         const oauthProvider = (session as any)?.oauthProvider as string | undefined;
         if (idToken) {
+          const resolvedProvider = oauthProvider === "apple" || oauthProvider === "google"
+            ? oauthProvider
+            : getProviderFromToken(idToken);
           let auth;
-          if (oauthProvider === "apple") {
+          if (resolvedProvider === "apple") {
             const appleUserId = getAppleUserIdFromToken(idToken);
             if (!appleUserId) throw new Error("Apple user inválido");
             auth = await api.loginWithApple(idToken, appleUserId);
-          } else {
+          } else if (resolvedProvider === "google") {
             auth = await api.loginWithGoogle(idToken);
+          } else {
+            throw new Error("Provider OAuth inválido");
           }
           if (auth?.user?.role === "admin") {
             router.replace("/admin");

@@ -231,6 +231,26 @@ export class AuthService {
     });
   }
 
+  private getAppleAllowedAudiences(): string[] {
+    const envList = (process.env.APPLE_CLIENT_IDS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const directList = [
+      process.env.APPLE_CLIENT_ID,
+      process.env.APPLE_CLIENT_ID_IOS,
+      process.env.APPLE_CLIENT_ID_WEB,
+    ]
+      .map((value) => (value || '').trim())
+      .filter(Boolean);
+    return Array.from(new Set([...directList, ...envList]));
+  }
+
+  private getAppleVerifyAudience(): [string, ...string[]] | undefined {
+    const audiences = this.getAppleAllowedAudiences();
+    return audiences.length > 0 ? [audiences[0], ...audiences.slice(1)] : undefined;
+  }
+
   async loginWithApple(dto: AppleOAuthDto) {
     // 1. Decode header to get kid
     const decoded = jwt.decode(dto.identityToken, { complete: true });
@@ -242,10 +262,10 @@ export class AuthService {
     let payload: any;
     try {
       const publicKey = await this.getAppleSigningKey(decoded.header);
-      const expectedAud = process.env.APPLE_CLIENT_ID;
+      const expectedAudiences = this.getAppleVerifyAudience();
       payload = jwt.verify(dto.identityToken, publicKey, {
         issuer: 'https://appleid.apple.com',
-        audience: expectedAud || undefined,
+        audience: expectedAudiences,
         algorithms: ['RS256'],
       });
     } catch (e: any) {

@@ -24,7 +24,7 @@ export interface User {
   role: 'user' | 'admin';
   isActive: boolean;
   emailVerified: boolean;
-  authProvider?: 'local' | 'google';
+  authProvider?: 'local' | 'google' | 'apple';
   acceptedLegal?: boolean;
   currentSubscription?: Subscription | null;
   createdAt: string;
@@ -318,6 +318,20 @@ class ApiService {
 
   async loginWithGoogle(idToken: string): Promise<AuthResponse> {
     const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/oauth/google', { idToken });
+    if (response.data.data?.accessToken) {
+      try {
+        await fetch('/api/auth/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: response.data.data.accessToken, acceptedLegal: !!(response.data.data?.user as any)?.acceptedLegal }),
+        });
+      } catch { }
+    }
+    return response.data.data;
+  }
+
+  async loginWithApple(identityToken: string, appleUserId: string): Promise<AuthResponse> {
+    const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/oauth/apple', { identityToken, appleUserId });
     if (response.data.data?.accessToken) {
       try {
         await fetch('/api/auth/set-token', {

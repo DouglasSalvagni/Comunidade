@@ -14,6 +14,20 @@ import { useSession } from "next-auth/react";
 
 export const dynamic = "force-dynamic";
 
+const getAppleUserIdFromToken = (token: string): string | null => {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(window.atob(padded));
+    const sub = payload?.sub;
+    return typeof sub === "string" && sub.length > 0 ? sub : null;
+  } catch {
+    return null;
+  }
+};
+
 const LoginPageContent = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -44,11 +58,19 @@ const LoginPageContent = () => {
       } catch {}
     };
     ensureNotLogged();
-    const exchangeGoogle = async () => {
+    const exchangeSocial = async () => {
       const idToken = (session as any)?.idToken as string | undefined;
+      const oauthProvider = (session as any)?.oauthProvider as string | undefined;
       if (!idToken) return;
       try {
-        const auth = await api.loginWithGoogle(idToken);
+        let auth;
+        if (oauthProvider === "apple") {
+          const appleUserId = getAppleUserIdFromToken(idToken);
+          if (!appleUserId) throw new Error("Apple user inválido");
+          auth = await api.loginWithApple(idToken, appleUserId);
+        } else {
+          auth = await api.loginWithGoogle(idToken);
+        }
         if (auth?.user?.role === "admin") {
           router.replace("/admin");
         } else {
@@ -59,8 +81,8 @@ const LoginPageContent = () => {
         // Se falhar, permanece na página de login
       }
     };
-    exchangeGoogle();
-    }, [(session as any)?.idToken, router]);
+    exchangeSocial();
+    }, [(session as any)?.idToken, (session as any)?.oauthProvider, router, safeNext]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +145,9 @@ const LoginPageContent = () => {
             </Button>
             <Button type="button" variant="outline" className="w-full" onClick={() => signIn('google', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}>
               Login com Google
+            </Button>
+            <Button type="button" variant="outline" className="w-full" onClick={() => signIn('apple', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}>
+              Login com Apple
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">

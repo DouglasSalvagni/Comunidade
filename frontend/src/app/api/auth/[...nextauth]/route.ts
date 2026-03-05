@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth'
+import AppleProvider from 'next-auth/providers/apple'
 import GoogleProvider from 'next-auth/providers/google'
 
 const handler = NextAuth({
@@ -12,18 +13,27 @@ const handler = NextAuth({
         },
       },
     }),
+    AppleProvider({
+      clientId: process.env.APPLE_CLIENT_ID as string,
+      clientSecret: process.env.APPLE_CLIENT_SECRET as string,
+    }),
   ],
   callbacks: {
     async jwt({ token, account }) {
+      const mutableToken = token as typeof token & { idToken?: string; oauthProvider?: string }
       if (account && 'id_token' in account) {
-        // @ts-ignore
-        token.idToken = account.id_token
+        mutableToken.idToken = account.id_token as string | undefined
+      }
+      if (account?.provider) {
+        mutableToken.oauthProvider = account.provider
       }
       return token
     },
     async session({ session, token }) {
-      // @ts-ignore
-      session.idToken = token.idToken as string | undefined
+      const tokenData = token as typeof token & { idToken?: string; oauthProvider?: string }
+      const sessionData = session as typeof session & { idToken?: string; oauthProvider?: string }
+      sessionData.idToken = tokenData.idToken
+      sessionData.oauthProvider = tokenData.oauthProvider
       return session
     },
   },

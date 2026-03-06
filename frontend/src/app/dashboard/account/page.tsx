@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { api, User } from "@/services/api";
+import { api, Subscription, User } from "@/services/api";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +30,7 @@ const AccountPage = () => {
   const [savingPwd, setSavingPwd] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,13 +38,19 @@ const AccountPage = () => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCancelAndDeleteDialogOpen, setIsCancelAndDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const me = await api.getProfile();
+        const [me, currentSubscription] = await Promise.all([
+          api.getProfile(),
+          api.getCurrentSubscription().catch(() => null),
+        ]);
         setUser(me);
         setName(me.name || "");
+        setSubscription(currentSubscription);
       } catch (e: any) {
         toast.error(e?.message || "Falha ao carregar perfil");
       }
@@ -50,6 +58,18 @@ const AccountPage = () => {
     };
     load();
   }, []);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const dateOnly = dateString.split("T")[0];
+    const [year, month, day] = dateOnly.split("-");
+    if (!year || !month || !day) return "Data inválida";
+    return `${day}/${month}/${year}`;
+  };
+
+  const subscriptionSlug = subscription?.plan?.slug;
+  const isFreeOrCourtesyPlan = subscriptionSlug === "plano-gratuito" || subscriptionSlug === "plano-cortesia";
+  const hasActivePaidPlan = !!subscription?.plan && !isFreeOrCourtesyPlan;
 
   const onSave = async () => {
     if (!name || !user) return;
@@ -85,16 +105,21 @@ const AccountPage = () => {
     setSavingPwd(false);
   };
 
-  const onDeleteAccount = async () => {
+  const onDeleteAccount = async (withCancellation: boolean) => {
     setDeleting(true);
     try {
+      if (withCancellation) {
+        await api.cancelSubscription();
+      }
       await api.deleteMyAccount();
       await Promise.allSettled([signOut({ redirect: false }), api.clearToken()]);
       router.replace("/auth/login?accountDeleted=1");
     } catch (e: any) {
-      toast.error(e?.message || "Falha ao excluir conta");
+      toast.error(e?.message || (withCancellation ? "Falha ao cancelar assinatura e excluir conta" : "Falha ao excluir conta"));
     } finally {
       setDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setIsCancelAndDeleteDialogOpen(false);
     }
   };
 
@@ -194,7 +219,7 @@ const AccountPage = () => {
               <p className="text-sm text-muted-foreground mt-1 mb-3">
                 Esta ação é permanente e remove seu acesso à plataforma.
               </p>
-              <AlertDialog>
+              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={deleting}>
                     {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -207,19 +232,73 @@ const AccountPage = () => {
                     <AlertDialogDescription>
                       Esta ação não pode ser desfeita. Todos os dados associados à sua conta serão removidos.
                     </AlertDialogDescription>
+                    {hasActivePaidPlan ? (
+                      <div className="text-sm text-muted-foreground space-y-2">
+                        <p>
+                          Seu plano pago está ativo
+                          {subscription?.periodEnd ? ` até ${formatDate(subscription.periodEnd)}.` : "."}
+                        </p>
+                        <p>Você pode cancelar sua assinatura antes de excluir a conta.</p>
+                      </div>
+                    ) : null}
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                    {hasActivePaidPlan ? (
+                      <>
+                        <Button asChild variant="outline" disabled={deleting}>
+                          <Link href="/dashboard/subscriptions">Ir para Assinatura</Link>
+                        </Button>
+                        <AlertDialogAction
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (!deleting) {
+                              setIsDeleteDialogOpen(false);
+                              setIsCancelAndDeleteDialogOpen(true);
+                            }
+                          }}
+                          disabled={deleting}
+                        >
+                          Excluir mesmo assim
+                        </AlertDialogAction>
+                      </>
+                    ) : (
+                      <AlertDialogAction
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (!deleting) {
+                            onDeleteAccount(false);
+                          }
+                        }}
+                        disabled={deleting}
+                      >
+                        {deleting ? "Excluindo..." : "Confirmar exclusão"}
+                      </AlertDialogAction>
+                    )}
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog open={isCancelAndDeleteDialogOpen} onOpenChange={setIsCancelAndDeleteDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancelar assinatura e excluir conta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Ao continuar, sua assinatura será cancelada e, em seguida, sua conta será excluída permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>Voltar</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={(event) => {
                         event.preventDefault();
                         if (!deleting) {
-                          onDeleteAccount();
+                          onDeleteAccount(true);
                         }
                       }}
                       disabled={deleting}
                     >
-                      {deleting ? "Excluindo..." : "Confirmar exclusão"}
+                      {deleting ? "Processando..." : "Cancelar assinatura e excluir"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

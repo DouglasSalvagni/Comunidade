@@ -14,6 +14,10 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3001);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+  const corsEnabledRaw = configService.get<string>('CORS_ENABLED');
+  const corsEnabled = corsEnabledRaw !== undefined
+    ? ['true', '1', 'yes', 'on'].includes(String(corsEnabledRaw).toLowerCase())
+    : true;
 
   const httpAdapter = app.getHttpAdapter();
   const instance = httpAdapter?.getInstance?.();
@@ -33,13 +37,14 @@ async function bootstrap() {
     },
   }));
 
-  // CORS
-  app.enableCors({
-    origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  });
+  if (corsEnabled) {
+    app.enableCors({
+      origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    });
+  }
 
   // Compression
   app.use(compression());

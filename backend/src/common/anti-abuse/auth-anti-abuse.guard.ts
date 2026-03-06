@@ -24,6 +24,10 @@ export class AuthAntiAbuseGuard implements CanActivate {
   ) { }
 
   canActivate(context: ExecutionContext) {
+    if (!this.isEnabled()) {
+      return true;
+    }
+
     const req = context.switchToHttp().getRequest();
 
     const action = this.getAction(context);
@@ -48,6 +52,12 @@ export class AuthAntiAbuseGuard implements CanActivate {
     this.applyStuffingDetection(ctx);
 
     return true;
+  }
+
+  private isEnabled() {
+    const raw = process.env.AUTH_ANTI_ABUSE_ENABLED;
+    if (raw === undefined) return true;
+    return ['true', '1', 'yes', 'on'].includes(String(raw).toLowerCase());
   }
 
   private getAction(context: ExecutionContext): AntiAbuseAction {

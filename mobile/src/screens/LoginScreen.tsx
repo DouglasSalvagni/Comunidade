@@ -273,7 +273,7 @@ export default function LoginScreen({ onRegister, onForgot, onLoggedIn, onVerifi
           <View style={{ marginTop: 10 }}>
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
               cornerRadius={8}
               style={{ width: '100%', height: 48 }}
               onPress={handleAppleLogin}

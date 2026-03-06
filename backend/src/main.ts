@@ -18,6 +18,19 @@ async function bootstrap() {
   const corsEnabled = corsEnabledRaw !== undefined
     ? ['true', '1', 'yes', 'on'].includes(String(corsEnabledRaw).toLowerCase())
     : true;
+  const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '');
+  const corsOrigins = Array.from(
+    new Set(
+      [
+        configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
+        configService.get<string>('FRONTEND_URL'),
+      ]
+        .flatMap((value) => (value || '').split(','))
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map(normalizeOrigin),
+    ),
+  );
 
   const httpAdapter = app.getHttpAdapter();
   const instance = httpAdapter?.getInstance?.();
@@ -39,7 +52,11 @@ async function bootstrap() {
 
   if (corsEnabled) {
     app.enableCors({
-      origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000'),
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const isAllowed = corsOrigins.includes(normalizeOrigin(origin));
+        return callback(null, isAllowed);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

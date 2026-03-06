@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Linking, Modal } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Input from '../components/Input'
 import PrimaryButton from '../components/PrimaryButton'
 import AccountSkeleton from '../components/AccountSkeleton'
 import { useAuth } from '../context/AuthContext'
 import { apiProfile, apiUpdateMyProfile, apiChangeMyPassword, apiGetCurrentSubscription } from '../services/api'
+import appConfig from '../../app.json'
 
 type Props = {
   onBack: () => void
 }
 
 export default function AccountScreen({ onBack }: Props) {
-  const { accessToken, user, refreshProfile } = useAuth()
+  const { accessToken, refreshProfile } = useAuth()
   const insets = useSafeAreaInsets()
+  const isIOS = Platform.OS === 'ios'
+  const accountDeletionUrl = `${(appConfig as any)?.expo?.extra?.siteBaseUrl || 'http://localhost:3000'}/dashboard/account`
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingPwd, setSavingPwd] = useState(false)
@@ -26,6 +29,7 @@ export default function AccountScreen({ onBack }: Props) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [subscription, setSubscription] = useState<any>(null)
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -34,11 +38,11 @@ export default function AccountScreen({ onBack }: Props) {
       setError('')
       try {
         if (!accessToken) throw new Error('Não autenticado')
-
-        const [me, subData] = await Promise.all([
-          apiProfile(accessToken),
-          apiGetCurrentSubscription(accessToken).catch(() => ({ subscription: null }))
-        ])
+        const mePromise = apiProfile(accessToken)
+        const subPromise = isIOS
+          ? Promise.resolve({ subscription: null })
+          : apiGetCurrentSubscription(accessToken).catch(() => ({ subscription: null }))
+        const [me, subData] = await Promise.all([mePromise, subPromise])
 
         if (!mounted) return
         setName(me?.name || '')
@@ -52,7 +56,7 @@ export default function AccountScreen({ onBack }: Props) {
     }
     load()
     return () => { mounted = false }
-  }, [accessToken])
+  }, [accessToken, isIOS])
 
   async function onSave() {
     if (!accessToken) return
@@ -119,6 +123,15 @@ export default function AccountScreen({ onBack }: Props) {
     return labels[status] || status;
   };
 
+  const openAccountDeletionPage = async () => {
+    try {
+      setDeleteModalVisible(false)
+      await Linking.openURL(accountDeletionUrl)
+    } catch {
+      setError('Não foi possível abrir a página de exclusão da conta')
+    }
+  }
+
   const renderSubscriptionCard = () => {
     if (!subscription || !subscription.plan) {
       return (
@@ -184,9 +197,11 @@ export default function AccountScreen({ onBack }: Props) {
           <AccountSkeleton />
         ) : (
           <>
-            <View style={{ marginBottom: 20 }}>
-              {renderSubscriptionCard()}
-            </View>
+            {!isIOS && (
+              <View style={{ marginBottom: 20 }}>
+                {renderSubscriptionCard()}
+              </View>
+            )}
 
             <Text style={styles.subtitle}>Atualize seu nome de exibição.</Text>
             <View style={styles.card}>
@@ -220,11 +235,44 @@ export default function AccountScreen({ onBack }: Props) {
                 </View>
               )}
 
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Excluir conta</Text>
+                <Text style={styles.infoText}>Para concluir a exclusão, continue no site.</Text>
+                <View style={{ marginTop: 10 }}>
+                  <PrimaryButton title="Excluir conta" onPress={() => setDeleteModalVisible(true)} />
+                </View>
+              </View>
+
               <View style={{ height: 8 }} />
             </View>
           </>
         )}
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalCenteredView}>
+          <View style={styles.modalBackdrop} onTouchEnd={() => setDeleteModalVisible(false)} />
+          <View style={styles.modalView}>
+            <Text style={styles.modalTitle}>Excluir conta</Text>
+            <Text style={styles.modalMessage}>
+              Você será redirecionado para o site para concluir a exclusão da conta.
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <Pressable style={styles.modalCancelButton} onPress={() => setDeleteModalVisible(false)}>
+                <Text style={styles.modalCancelButtonText}>Agora não</Text>
+              </Pressable>
+              <View style={styles.modalConfirmButtonWrapper}>
+                <PrimaryButton title="Continuar" onPress={openAccountDeletionPage} />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -258,4 +306,67 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#1d2340', marginVertical: 12 },
   subContent: {},
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modalCenteredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: '#0e1430',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '88%',
+    borderWidth: 1,
+    borderColor: '#1d2340',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#e6e9ff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#8b92b8',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#8b92b8',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalConfirmButtonWrapper: {
+    flex: 1,
+  },
 })

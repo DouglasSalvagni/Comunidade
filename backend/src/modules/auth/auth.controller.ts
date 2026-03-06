@@ -6,6 +6,7 @@ import {
   Request,
   Get,
   Patch,
+  Delete,
   HttpCode,
   HttpStatus,
   Res,
@@ -248,6 +249,25 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized or invalid current password' })
   async changePassword(@Request() req, @Body() body: ChangePasswordDto) {
     return this.authService.changePassword(req.user.userId, body.currentPassword, body.newPassword);
+  }
+
+  @Delete('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete current user account' })
+  @ApiResponse({ status: 200, description: 'Account deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async deleteProfile(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.deleteAccount(req.user.userId);
+    res.cookie('accessToken', '', {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production' ? true : false,
+      maxAge: 0,
+      path: '/',
+    });
+    return result;
   }
 
   @Post('password/forgot')

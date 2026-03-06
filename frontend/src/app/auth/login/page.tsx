@@ -64,6 +64,7 @@ const LoginPageContent = () => {
   const params = useSearchParams();
   const nextParam = params.get('next');
   const safeNext = nextParam && nextParam.startsWith('/dashboard') ? nextParam : null;
+  const accountDeleted = params.get('accountDeleted') === '1';
 
   
 
@@ -141,6 +142,11 @@ const LoginPageContent = () => {
           <CardDescription>
             Digite seu e-mail abaixo para fazer login em sua conta.
           </CardDescription>
+          {accountDeleted ? (
+            <p className="text-sm text-green-600">
+              Conta excluída com sucesso.
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent>
           <form className="grid gap-4" onSubmit={onSubmit}>

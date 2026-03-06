@@ -37,7 +37,7 @@ export default function UpgradeModal({ visible, url, onClose }: Props) {
                     <View style={styles.iconContainer}>
                         <Ionicons name="diamond" size={32} color="#d4a017" />
                     </View>
-                    <Text style={styles.title}>{isIOS ? 'Conteúdo Premium' : 'Faça upgrade!'}</Text>
+                    <Text style={styles.title}>{isIOS ? 'Mais conteúdo' : 'Faça upgrade!'}</Text>
                     <Text style={styles.message}>
                         {isIOS
                             ? 'Este conteúdo é exclusivo para assinantes. Se você já possui uma assinatura ativa, o acesso será liberado automaticamente.'

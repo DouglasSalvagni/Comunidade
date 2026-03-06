@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +9,25 @@ import { api, User } from "@/services/api";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { signOut } from "next-auth/react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AccountPage = () => {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -68,6 +83,19 @@ const AccountPage = () => {
       toast.error(msg);
     }
     setSavingPwd(false);
+  };
+
+  const onDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api.deleteMyAccount();
+      await Promise.allSettled([signOut({ redirect: false }), api.clearToken()]);
+      router.replace("/auth/login?accountDeleted=1");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao excluir conta");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -160,6 +188,43 @@ const AccountPage = () => {
                 <p className="text-sm text-muted-foreground">Sua conta está conectada via login social (ex.: Google). Alteração de senha não está disponível.</p>
               </div>
             )}
+
+            <div className="pt-6 border-t">
+              <h3 className="text-lg font-semibold text-red-600">Excluir conta</h3>
+              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                Esta ação é permanente e remove seu acesso à plataforma.
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={deleting}>
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Excluir conta
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar exclusão da conta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Todos os dados associados à sua conta serão removidos.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (!deleting) {
+                          onDeleteAccount();
+                        }
+                      }}
+                      disabled={deleting}
+                    >
+                      {deleting ? "Excluindo..." : "Confirmar exclusão"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </Card>
       )}

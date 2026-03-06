@@ -660,13 +660,13 @@ export default function HomeScreen({ onLogout }: Props) {
                       <Ionicons name="chevron-forward" size={20} color="#8b92b8" />
                     </Pressable>
                   )}
-                  {isFree && (
+                  {isFree && Platform.OS !== 'ios' && (
                   <Pressable style={[styles.menuItem, { borderColor: 'rgba(212, 160, 23, 0.3)' }]} onPress={() => setUpgradeModalVisible(true)}>
                     <View style={styles.menuItemContent}>
                       <Ionicons name="diamond-outline" size={20} color="#d4a017" />
-                      <Text style={[styles.menuItemText, { color: '#d4a017' }]}>{Platform.OS === 'ios' ? 'Conteúdo Premium' : 'Fazer upgrade'}</Text>
+                      <Text style={[styles.menuItemText, { color: '#d4a017' }]}>Fazer upgrade</Text>
                     </View>
-                    <Ionicons name={Platform.OS === 'ios' ? 'information-circle-outline' : 'open-outline'} size={18} color="#d4a017" />
+                    <Ionicons name="open-outline" size={18} color="#d4a017" />
                   </Pressable>
                 )}
                   <Pressable style={[styles.menuItem, styles.logoutButton]} onPress={() => { stop(); onLogout() }}>

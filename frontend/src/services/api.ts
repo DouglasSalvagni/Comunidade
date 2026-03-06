@@ -450,6 +450,10 @@ class ApiService {
     return response.data.data;
   }
 
+  async deleteMyAccount(): Promise<void> {
+    await this.client.delete('/auth/profile');
+  }
+
   async logout(): Promise<void> {
     await this.client.post('/auth/logout', {});
     try {

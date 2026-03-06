@@ -162,6 +162,15 @@ export class AuthService {
     return this.sanitizeUser(updated);
   }
 
+  async deleteAccount(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+    await this.usersService.remove(userId);
+    return { ok: true };
+  }
+
   async loginWithGoogle(idToken: string) {
     const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
     if (!resp.ok) {

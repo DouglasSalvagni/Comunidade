@@ -6,9 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { Profile } from '@/modules/profiles/entities/profile.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
-import { Favorite } from '@/modules/catalog/entities/favorite.entity';
 
 @Entity('users')
 export class User {
@@ -42,14 +40,8 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => Profile, (profile) => profile.user)
-  profiles: Profile[];
-
   @OneToMany(() => Subscription, (subscription) => subscription.user)
   subscriptions: Subscription[];
-
-  @OneToMany(() => Favorite, (favorite) => favorite.user)
-  favorites: Favorite[];
 
   @Column({ name: 'apple_user_id', type: 'varchar', nullable: true, unique: true })
   appleUserId?: string | null;

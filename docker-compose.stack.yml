@@ -3,9 +3,9 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: babytune-postgres
+    container_name: comunidade-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-little_tales}
+      POSTGRES_DB: ${POSTGRES_DB:-comunidade}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
@@ -15,7 +15,7 @@ services:
       # Note: Init script might need to be manually mounted or baked into a custom image if not present on host
       # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - babytune-network
+      - comunidade-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -27,13 +27,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: babytune-redis
+    container_name: comunidade-redis
     ports:
       - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
-      - babytune-network
+      - comunidade-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -46,70 +46,35 @@ services:
   backend:
     # Assuming local build or image name. 
     # To build: docker compose -f docker-compose.stack.yml build backend
-    image: babytune-backend:latest
-    container_name: babytune-backend
+    image: comunidade-backend:latest
+    container_name: comunidade-backend
     ports:
       - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/little_tales}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/comunidade}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      # AWS/S3 Configs should be added here if needed
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      AWS_BUCKET_NAME: ${AWS_BUCKET_NAME}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - media_uploads:/app/uploads
     networks:
-      - babytune-network
-    deploy:
-      restart_policy:
-        condition: on-failure
-
-  worker:
-    image: babytune-worker:latest
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    container_name: babytune-worker
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/little_tales}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      API_BASE_URL: ${API_BASE_URL:-http://backend:3001/api/v1}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_started
-    volumes:
-      - media_uploads:/app/uploads
-    networks:
-      - babytune-network
+      - comunidade-network
     deploy:
       restart_policy:
         condition: on-failure
 
   frontend:
-    image: babytune-frontend:latest
+    image: comunidade-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: babytune-frontend
+    container_name: comunidade-frontend
     ports:
       - "3000:3000"
     environment:
@@ -117,7 +82,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
       # Add other public env vars here
     networks:
-      - babytune-network
+      - comunidade-network
     deploy:
       restart_policy:
         condition: on-failure
@@ -125,8 +90,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  media_uploads:
 
 networks:
-  babytune-network:
+  comunidade-network:
     driver: bridge

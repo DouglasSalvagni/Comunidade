@@ -2,19 +2,8 @@ import 'reflect-metadata'
 import { DataSource } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 import { User } from '@/modules/users/entities/user.entity'
-import { Profile } from '@/modules/profiles/entities/profile.entity'
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity'
-import { Favorite } from '@/modules/catalog/entities/favorite.entity'
-import { Work } from '@/modules/catalog/entities/work.entity'
-import { Track } from '@/modules/catalog/entities/track.entity'
-import { Chapter } from '@/modules/catalog/entities/chapter.entity'
-import { Tag } from '@/modules/catalog/entities/tag.entity'
-import { DevTheme } from '@/modules/catalog/entities/dev-theme.entity'
-import { WorkDevTheme } from '@/modules/catalog/entities/work-dev-theme.entity'
 import { Plan } from '@/modules/subscriptions/entities/plan.entity'
-import { PlayEvent } from '@/modules/playback/entities/play-event.entity'
-import { Download } from '@/modules/playback/entities/download.entity'
-import { WorkTag } from '@/modules/catalog/entities/work-tag.entity'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
 const isProd = process.env.NODE_ENV === 'production'
@@ -28,19 +17,8 @@ const dataSource = new DataSource({
   url: dbUrl,
   entities: [
     User,
-    Profile,
-    Work,
-    Track,
-    Chapter,
-    Tag,
-    DevTheme,
-    WorkDevTheme,
     Plan,
     Subscription,
-    Favorite,
-    PlayEvent,
-    Download,
-    WorkTag,
   ],
   ssl: useSsl ? { rejectUnauthorized: false } : false,
 })
@@ -49,10 +27,6 @@ async function run() {
   await dataSource.initialize()
   const userRepo = dataSource.getRepository(User)
   const planRepo = dataSource.getRepository(Plan)
-  const tagRepo = dataSource.getRepository(Tag)
-  const themeRepo = dataSource.getRepository(DevTheme)
-  const workRepo = dataSource.getRepository(Work)
-  const trackRepo = dataSource.getRepository(Track)
 
   // Criar planos se a tabela estiver vazia
   const plansCount = await planRepo.count()
@@ -97,26 +71,6 @@ async function run() {
     console.log('Seed: planos já existem, pulando criação')
   }
 
-  // Temas de Desenvolvimento (idempotente)
-  const devThemes: Array<{ name: string; description: string }> = [
-    { name: 'Linguagem', description: 'Estimula o desenvolvimento da fala, amplia vocabulário e fortalece habilidades comunicativas.' },
-    { name: 'Cognição', description: 'Ativa áreas do cérebro ligadas ao raciocínio, memória e compreensão.' },
-    { name: 'Atenção', description: 'Ajuda a criança a manter o foco por mais tempo e aprimora a capacidade de concentração.' },
-    { name: 'Emoções', description: 'Favorece regulação emocional, reduz estresse e promove bem-estar.' },
-    { name: 'Socialização', description: 'Incentiva empatia, cooperação e compreensão de outras perspectivas.' },
-    { name: 'Motricidade', description: 'Estimula coordenação fina e percepção sensório-motora através do ritmo e da narrativa.' },
-    { name: 'Imaginação', description: 'Expande a criatividade ao convidar a criança a criar imagens mentais e cenários próprios.' },
-    { name: 'Vínculo Afetivo', description: 'Fortalece a conexão entre pais e filhos quando consumido juntos como rotina positiva.' },
-  ]
-
-  for (const t of devThemes) {
-    const exists = await themeRepo.findOne({ where: { name: t.name } })
-    if (!exists) {
-      await themeRepo.save(themeRepo.create({ name: t.name, description: t.description, isActive: true }))
-      console.log('Seed: tema criado', t.name)
-    }
-  }
-
   const email = process.env.SEED_USER_EMAIL || 'douglassalvagni@outlook.com'
   const password = process.env.SEED_USER_PASSWORD || 'password123'
 
@@ -139,30 +93,6 @@ async function run() {
   await userRepo.save(user)
   console.log('Seed: usuário criado', user.email)
 
-  async function ensureTag(name: string, color: string) {
-    const existing = await tagRepo.findOne({ where: { name } })
-    if (existing) {
-      return existing
-    }
-    const created = await tagRepo.save(tagRepo.create({ name, color }))
-    return created
-  }
-
-  const tagA = await ensureTag('Aventura', '#ff9900')
-  const tagB = await ensureTag('Educativo', '#33aa55')
-
-  const work = workRepo.create({
-    title: 'Contos Musicais',
-    description: 'Coleção de músicas para crianças',
-    type: 'music',
-    recommendedMinMonths: 36,
-    recommendedMaxMonths: 96,
-    recommendedAgeLabel: '3–8 anos',
-    isActive: true,
-    tags: [tagA, tagB],
-  } as Partial<Work>)
-  const savedWork = await workRepo.save(work)
-  await trackRepo.save(trackRepo.create({ workId: savedWork.id, title: 'Faixa 1', orderIndex: 0 }))
   await dataSource.destroy()
 }
 

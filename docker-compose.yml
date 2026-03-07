@@ -3,9 +3,9 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: babytune-postgres
+    container_name: comunidade-postgres
     environment:
-      POSTGRES_DB: little_tales
+      POSTGRES_DB: comunidade
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - babytune-network
+      - comunidade-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -23,13 +23,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: babytune-redis
+    container_name: comunidade-redis
     ports:
       - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
-      - babytune-network
+      - comunidade-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -40,7 +40,7 @@ services:
   #   build:
   #     context: ./backend
   #     dockerfile: Dockerfile
-  #   container_name: babytune-backend
+  #   container_name: comunidade-backend
   #   ports:
   #     - "3001:3001"
   #   env_file:
@@ -48,7 +48,7 @@ services:
   #   environment:
   #     NODE_ENV: development
   #     PORT: 3001
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/little_tales
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/comunidade
   #     REDIS_URL: redis://redis:6379
   #     JWT_SECRET: little-tales-secret-key-change-in-production
   #     JWT_EXPIRATION: 7d
@@ -63,54 +63,24 @@ services:
   #     - /app/node_modules
   #     - media_uploads:/app/uploads
   #   networks:
-  #     - babytune-network
+  #     - comunidade-network
   #   restart: unless-stopped
-
-  # Serviço opcional para processamento de mídia
-  worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.worker
-    container_name: babytune-worker
-    env_file:
-      - ./backend/.env
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5433/little_tales
-      REDIS_URL: redis://host.docker.internal:6380
-      REDIS_HOST: host.docker.internal
-      REDIS_PORT: 6380
-      API_BASE_URL: http://localhost:3001/api/v1
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-      - media_uploads:/app/uploads
-    networks:
-      - babytune-network
-    restart: unless-stopped
-
 
   adminer:
     image: adminer:latest
-    container_name: babytune-adminer
+    container_name: comunidade-adminer
     restart: always
     ports:
       - "8084:8080"
     depends_on:
       - postgres
     networks:
-      - babytune-network
+      - comunidade-network
 
 volumes:
   postgres_data:
   redis_data:
-  media_uploads:
 
 networks:
-  babytune-network:
+  comunidade-network:
     driver: bridge

@@ -1,9 +1,7 @@
 'use client';
 
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { PlayerHeightProvider, usePlayerHeight } from "@/context/PlayerHeightContext";
 import { ReactNode } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
@@ -26,12 +24,9 @@ const geistMono = Geist_Mono({
 // };
 
 const AppBody = ({ children }: { children: ReactNode }) => {
-  const { playerHeight } = usePlayerHeight();
-
   return (
     <body
       className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      style={{ paddingBottom: `${playerHeight}px` }}
       suppressHydrationWarning
     >
       {children}
@@ -49,11 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <CookieConsentProvider>
-        <PlayerHeightProvider>
-          <SessionProvider>
-            <AppBody>{children}</AppBody>
-          </SessionProvider>
-        </PlayerHeightProvider>
+        <SessionProvider>
+          <AppBody>{children}</AppBody>
+        </SessionProvider>
       </CookieConsentProvider>
     </html>
   );

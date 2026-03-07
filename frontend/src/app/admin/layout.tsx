@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Package, Users, Tag, BookOpen, FileText, Shield, CreditCard, Settings } from 'lucide-react';
+import { Home, Users, Tag, FileText, Shield, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/services/api';
@@ -80,21 +80,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link href="/admin/catalog" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                <Package className="h-4 w-4" />
-                Catálogo
-              </Link>
               <Link href="/admin/plans" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <CreditCard className="h-4 w-4" />
                 Planos
-              </Link>
-              <Link href="/admin/tags" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                <Tag className="h-4 w-4" />
-                Tags
-              </Link>
-              <Link href="/admin/dev-themes" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                <BookOpen className="h-4 w-4" />
-                Temas de Desenvolvimento
               </Link>
               <Link href="/admin/legal" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <FileText className="h-4 w-4" />
@@ -115,10 +103,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link href="/admin/affiliates" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <Users className="h-4 w-4" />
                 Afiliados
-              </Link>
-              <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                <Settings className="h-4 w-4" />
-                Configurações
               </Link>
             </nav>
           </div>

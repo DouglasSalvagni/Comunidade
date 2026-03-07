@@ -8,19 +8,6 @@ const AdminDashboardPage = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Gerenciar Catálogo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Adicionar, editar ou remover obras do catálogo.
-            </p>
-            <Link href="/admin/catalog" className="text-sm font-medium text-primary hover:underline mt-4 block">
-              Acessar
-            </Link>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle>Gerenciar Planos</CardTitle>
           </CardHeader>
           <CardContent>
@@ -34,26 +21,26 @@ const AdminDashboardPage = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Gerenciar Tags</CardTitle>
+            <CardTitle>Gerenciar Legal</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Adicionar, editar ou remover tags do sistema.
+              Atualizar termos e política de privacidade.
             </p>
-            <Link href="/admin/tags" className="text-sm font-medium text-primary hover:underline mt-4 block">
+            <Link href="/admin/legal" className="text-sm font-medium text-primary hover:underline mt-4 block">
               Acessar
             </Link>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Temas de Desenvolvimento</CardTitle>
+            <CardTitle>Anti-Abuse</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Cadastrar, editar e remover temas de desenvolvimento.
+              Monitorar controles de prevenção a abuso.
             </p>
-            <Link href="/admin/dev-themes" className="text-sm font-medium text-primary hover:underline mt-4 block">
+            <Link href="/admin/anti-abuse" className="text-sm font-medium text-primary hover:underline mt-4 block">
               Acessar
             </Link>
           </CardContent>
@@ -73,13 +60,26 @@ const AdminDashboardPage = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Configurações</CardTitle>
+            <CardTitle>Parcerias & Cupons</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Gerenciar parâmetros globais do sistema.
+              Gerenciar campanhas, cupons e vínculos comerciais.
             </p>
-            <Link href="/admin/settings" className="text-sm font-medium text-primary hover:underline mt-4 block">
+            <Link href="/admin/partnerships" className="text-sm font-medium text-primary hover:underline mt-4 block">
+              Acessar
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Afiliados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Administrar afiliados e dados de repasse.
+            </p>
+            <Link href="/admin/affiliates" className="text-sm font-medium text-primary hover:underline mt-4 block">
               Acessar
             </Link>
           </CardContent>

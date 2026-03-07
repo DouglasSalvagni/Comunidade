@@ -36,63 +36,8 @@ services:
       APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
       CORS_ORIGIN: ${CORS_ORIGIN}
 
-      S3_ENDPOINT: ${S3_ENDPOINT}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_REGION: ${S3_REGION}
-      CDN_BASE_URL: ${CDN_BASE_URL}
-
       THROTTLE_TTL: ${THROTTLE_TTL}
       THROTTLE_LIMIT: ${THROTTLE_LIMIT}
-
-      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
-      UPLOAD_DEST: ${UPLOAD_DEST}
-
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${SMTP_FROM}
-    depends_on:
-      - babytune_postgres
-      - babytune_redis
-    volumes:
-      - media_uploads:/app/uploads
-    networks:
-      - network_swarm_public
-
-  babytune_worker:
-    image: ${WORKER_IMAGE}
-    command: ["node", "dist/src/workers/worker.js"]
-    restart: unless-stopped
-    environment:
-      NODE_ENV: ${NODE_ENV}
-      PORT: ${BACKEND_PORT}
-
-      DB_SSL: ${DB_SSL}
-      DATABASE_URL: ${DATABASE_URL}
-
-      REDIS_URL: ${REDIS_URL}
-      REDIS_HOST: ${REDIS_HOST}
-
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      CORS_ORIGIN: ${CORS_ORIGIN}
-
-      S3_ENDPOINT: ${S3_ENDPOINT}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
-      S3_SECRET_KEY: ${S3_SECRET_KEY}
-      S3_BUCKET: ${S3_BUCKET}
-      S3_REGION: ${S3_REGION}
-      CDN_BASE_URL: ${CDN_BASE_URL}
-
-      THROTTLE_TTL: ${THROTTLE_TTL}
-      THROTTLE_LIMIT: ${THROTTLE_LIMIT}
-
-      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
-      UPLOAD_DEST: ${UPLOAD_DEST}
 
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -123,7 +68,6 @@ services:
 volumes:
   babytune_postgres_data:
   babytune_redis_data:
-  media_uploads:
 
 networks:
   network_swarm_public:

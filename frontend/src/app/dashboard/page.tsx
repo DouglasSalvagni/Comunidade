@@ -65,11 +65,11 @@ const DashboardPage = () => {
             </p>
           </Card>
         </Link>
-        <Link href="/dashboard/profiles" className="block">
+        <Link href="/dashboard/subscriptions" className="block">
           <Card className="p-6 hover:border-primary transition-colors">
-            <h2 className="text-lg font-semibold">Perfis</h2>
+            <h2 className="text-lg font-semibold">Assinatura</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              Gerencie os perfis das crianças.
+              Consulte e gerencie seu plano atual.
             </p>
           </Card>
         </Link>

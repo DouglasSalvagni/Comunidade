@@ -1,0 +1,41 @@
+import { useState } from 'react'
+import { TextInput, View, Text, StyleSheet } from 'react-native'
+
+type Props = {
+  label: string
+  value: string
+  onChangeText: (t: string) => void
+  placeholder?: string
+  secureTextEntry?: boolean
+  keyboardType?: 'default' | 'email-address'
+  labelHidden?: boolean
+}
+
+export default function Input({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, labelHidden }: Props) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <View style={styles.container}>
+      {!labelHidden && <Text style={styles.label}>{label}</Text>}
+      <TextInput
+        style={[styles.input, focused && styles.inputFocused]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#94a3b8"
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        autoCapitalize="none"
+        selectionColor="#A78BFA"
+      />
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { width: '100%', marginBottom: 12 },
+  label: { fontSize: 14, color: '#e5e7eb', marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: '#2b3448', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, backgroundColor: '#111827', color: '#f8fafc' },
+  inputFocused: { borderColor: '#7C3AED' },
+})

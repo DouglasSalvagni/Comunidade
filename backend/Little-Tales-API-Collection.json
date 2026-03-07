@@ -1,0 +1,640 @@
+{
+  "info": {
+    "name": "Little Tales API Collection",
+    "description": "Coleção completa de APIs para o backend Little Tales - Músicas e Audiobooks Infantis",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3003/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "profileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Registrar Novo Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novousuario@example.com\",\n  \"password\": \"Senha123456\",\n  \"name\": \"João Silva\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registrar um novo usuário na plataforma"
+          }
+        },
+        {
+          "name": "Login Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@little-tales.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Realizar login e obter token JWT"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set('authToken', response.accessToken);",
+                  "console.log('Token JWT salvo:', response.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obter Perfil do Usuário",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Obter informações do perfil do usuário autenticado"
+          }
+        },
+        {
+          "name": "Renovar Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Renovar token de acesso usando refresh token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Perfis Infantis",
+      "item": [
+        {
+          "name": "Listar Perfis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles"]
+            },
+            "description": "Listar todos os perfis infantis do usuário"
+          }
+        },
+        {
+          "name": "Criar Perfil Infantil",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria\",\n  \"ageRange\": \"3-5\",\n  \"avatarUrl\": \"https://example.com/avatar-maria.png\",\n  \"parentalPin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles"]
+            },
+            "description": "Criar um novo perfil infantil"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.environment.set('profileId', response.id);",
+                  "console.log('Profile ID salvo:', response.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Atualizar Perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Atualizada\",\n  \"ageRange\": \"6-8\",\n  \"avatarUrl\": \"https://example.com/avatar-maria-nova.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profiles/{{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["profiles", "{{profileId}}"]
+            },
+            "description": "Atualizar informações de um perfil infantil"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo",
+      "item": [
+        {
+          "name": "Listar Obras",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/works?type=music&age=3-5&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["works"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "music",
+                  "description": "Tipo de obra (music, audiobook, series)"
+                },
+                {
+                  "key": "age",
+                  "value": "3-5",
+                  "description": "Faixa etária recomendada"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número da página"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Limite de itens por página"
+                }
+              ]
+            },
+            "description": "Listar obras do catálogo com filtros"
+          }
+        },
+        {
+          "name": "Obter Detalhes da Obra",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/works/{{workId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["works", "{{workId}}"]
+            },
+            "description": "Obter detalhes de uma obra específica"
+          }
+        },
+        {
+          "name": "Marcar/Desmarcar Favorito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/works/{{workId}}/favorite",
+              "host": ["{{baseUrl}}"],
+              "path": ["works", "{{workId}}", "favorite"]
+            },
+            "description": "Marcar ou desmarcar uma obra como favorita"
+          }
+        },
+        {
+          "name": "Listar Favoritos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"]
+            },
+            "description": "Listar obras favoritas do usuário"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Playback",
+      "item": [
+        {
+          "name": "Obter URL de Streaming",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/playback/{{trackId}}/url",
+              "host": ["{{baseUrl}}"],
+              "path": ["playback", "{{trackId}}", "url"]
+            },
+            "description": "Obter URL assinada para streaming de áudio"
+          }
+        },
+        {
+          "name": "Registrar Evento de Playback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trackId\": \"{{trackId}}\",\n  \"eventType\": \"play\",\n  \"positionSeconds\": 120,\n  \"profileId\": \"{{profileId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playback/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["playback", "events"]
+            },
+            "description": "Registrar evento de playback (play, pause, complete, seek)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assinaturas",
+      "item": [
+        {
+          "name": "Listar Planos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "plans"]
+            },
+            "description": "Listar planos de assinatura disponíveis"
+          }
+        },
+        {
+          "name": "Obter Assinatura Atual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "current"]
+            },
+            "description": "Obter informações da assinatura atual do usuário"
+          }
+        },
+        {
+          "name": "Mudar de Plano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/change-plan",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "change-plan"]
+            },
+            "description": "Mudar o plano de assinatura do usuário"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Administração",
+      "item": [
+        {
+          "name": "Listar Obras (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/works",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "works"]
+            },
+            "description": "Listar obras para administração"
+          }
+        },
+        {
+          "name": "Criar Nova Obra (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"A Caverna Encantada\",\n  \"description\": \"Uma aventura mágica em uma caverna secreta\",\n  \"type\": \"audiobook\",\n  \"recommendedAge\": \"6-8\",\n  \"coverUrl\": \"https://example.com/cover-caverna.jpg\",\n  \"duration\": 1800\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/works",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "works"]
+            },
+            "description": "Criar uma nova obra no catálogo"
+          }
+        },
+        {
+          "name": "Alternar Status da Obra (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/works/{{workId}}/toggle-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "works", "{{workId}}", "toggle-status"]
+            },
+            "description": "Ativar/desativar uma obra no catálogo"
+          }
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Playlists",
+      "item": [
+        {
+          "name": "Listar Playlists",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/playlists?profileId={{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["playlists"],
+              "query": [
+                {
+                  "key": "profileId",
+                  "value": "{{profileId}}"
+                }
+              ]
+            },
+            "description": "Listar playlists por perfil ou usuário"
+          }
+        },
+        {
+          "name": "Criar Playlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Minhas Músicas\",\n  \"profileId\": \"{{profileId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playlists",
+              "host": ["{{baseUrl}}"],
+              "path": ["playlists"]
+            },
+            "description": "Criar playlist vinculada ao perfil (ou usuário se profileId ausente)"
+          }
+        },
+        {
+          "name": "Adicionar Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trackId\": \"{{trackId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playlists/{{playlistId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["playlists", "{{playlistId}}", "items"]
+            },
+            "description": "Adicionar faixa à playlist"
+          }
+        },
+        {
+          "name": "Reordenar Itens",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIdsInOrder\": [\"{{itemId1}}\", \"{{itemId2}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/playlists/{{playlistId}}/items/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["playlists", "{{playlistId}}", "items", "reorder"]
+            },
+            "description": "Reordenar itens da playlist"
+          }
+        },
+        {
+          "name": "Remover Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/playlists/{{playlistId}}/items/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["playlists", "{{playlistId}}", "items", "{{itemId}}"]
+            },
+            "description": "Remover item da playlist"
+          }
+        }
+      ]
+    }
+  ]
+}

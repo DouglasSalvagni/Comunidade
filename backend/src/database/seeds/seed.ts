@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt'
 import { User } from '@/modules/users/entities/user.entity'
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity'
 import { Plan } from '@/modules/subscriptions/entities/plan.entity'
+import { SystemSetting } from '@/modules/settings/entities/system-setting.entity'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
 const isProd = process.env.NODE_ENV === 'production'
@@ -19,6 +20,7 @@ const dataSource = new DataSource({
     User,
     Plan,
     Subscription,
+    SystemSetting,
   ],
   ssl: useSsl ? { rejectUnauthorized: false } : false,
 })
@@ -27,6 +29,34 @@ async function run() {
   await dataSource.initialize()
   const userRepo = dataSource.getRepository(User)
   const planRepo = dataSource.getRepository(Plan)
+  const settingsRepo = dataSource.getRepository(SystemSetting)
+
+  // ─── Seed: System Settings (white label) ─────────────────────────────────
+  const INITIAL_SETTINGS: Array<{ key: string; value: string }> = [
+    { key: 'platform_name', value: process.env.APP_NAME || 'Comunidade' },
+    { key: 'platform_description', value: 'Plataforma de conteúdo digital' },
+    { key: 'logo_url', value: process.env.APP_LOGO_URL || '' },
+    { key: 'logo_compact_url', value: '' },
+    { key: 'primary_color', value: process.env.APP_PRIMARY_COLOR || '#4A90E2' },
+    { key: 'secondary_color', value: '#F59E0B' },
+    { key: 'accent_color', value: '#FDE047' },
+    { key: 'sidebar_background_color', value: '#1e1b4b' },
+    { key: 'email_primary_color', value: process.env.APP_PRIMARY_COLOR || '#4A90E2' },
+    { key: 'support_email', value: '' },
+    { key: 'instagram_url', value: '' },
+    { key: 'app_store_url', value: '' },
+    { key: 'play_store_url', value: '' },
+    { key: 'currency_symbol', value: 'R$' },
+    { key: 'currency_code', value: 'BRL' },
+    { key: 'locale', value: 'pt-BR' },
+  ]
+  for (const s of INITIAL_SETTINGS) {
+    const existing = await settingsRepo.findOne({ where: { key: s.key } })
+    if (!existing) {
+      await settingsRepo.save(settingsRepo.create({ key: s.key, value: s.value }))
+      console.log('Seed: setting criado', s.key)
+    }
+  }
 
   // Criar planos se a tabela estiver vazia
   const plansCount = await planRepo.count()

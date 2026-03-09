@@ -12,12 +12,15 @@ import { AdminAntiAbuseController } from './admin-anti-abuse.controller';
 import { AdminAffiliatesController } from './admin-affiliates.controller';
 import { AdminPartnershipsController } from './admin-partnerships.controller';
 import { AdminPlansController } from './admin-plans.controller';
+import { AdminSettingsController } from './admin-settings.controller';
+import { SettingsModule } from '@/modules/settings/settings.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Affiliate, Partnership, PartnershipAffiliate, Plan, Subscription]),
     UsersModule,
     AuthModule,
+    SettingsModule,
   ],
   providers: [],
   controllers: [
@@ -25,6 +28,7 @@ import { AdminPlansController } from './admin-plans.controller';
     AdminAffiliatesController,
     AdminPartnershipsController,
     AdminPlansController,
+    AdminSettingsController,
   ],
 })
 export class AdminModule {}

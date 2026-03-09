@@ -86,9 +86,11 @@ async function bootstrap() {
     // Detailed errors in development
     app.useGlobalFilters(new DevExceptionFilter());
 
+    const appName = configService.get<string>('APP_NAME', 'Comunidade');
+    const apiDescription = configService.get<string>('API_DESCRIPTION', 'API da plataforma');
     const config = new DocumentBuilder()
-      .setTitle('Little Tales API')
-      .setDescription('API para app de músicas e audiobooks infantis')
+      .setTitle(`${appName} API`)
+      .setDescription(apiDescription)
       .setVersion('1.0')
       .addBearerAuth()
       .build();

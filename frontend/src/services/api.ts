@@ -599,6 +599,16 @@ class ApiService {
     await this.client.delete(`/admin/partnerships/${partnershipId}/affiliates/${affiliateId}`);
   }
 
+  // ===== ADMIN SETTINGS (WHITE LABEL) =====
+  async adminListSettings(): Promise<Array<{ id: string; key: string; value: string | null }>> {
+    const response = await this.client.get<ApiResponse<Array<{ id: string; key: string; value: string | null }>>>('/admin/settings');
+    return response.data.data;
+  }
+
+  async adminUpsertSetting(key: string, value: string | null): Promise<{ key: string; value: string | null }> {
+    const response = await this.client.put<ApiResponse<{ key: string; value: string | null }>>(`/admin/settings/${key}`, { value });
+    return response.data.data;
+  }
 
 }
 

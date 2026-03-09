@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { Home, CreditCard, User } from "lucide-react";
 import { usePathname } from "next/navigation";
-import logoHorizontal from "../assets/logo-horizontal.webp";
+import { cn } from "@/lib/utils";
+import BrandLogo from "@/components/BrandLogo";
 
 const navItems = [
   { href: "/dashboard", icon: Home, label: "Início" },
@@ -12,22 +12,20 @@ const navItems = [
   { href: "/dashboard/subscriptions", icon: CreditCard, label: "Assinatura" },
 ];
 
-import { cn } from "@/lib/utils";
-
 const Sidebar = ({ className }: { className?: string }) => {
   const pathname = usePathname();
 
   return (
     <aside className={cn("w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col h-full text-sidebar-foreground", className)}>
       <div className="mb-8 px-2">
-        <Image
-          src={logoHorizontal}
-          alt="BabyTune"
-          width={160}
-          height={48}
-          className="h-10 w-auto object-contain"
-          priority
-        />
+        <Link href="/dashboard">
+          <BrandLogo
+            className="h-10 w-auto object-contain"
+            width={160}
+            height={48}
+            priority
+          />
+        </Link>
       </div>
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {

@@ -60,7 +60,7 @@ const AdminDashboardPage = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Parcerias & Cupons</CardTitle>
+            <CardTitle>Parcerias &amp; Cupons</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
@@ -80,6 +80,19 @@ const AdminDashboardPage = () => {
               Administrar afiliados e dados de repasse.
             </p>
             <Link href="/admin/affiliates" className="text-sm font-medium text-primary hover:underline mt-4 block">
+              Acessar
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>⚙️ White Label</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Personalizar nome, logo, cores e links da plataforma.
+            </p>
+            <Link href="/admin/settings" className="text-sm font-medium text-primary hover:underline mt-4 block">
               Acessar
             </Link>
           </CardContent>

@@ -11,6 +11,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { UsersModule } from './modules/users/users.module';
 import { LegalModule } from './modules/legal/legal.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 import databaseConfig from './config/database.config';
 // import redisConfig from './config/redis.config';
@@ -66,6 +67,7 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     AdminModule,
     LegalModule,
     AuditModule,
+    SettingsModule,
   ],
   providers: [
     {

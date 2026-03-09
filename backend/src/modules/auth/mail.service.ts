@@ -7,13 +7,19 @@ export class MailService {
   private transporter: nodemailer.Transporter | null = null;
   private isDev: boolean = false;
   private appName: string;
+  private primaryColor: string;
+  private logoUrl: string;
+  private supportUrl: string;
 
   constructor(
     private readonly config: ConfigService,
   ) {
     const nodeEnv = this.config.get<string>('NODE_ENV') || process.env.NODE_ENV || 'development';
     this.isDev = nodeEnv === 'development';
-    this.appName = this.config.get<string>('APP_NAME') || 'Ninaro';
+    this.appName = this.config.get<string>('APP_NAME') || 'Comunidade';
+    this.primaryColor = this.config.get<string>('APP_PRIMARY_COLOR') || '#4A90E2';
+    this.logoUrl = this.config.get<string>('APP_LOGO_URL') || '';
+    this.supportUrl = this.config.get<string>('APP_SUPPORT_URL') || '';
     
     const host = this.config.get<string>('SMTP_HOST') || process.env.SMTP_HOST;
     const port = parseInt(this.config.get<string>('SMTP_PORT') || process.env.SMTP_PORT || '587');
@@ -30,7 +36,13 @@ export class MailService {
   }
 
   private getTemplate(content: string): string {
-    const logoHtml = `<h1 style="color: #4A90E2; margin-bottom: 20px;">${this.appName}</h1>`;
+    const logoHtml = this.logoUrl
+      ? `<img src="${this.logoUrl}" alt="${this.appName}" style="max-height: 48px; width: auto;" />`
+      : `<h1 style="color: ${this.primaryColor}; margin-bottom: 20px;">${this.appName}</h1>`;
+
+    const supportLink = this.supportUrl
+      ? `<p><a href="${this.supportUrl}" style="color: ${this.primaryColor};">Central de Ajuda</a></p>`
+      : '';
 
     return `
 <!DOCTYPE html>
@@ -45,7 +57,7 @@ export class MailService {
     .header { background-color: #ffffff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #edf2f7; }
     .content { padding: 40px 30px; line-height: 1.6; font-size: 16px; color: #525f7f; }
     .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #8898aa; }
-    .button { display: inline-block; padding: 14px 28px; background-color: #4A90E2; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; text-align: center; }
+    .button { display: inline-block; padding: 14px 28px; background-color: ${this.primaryColor}; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; text-align: center; }
     .button:hover { background-color: #357abd; }
     p { margin-bottom: 15px; }
     h2 { color: #32325d; margin-top: 0; }
@@ -66,6 +78,7 @@ export class MailService {
             <div class="footer">
               <p>&copy; ${new Date().getFullYear()} ${this.appName}. Todos os direitos reservados.</p>
               <p>Este é um e-mail automático, por favor não responda.</p>
+              ${supportLink}
             </div>
           </div>
         </td>

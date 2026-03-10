@@ -139,6 +139,94 @@ export interface ActiveCoupon {
   expiresAt?: string;
 }
 
+// ===== INTERFACES DE CURSOS =====
+
+export interface CourseListItem {
+  id: string;
+  titulo: string;
+  descricao: string;
+  thumbnailUrl: string;
+  totalModulos: number;
+  totalAulas: number;
+  aulasCompletas: number;
+  progresso: number;
+}
+
+export interface LessonSummary {
+  id: string;
+  titulo: string;
+  duracaoSegundos: number;
+  ordem: number;
+  status: string;
+  concluida: boolean;
+  tempoAssistido: number;
+}
+
+export interface CourseModuleDetail {
+  id: string;
+  titulo: string;
+  ordem: number;
+  aulas: LessonSummary[];
+}
+
+export interface CourseDetail {
+  id: string;
+  titulo: string;
+  descricao: string;
+  thumbnailUrl: string;
+  totalAulas: number;
+  aulasCompletas: number;
+  progresso: number;
+  modulos: CourseModuleDetail[];
+}
+
+export interface LessonDetail {
+  id: string;
+  titulo: string;
+  conteudoTexto: string;
+  duracaoSegundos: number;
+  videoUrl: string | null;
+  status: string;
+  concluida: boolean;
+  tempoAssistido: number;
+  cursoId: string;
+  cursoTitulo: string;
+  moduloId: string;
+  moduloTitulo: string;
+  aulaAnterior: { id: string; titulo: string; ordem: number } | null;
+  proximaAula: { id: string; titulo: string; ordem: number } | null;
+}
+
+export interface AdminCourse {
+  id: string;
+  titulo: string;
+  descricao: string;
+  thumbnailUrl: string;
+  status: 'rascunho' | 'publicado';
+  criadorId: string;
+  createdAt: string;
+  updatedAt: string;
+  modulos?: any[];
+  planAccess?: Array<{ id: string; planId: string; plan: Plan }>;
+}
+
+export interface AdminCourseDetail extends AdminCourse {
+  modulos: Array<{
+    id: string;
+    titulo: string;
+    ordem: number;
+    aulas: Array<{
+      id: string;
+      titulo: string;
+      conteudoTexto: string;
+      videoKey: string;
+      duracaoSegundos: number;
+      ordem: number;
+      status: string;
+    }>;
+  }>;
+}
+
 // Classe principal da API
 class ApiService {
   private client: AxiosInstance;
@@ -610,6 +698,104 @@ class ApiService {
     return response.data.data;
   }
 
+  // ===== CURSOS — ADMIN =====
+
+  async adminGetCourses(): Promise<AdminCourse[]> {
+    const response = await this.client.get<ApiResponse<AdminCourse[]>>('/admin/courses');
+    return response.data.data;
+  }
+
+  async adminGetCourse(id: string): Promise<AdminCourseDetail> {
+    const response = await this.client.get<ApiResponse<AdminCourseDetail>>(`/admin/courses/${id}`);
+    return response.data.data;
+  }
+
+  async adminCreateCourse(data: { titulo: string; descricao?: string; thumbnailUrl?: string; status?: 'rascunho' | 'publicado' }): Promise<AdminCourse> {
+    const response = await this.client.post<ApiResponse<AdminCourse>>('/admin/courses', data);
+    return response.data.data;
+  }
+
+  async adminUpdateCourse(id: string, data: Partial<{ titulo: string; descricao: string; thumbnailUrl: string; status: 'rascunho' | 'publicado' }>): Promise<AdminCourse> {
+    const response = await this.client.patch<ApiResponse<AdminCourse>>(`/admin/courses/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteCourse(id: string): Promise<void> {
+    await this.client.delete(`/admin/courses/${id}`);
+  }
+
+  async adminCreateModule(courseId: string, data: { titulo: string; ordem?: number }): Promise<any> {
+    const response = await this.client.post<ApiResponse<any>>(`/admin/courses/${courseId}/modules`, data);
+    return response.data.data;
+  }
+
+  async adminUpdateModule(courseId: string, moduleId: string, data: Partial<{ titulo: string; ordem: number }>): Promise<any> {
+    const response = await this.client.patch<ApiResponse<any>>(`/admin/courses/${courseId}/modules/${moduleId}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteModule(courseId: string, moduleId: string): Promise<void> {
+    await this.client.delete(`/admin/courses/${courseId}/modules/${moduleId}`);
+  }
+
+  async adminReorderModules(courseId: string, orderedIds: string[]): Promise<void> {
+    await this.client.patch(`/admin/courses/${courseId}/modules/reorder`, { orderedIds });
+  }
+
+  async adminCreateLesson(courseId: string, moduleId: string, data: { titulo: string; conteudoTexto?: string; videoKey?: string; duracaoSegundos?: number }): Promise<any> {
+    const response = await this.client.post<ApiResponse<any>>(`/admin/courses/${courseId}/modules/${moduleId}/lessons`, data);
+    return response.data.data;
+  }
+
+  async adminUpdateLesson(courseId: string, moduleId: string, lessonId: string, data: Partial<{ titulo: string; conteudoTexto: string; videoKey: string; duracaoSegundos: number; status: string }>): Promise<any> {
+    const response = await this.client.patch<ApiResponse<any>>(`/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<void> {
+    await this.client.delete(`/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`);
+  }
+
+  async adminReorderLessons(courseId: string, moduleId: string, orderedIds: string[]): Promise<void> {
+    await this.client.patch(`/admin/courses/${courseId}/modules/${moduleId}/lessons/reorder`, { orderedIds });
+  }
+
+  async adminGetUploadUrl(courseId: string, fileName: string): Promise<{ uploadUrl: string; key: string }> {
+    const response = await this.client.post<ApiResponse<{ uploadUrl: string; key: string }>>(`/admin/courses/${courseId}/upload-url`, { fileName });
+    return response.data.data;
+  }
+
+  async adminGetCoursePlanAccess(courseId: string): Promise<Array<{ id: string; planId: string; plan: Plan }>> {
+    const response = await this.client.get<ApiResponse<Array<{ id: string; planId: string; plan: Plan }>>>(`/admin/courses/${courseId}/plan-access`);
+    return response.data.data;
+  }
+
+  async adminUpdateCoursePlanAccess(courseId: string, planIds: string[]): Promise<any> {
+    const response = await this.client.patch<ApiResponse<any>>(`/admin/courses/${courseId}/plan-access`, { planIds });
+    return response.data.data;
+  }
+
+  // ===== CURSOS — USUÁRIO =====
+
+  async getCourses(): Promise<CourseListItem[]> {
+    const response = await this.client.get<ApiResponse<CourseListItem[]>>('/courses');
+    return response.data.data;
+  }
+
+  async getCourseDetail(id: string): Promise<CourseDetail> {
+    const response = await this.client.get<ApiResponse<CourseDetail>>(`/courses/${id}`);
+    return response.data.data;
+  }
+
+  async getLessonDetail(lessonId: string): Promise<LessonDetail> {
+    const response = await this.client.get<ApiResponse<LessonDetail>>(`/courses/lessons/${lessonId}`);
+    return response.data.data;
+  }
+
+  async updateLessonProgress(lessonId: string, data: { concluida?: boolean; tempoAssistido?: number }): Promise<any> {
+    const response = await this.client.post<ApiResponse<any>>(`/courses/lessons/${lessonId}/progress`, data);
+    return response.data.data;
+  }
 }
 
 export const api = new ApiService();

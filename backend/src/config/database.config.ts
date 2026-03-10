@@ -14,6 +14,11 @@ import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnersh
 import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity';
 import { AuditLog } from '@/modules/audit/entities/audit-log.entity';
 import { SystemSetting } from '@/modules/settings/entities/system-setting.entity';
+import { Course } from '@/modules/courses/entities/course.entity';
+import { CourseModule as CourseModuleEntity } from '@/modules/courses/entities/course-module.entity';
+import { Lesson } from '@/modules/courses/entities/lesson.entity';
+import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entity';
+import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -41,7 +46,13 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     UserActiveCoupon,
     AuditLog,
     SystemSetting,
+    Course,
+    CourseModuleEntity,
+    Lesson,
+    LessonProgress,
+    CoursePlanAccess,
   ],
+  autoLoadEntities: true,
   synchronize: false,
   logging: configService.get<string>('NODE_ENV') === 'development',
   migrations: ['dist/database/migrations/*.js'],

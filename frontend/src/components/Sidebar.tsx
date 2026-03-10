@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Home, CreditCard, User } from "lucide-react";
+import { Home, CreditCard, User, BookOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import BrandLogo from "@/components/BrandLogo";
 
 const navItems = [
   { href: "/dashboard", icon: Home, label: "Início" },
+  { href: "/dashboard/courses", icon: BookOpen, label: "Cursos" },
   { href: "/dashboard/account", icon: User, label: "Meu Perfil" },
   { href: "/dashboard/subscriptions", icon: CreditCard, label: "Assinatura" },
 ];

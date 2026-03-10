@@ -15,6 +15,11 @@ import { PartnershipAffiliate } from '@/modules/subscriptions/entities/partnersh
 import { UserActiveCoupon } from '@/modules/subscriptions/entities/user-active-coupon.entity'
 import { AuditLog } from '@/modules/audit/entities/audit-log.entity'
 import { SystemSetting } from '@/modules/settings/entities/system-setting.entity'
+import { Course } from '@/modules/courses/entities/course.entity'
+import { CourseModule } from '@/modules/courses/entities/course-module.entity'
+import { Lesson } from '@/modules/courses/entities/lesson.entity'
+import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entity'
+import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity'
 import * as path from 'path'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
@@ -47,6 +52,11 @@ const AppDataSource = new DataSource({
     UserActiveCoupon,
     AuditLog,
     SystemSetting,
+    Course,
+    CourseModule,
+    Lesson,
+    LessonProgress,
+    CoursePlanAccess,
   ],
   migrations: [migrationsPath],
 })

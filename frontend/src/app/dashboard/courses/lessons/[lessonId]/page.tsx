@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { api, LessonDetail } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Download, FileText } from "lucide-react";
 import Hls from "hls.js";
 
 export default function LessonPage() {
@@ -15,9 +15,11 @@ export default function LessonPage() {
   const [loading, setLoading] = useState(true);
   const [completed, setCompleted] = useState(false);
 
-  // O ref é declarado aqui e passado diretamente ao <video> — sem intermediários
-  const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  // Stores the actual <video> element received via callback ref
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  // Keeps latest videoUrl to re-init player when element or url arrives
+  const pendingUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!lessonId) return;
@@ -31,52 +33,83 @@ export default function LessonPage() {
       .finally(() => setLoading(false));
   }, [lessonId]);
 
-  // Monta o player HLS (ou MP4 nativo) assim que temos a URL e o ref
+  // Initialise HLS or MP4 player on a given <video> element + src
+  const initPlayer = useCallback(
+    (video: HTMLVideoElement, src: string, startTime: number) => {
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+
+      const isHls = src.includes(".m3u8");
+
+      if (isHls && Hls.isSupported()) {
+        const hls = new Hls({ enableWorker: true, maxBufferLength: 30 });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (startTime > 0) video.currentTime = startTime;
+        });
+        hlsRef.current = hls;
+      } else if (isHls && video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = src;
+        video.addEventListener("loadedmetadata", () => {
+          if (startTime > 0) video.currentTime = startTime;
+        }, { once: true });
+      } else {
+        video.src = src;
+        video.addEventListener("loadedmetadata", () => {
+          if (startTime > 0) video.currentTime = startTime;
+        }, { once: true });
+      }
+    },
+    []
+  );
+
+  // Callback ref: called by React when the <video> element is mounted/unmounted
+  const videoRef = useCallback(
+    (node: HTMLVideoElement | null) => {
+      if (node) {
+        videoElementRef.current = node;
+        // If lesson data already arrived, init the player immediately
+        if (pendingUrlRef.current) {
+          initPlayer(node, pendingUrlRef.current, lesson?.tempoAssistido ?? 0);
+          pendingUrlRef.current = null;
+        }
+      } else {
+        // Element unmounted — destroy HLS
+        hlsRef.current?.destroy();
+        hlsRef.current = null;
+        videoElementRef.current = null;
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initPlayer]
+  );
+
+  // When lesson data arrives, init player if video element already exists,
+  // otherwise stash the URL so the callback ref can pick it up
   useEffect(() => {
-    const video = videoRef.current;
     const src = lesson?.videoUrl;
-    if (!video || !src) return;
-
-    // Destroy instância anterior
-    hlsRef.current?.destroy();
-    hlsRef.current = null;
-
-    const isHls = src.includes(".m3u8");
+    if (!src) return;
     const startTime = lesson?.tempoAssistido ?? 0;
 
-    if (isHls && Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, maxBufferLength: 30 });
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (startTime > 0) video.currentTime = startTime;
-      });
-      hlsRef.current = hls;
-    } else if (isHls && video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari — HLS nativo
-      video.src = src;
-      video.addEventListener("loadedmetadata", () => {
-        if (startTime > 0) video.currentTime = startTime;
-      });
+    if (videoElementRef.current) {
+      initPlayer(videoElementRef.current, src, startTime);
     } else {
-      // MP4 cru (fallback MVP)
-      video.src = src;
-      video.addEventListener("loadedmetadata", () => {
-        if (startTime > 0) video.currentTime = startTime;
-      });
+      pendingUrlRef.current = src;
     }
 
     return () => {
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson?.videoUrl]);
 
   // Salva progresso — lê currentTime diretamente do ref
   const saveProgress = useCallback(
     async (concluida?: boolean) => {
       if (!lessonId) return;
-      const tempoAssistido = Math.floor(videoRef.current?.currentTime ?? 0);
+      const tempoAssistido = Math.floor(videoElementRef.current?.currentTime ?? 0);
       try {
         await api.updateLessonProgress(lessonId, {
           tempoAssistido,
@@ -100,6 +133,12 @@ export default function LessonPage() {
   const handleVideoPause = () => saveProgress();
 
   const handleMarkComplete = () => saveProgress(true);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   if (loading) {
     return (
@@ -187,7 +226,7 @@ export default function LessonPage() {
         )}
       </div>
 
-      {/* Material de apoio */}
+      {/* Material de apoio (rich text) */}
       {lesson.conteudoTexto && (
         <Card>
           <CardHeader>
@@ -198,6 +237,39 @@ export default function LessonPage() {
               className="prose prose-sm max-w-none dark:prose-invert"
               dangerouslySetInnerHTML={{ __html: lesson.conteudoTexto }}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Anexos / Downloads */}
+      {lesson.anexos && lesson.anexos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Arquivos para Download</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {lesson.anexos.map((att) => (
+                <a
+                  key={att.id}
+                  href={att.downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-md border hover:bg-muted/40 transition-colors group"
+                >
+                  <FileText className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      {att.nome}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatBytes(att.tamanhoBytes)}
+                    </p>
+                  </div>
+                  <Download className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                </a>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -18,6 +18,7 @@ import { SystemSetting } from '@/modules/settings/entities/system-setting.entity
 import { Course } from '@/modules/courses/entities/course.entity'
 import { CourseModule } from '@/modules/courses/entities/course-module.entity'
 import { Lesson } from '@/modules/courses/entities/lesson.entity'
+import { LessonAttachment } from '@/modules/courses/entities/lesson-attachment.entity'
 import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entity'
 import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity'
 import * as path from 'path'
@@ -55,6 +56,7 @@ const AppDataSource = new DataSource({
     Course,
     CourseModule,
     Lesson,
+    LessonAttachment,
     LessonProgress,
     CoursePlanAccess,
   ],

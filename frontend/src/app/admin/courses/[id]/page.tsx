@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { api, AdminCourseDetail } from "@/services/api";
+import { api, AdminCourseDetail, LessonAttachment } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Save, ChevronDown, ChevronUp, GripVertical, Upload, Video } from "lucide-react";
+import { Plus, Trash2, Save, ChevronDown, ChevronUp, GripVertical, Upload, Video, FileText, Paperclip, X } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
 // dnd-kit
 import {
@@ -55,12 +58,14 @@ function SortableLessonRow({
   courseId,
   onDelete,
   onUpload,
+  onEditContent,
 }: {
   aula: AdminCourseDetail["modulos"][0]["aulas"][0];
   moduleId: string;
   courseId: string;
   onDelete: (moduleId: string, lessonId: string) => void;
   onUpload: (moduleId: string, lessonId: string) => void;
+  onEditContent: (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: aula.id,
@@ -103,6 +108,14 @@ function SortableLessonRow({
       <Button
         variant="ghost"
         size="sm"
+        className="shrink-0 h-7 text-xs"
+        onClick={() => onEditContent(moduleId, aula.id, aula.titulo, aula.conteudoTexto || "")}
+      >
+        <Paperclip className="mr-1 h-3 w-3" /> Texto & Anexos
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
         className="shrink-0 h-7 w-7 p-0"
         onClick={() => onDelete(moduleId, aula.id)}
       >
@@ -124,6 +137,7 @@ function SortableModuleCard({
   onDeleteLesson,
   onUploadVideo,
   onLessonDragEnd,
+  onEditLessonContent,
 }: {
   modulo: AdminCourseDetail["modulos"][0];
   courseId: string;
@@ -133,6 +147,7 @@ function SortableModuleCard({
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
   onUploadVideo: (moduleId: string, lessonId: string) => void;
   onLessonDragEnd: (moduleId: string, activeId: string, overId: string) => void;
+  onEditLessonContent: (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: modulo.id,
@@ -219,6 +234,7 @@ function SortableModuleCard({
                         courseId={courseId}
                         onDelete={onDeleteLesson}
                         onUpload={onUploadVideo}
+                        onEditContent={onEditLessonContent}
                       />
                     ))}
                   </div>
@@ -229,6 +245,201 @@ function SortableModuleCard({
         )}
       </Card>
     </div>
+  );
+}
+
+// ──────────────────────────────────────────
+// Lesson Content Editor Dialog
+// ──────────────────────────────────────────
+function LessonContentDialog({
+  open,
+  onClose,
+  courseId,
+  moduleId,
+  lessonId,
+  lessonTitulo,
+  initialContent,
+}: {
+  open: boolean;
+  onClose: () => void;
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  lessonTitulo: string;
+  initialContent?: string;
+}) {
+  const [content, setContent] = useState(initialContent || "");
+  const [attachments, setAttachments] = useState<LessonAttachment[]>([]);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Load attachments via admin endpoint when dialog opens
+  useEffect(() => {
+    if (!open || !lessonId) return;
+    // Reset state before loading
+    setContent(initialContent || "");
+    setAttachments([]);
+    setLoadingContent(true);
+    // Fetch only attachments via admin route (no subscription required)
+    api
+      .adminListAttachments(courseId, moduleId, lessonId)
+      .then((data) => {
+        setAttachments(data || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingContent(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, lessonId]);
+
+  const handleSaveContent = async () => {
+    setSaving(true);
+    try {
+      await api.adminUpdateLesson(courseId, moduleId, lessonId, { conteudoTexto: content });
+      onClose();
+    } catch (err) {
+      console.error("Erro ao salvar conteúdo:", err);
+      alert("Erro ao salvar. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadAttachment = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "*/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const { uploadUrl, key } = await api.adminGetAttachmentUploadUrl(
+          courseId,
+          moduleId,
+          lessonId,
+          file.name,
+          file.type || "application/octet-stream"
+        );
+        await fetch(uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+        });
+        const attachment = await api.adminCreateAttachment(courseId, moduleId, lessonId, {
+          nome: file.name,
+          fileKey: key,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          tamanhoBytes: file.size,
+        });
+        setAttachments((prev) => [...prev, attachment]);
+      } catch (err) {
+        console.error("Erro ao fazer upload:", err);
+        alert("Erro ao fazer upload do arquivo.");
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!confirm("Excluir este anexo?")) return;
+    try {
+      await api.adminDeleteAttachment(courseId, moduleId, lessonId, attachmentId);
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+    } catch (err) {
+      console.error("Erro ao excluir anexo:", err);
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Texto & Arquivos da Aula</DialogTitle>
+          <DialogDescription>Edite o conteúdo escrito e faça upload de arquivos para download — <strong>{lessonTitulo}</strong></DialogDescription>
+        </DialogHeader>
+
+        {loadingContent ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Rich Text Editor */}
+            <div>
+              <Label className="mb-2 block">Texto / Material de Apoio</Label>
+              <RichTextEditor value={content} onChange={setContent} />
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Label>Arquivos Anexos</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUploadAttachment}
+                  disabled={uploading}
+                >
+                  <Paperclip className="mr-1 h-3 w-3" />
+                  {uploading ? "Enviando..." : "Adicionar Arquivo"}
+                </Button>
+              </div>
+
+              {attachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">
+                  Nenhum arquivo anexado ainda
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {attachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
+                    >
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{att.nome}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {att.contentType} · {formatBytes(att.tamanhoBytes)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 shrink-0"
+                        onClick={() => handleDeleteAttachment(att.id)}
+                      >
+                        <X className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSaveContent} disabled={saving || loadingContent}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? "Salvando..." : "Salvar Conteúdo"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -253,6 +464,15 @@ export default function AdminCourseDetailPage() {
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
   const [lessonModuleId, setLessonModuleId] = useState("");
   const [newLessonTitulo, setNewLessonTitulo] = useState("");
+
+  // Content editor dialog state
+  const [contentDialogOpen, setContentDialogOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<{
+    moduleId: string;
+    lessonId: string;
+    titulo: string;
+    conteudoTexto: string;
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -304,7 +524,6 @@ export default function AdminCourseDetailPage() {
     const newOrder = arrayMove(moduleOrder, oldIndex, newIndex);
 
     setModuleOrder(newOrder);
-    // Optimistically reorder in state
     if (course) {
       const newModulos = newOrder.map((mid) =>
         course.modulos.find((m) => m.id === mid)!
@@ -414,6 +633,12 @@ export default function AdminCourseDetailPage() {
       }
     };
     input.click();
+  };
+
+  // ── Lesson content edit ──
+  const handleEditLessonContent = (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => {
+    setEditingLesson({ moduleId, lessonId, titulo, conteudoTexto });
+    setContentDialogOpen(true);
   };
 
   const toggleModule = (moduleId: string) => {
@@ -613,12 +838,30 @@ export default function AdminCourseDetailPage() {
                     onDeleteLesson={handleDeleteLesson}
                     onUploadVideo={handleUploadVideo}
                     onLessonDragEnd={handleLessonDragEnd}
+                    onEditLessonContent={handleEditLessonContent}
                   />
                 );
               })}
             </div>
           </SortableContext>
         </DndContext>
+      )}
+
+      {/* Lesson Content Editor Dialog */}
+      {editingLesson && (
+        <LessonContentDialog
+          key={editingLesson.lessonId}
+          open={contentDialogOpen}
+          onClose={() => {
+            setContentDialogOpen(false);
+            setEditingLesson(null);
+          }}
+          courseId={id!}
+          moduleId={editingLesson.moduleId}
+          lessonId={editingLesson.lessonId}
+          lessonTitulo={editingLesson.titulo}
+          initialContent={editingLesson.conteudoTexto}
+        />
       )}
     </div>
   );

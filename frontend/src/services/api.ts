@@ -16,7 +16,7 @@ interface ApiError {
   error?: string;
 }
 
-// Interface para usuário
+// Interface para usu├írio
 export interface User {
   id: string;
   email: string;
@@ -180,6 +180,15 @@ export interface CourseDetail {
   modulos: CourseModuleDetail[];
 }
 
+export interface LessonAttachment {
+  id: string;
+  nome: string;
+  fileName: string;
+  contentType: string;
+  tamanhoBytes: number;
+  downloadUrl: string;
+}
+
 export interface LessonDetail {
   id: string;
   titulo: string;
@@ -193,6 +202,7 @@ export interface LessonDetail {
   cursoTitulo: string;
   moduloId: string;
   moduloTitulo: string;
+  anexos: LessonAttachment[];
   aulaAnterior: { id: string; titulo: string; ordem: number } | null;
   proximaAula: { id: string; titulo: string; ordem: number } | null;
 }
@@ -267,7 +277,7 @@ class ApiService {
           const isAccountPassword = url.includes('/auth/profile/password') || path.startsWith('/dashboard/account');
           if (!inAuth && !isAccountPassword) {
             const msg = error?.response?.data?.message || '';
-            if (msg.includes('E-mail não verificado')) {
+            if (msg.includes('E-mail n├úo verificado')) {
               window.location.href = '/auth/pending';
             } else {
               const search = window.location.search || '';
@@ -284,23 +294,23 @@ class ApiService {
   private handleError(error: any): ApiError {
     if (error.response?.data) {
       return {
-        message: error.response.data.message || 'Erro na requisição',
+        message: error.response.data.message || 'Erro na requisi├º├úo',
         statusCode: error.response.status,
         error: error.response.data.error,
       };
     }
 
     return {
-      message: error.message || 'Erro de conexão',
+      message: error.message || 'Erro de conex├úo',
       statusCode: 500,
     };
   }
 
-  // Métodos de autenticação
+  // M├®todos de autentica├º├úo
 
-  // Métodos de API
+  // M├®todos de API
 
-  // ===== AUTENTICAÇÃO =====
+  // ===== AUTENTICA├ç├âO =====
   async login(email: string, password: string): Promise<AuthResponse> {
     const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/login', {
       email,
@@ -617,7 +627,7 @@ class ApiService {
     await this.client.delete(`/admin/plans/${id}`);
   }
 
-  // Exportar instância única da API
+  // Exportar inst├óncia ├║nica da API
   // ===== CUPONS E PARCERIAS =====
   async activateCoupon(code: string): Promise<ActiveCoupon> {
     const response = await this.client.post<ApiResponse<ActiveCoupon>>('/subscriptions/coupons/activate', { code });
@@ -687,7 +697,8 @@ class ApiService {
     await this.client.delete(`/admin/partnerships/${partnershipId}/affiliates/${affiliateId}`);
   }
 
-  // ===== ADMIN SETTINGS (WHITE LABEL) =====
+
+  // ===== ADMIN SETTINGS (WHITE LABEL) =====
   async adminListSettings(): Promise<Array<{ id: string; key: string; value: string | null }>> {
     const response = await this.client.get<ApiResponse<Array<{ id: string; key: string; value: string | null }>>>('/admin/settings');
     return response.data.data;
@@ -698,7 +709,7 @@ class ApiService {
     return response.data.data;
   }
 
-  // ===== CURSOS — ADMIN =====
+  // ===== CURSOS ÔÇö ADMIN =====
 
   async adminGetCourses(): Promise<AdminCourse[]> {
     const response = await this.client.get<ApiResponse<AdminCourse[]>>('/admin/courses');
@@ -765,6 +776,55 @@ class ApiService {
     return response.data.data;
   }
 
+  async adminGetAttachmentUploadUrl(
+    courseId: string,
+    moduleId: string,
+    lessonId: string,
+    fileName: string,
+    contentType: string,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    const response = await this.client.post<ApiResponse<{ uploadUrl: string; key: string }>>(
+      `/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/attachments/upload-url`,
+      { fileName, contentType },
+    );
+    return response.data.data;
+  }
+
+  async adminCreateAttachment(
+    courseId: string,
+    moduleId: string,
+    lessonId: string,
+    data: { nome: string; fileKey: string; fileName: string; contentType: string; tamanhoBytes: number },
+  ): Promise<any> {
+    const response = await this.client.post<ApiResponse<any>>(
+      `/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/attachments`,
+      data,
+    );
+    return response.data.data;
+  }
+
+  async adminListAttachments(
+    courseId: string,
+    moduleId: string,
+    lessonId: string,
+  ): Promise<LessonAttachment[]> {
+    const response = await this.client.get<ApiResponse<LessonAttachment[]>>(
+      `/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/attachments`,
+    );
+    return response.data.data;
+  }
+
+  async adminDeleteAttachment(
+    courseId: string,
+    moduleId: string,
+    lessonId: string,
+    attachmentId: string,
+  ): Promise<void> {
+    await this.client.delete(
+      `/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/attachments/${attachmentId}`,
+    );
+  }
+
   async adminGetCoursePlanAccess(courseId: string): Promise<Array<{ id: string; planId: string; plan: Plan }>> {
     const response = await this.client.get<ApiResponse<Array<{ id: string; planId: string; plan: Plan }>>>(`/admin/courses/${courseId}/plan-access`);
     return response.data.data;
@@ -775,7 +835,7 @@ class ApiService {
     return response.data.data;
   }
 
-  // ===== CURSOS — USUÁRIO =====
+  // ===== CURSOS ÔÇö USU├üRIO =====
 
   async getCourses(): Promise<CourseListItem[]> {
     const response = await this.client.get<ApiResponse<CourseListItem[]>>('/courses');

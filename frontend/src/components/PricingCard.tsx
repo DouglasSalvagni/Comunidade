@@ -24,14 +24,14 @@ const PricingCard = ({ plan, isCurrentPlan, disabled = false, onSelectPlan }: Pr
         <CardTitle>{plan.name}</CardTitle>
         <CardDescription>
           {plan.originalPrice && plan.discountedPrice ? (
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground line-through">{plan.originalPrice}</div>
-              <div className="text-2xl font-bold text-foreground">{plan.discountedPrice}</div>
-            </div>
+            <span className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground line-through">{plan.originalPrice}</span>
+              <span className="text-2xl font-bold text-foreground">{plan.discountedPrice}</span>
+            </span>
           ) : (
-            <div className={`text-2xl font-bold text-foreground ${plan.price === "Grátis" ? "invisible" : ""}`}>
+            <span className={`text-2xl font-bold text-foreground ${plan.price === "Grátis" ? "invisible" : ""}`}>
               {plan.price}
-            </div>
+            </span>
           )}
         </CardDescription>
       </CardHeader>

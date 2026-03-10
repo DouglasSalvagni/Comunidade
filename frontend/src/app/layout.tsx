@@ -52,7 +52,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         pelo Next.js App Router — sem declarar <head> explicitamente (evita hydration error).
         Isso garante zero FOUC: as cores já estão no HTML antes de qualquer JS rodar.
       */}
-      {inlineThemeCss ? <style dangerouslySetInnerHTML={{ __html: inlineThemeCss }} /> : null}
+      {inlineThemeCss ? (
+        // React 19: precedence + href são obrigatórios para hositar <style> para o <head>
+        // sem declarar <head> explicitamente no layout (que causaria hydration error).
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore — precedence é uma prop do React 19 ainda não tipada em @types/react
+        <style
+          precedence="default"
+          href="white-label-theme"
+          dangerouslySetInnerHTML={{ __html: inlineThemeCss }}
+        />
+      ) : null}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning

@@ -22,21 +22,21 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar cursos disponíveis para o usuário' })
   async listCourses(@Request() req: any) {
-    return this.coursesService.listCoursesForUser(req.user.id);
+    return this.coursesService.listCoursesForUser(req.user.userId);
   }
 
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Detalhes do curso com módulos, aulas e progresso' })
   async getCourseDetail(@Param('id') id: string, @Request() req: any) {
-    return this.coursesService.getCourseDetailForUser(id, req.user.id);
+    return this.coursesService.getCourseDetailForUser(id, req.user.userId);
   }
 
   @Get('lessons/:lessonId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Detalhes da aula com vídeo URL e navegação' })
   async getLesson(@Param('lessonId') lessonId: string, @Request() req: any) {
-    return this.coursesService.getLessonForUser(lessonId, req.user.id);
+    return this.coursesService.getLessonForUser(lessonId, req.user.userId);
   }
 
   @Post('lessons/:lessonId/progress')
@@ -47,6 +47,6 @@ export class CoursesController {
     @Body() dto: UpdateProgressDto,
     @Request() req: any,
   ) {
-    return this.coursesService.updateProgress(req.user.id, lessonId, dto);
+    return this.coursesService.updateProgress(req.user.userId, lessonId, dto);
   }
 }

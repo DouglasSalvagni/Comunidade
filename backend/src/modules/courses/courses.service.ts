@@ -373,8 +373,14 @@ export class CoursesService {
 
     // Gera URL do vídeo se disponível
     let videoUrl: string | null = null;
-    if (lesson.videoKey && lesson.status === 'pronto') {
-      videoUrl = await this.storageService.getHlsManifestUrl(lesson.videoKey);
+    if (lesson.videoKey) {
+      // Se o vídeo já foi processado para HLS, usa o manifesto
+      if (lesson.status === 'pronto') {
+        videoUrl = await this.storageService.getHlsManifestUrl(lesson.videoKey);
+      } else {
+        // Fallback MVP: serve o arquivo de vídeo original diretamente
+        videoUrl = await this.storageService.generateViewUrl(lesson.videoKey);
+      }
     }
 
     // Busca progresso do user

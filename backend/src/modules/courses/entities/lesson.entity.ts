@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { CourseModule } from './course-module.entity';
+import { LessonAttachment } from './lesson-attachment.entity';
 
 @Entity('lessons')
 export class Lesson {
@@ -38,6 +40,9 @@ export class Lesson {
 
   @Column({ default: 'pendente' })
   status: 'pendente' | 'processando' | 'pronto' | 'erro';
+
+  @OneToMany(() => LessonAttachment, (a) => a.aula, { cascade: true, eager: false })
+  anexos: LessonAttachment[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

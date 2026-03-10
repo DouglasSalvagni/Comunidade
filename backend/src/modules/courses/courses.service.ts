@@ -8,6 +8,7 @@ import { Repository, In } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { CourseModule } from './entities/course-module.entity';
 import { Lesson } from './entities/lesson.entity';
+import { LessonAttachment } from './entities/lesson-attachment.entity';
 import { LessonProgress } from './entities/lesson-progress.entity';
 import { CoursePlanAccess } from './entities/course-plan-access.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
@@ -30,6 +31,8 @@ export class CoursesService {
     private readonly lessonRepo: Repository<Lesson>,
     @InjectRepository(LessonProgress)
     private readonly progressRepo: Repository<LessonProgress>,
+    @InjectRepository(LessonAttachment)
+    private readonly attachmentRepo: Repository<LessonAttachment>,
     @InjectRepository(CoursePlanAccess)
     private readonly coursePlanRepo: Repository<CoursePlanAccess>,
     @InjectRepository(Subscription)
@@ -183,6 +186,60 @@ export class CoursesService {
     for (let i = 0; i < orderedIds.length; i++) {
       await this.lessonRepo.update({ id: orderedIds[i], moduloId: moduleId }, { ordem: i });
     }
+  }
+
+  // =====================
+  // ADMIN — Anexos
+  // =====================
+
+  async adminGetAttachmentUploadUrl(
+    lessonId: string,
+    fileName: string,
+    contentType: string,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
+    const key = `${lessonId}/${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    return this.storageService.generateAttachmentUploadUrl(key, contentType);
+  }
+
+  async adminCreateAttachment(
+    lessonId: string,
+    dto: { nome: string; fileKey: string; fileName: string; contentType: string; tamanhoBytes: number },
+  ) {
+    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
+    const attachment = this.attachmentRepo.create({
+      aulaId: lessonId,
+      nome: dto.nome,
+      fileKey: dto.fileKey,
+      fileName: dto.fileName,
+      contentType: dto.contentType,
+      tamanhoBytes: dto.tamanhoBytes,
+    });
+    const saved = await this.attachmentRepo.save(attachment);
+    const downloadUrl = await this.storageService.generateAttachmentDownloadUrl(saved.fileKey, saved.fileName);
+    return { ...saved, downloadUrl };
+  }
+
+  async adminDeleteAttachment(lessonId: string, attachmentId: string): Promise<void> {
+    const attachment = await this.attachmentRepo.findOne({ where: { id: attachmentId, aulaId: lessonId } });
+    if (!attachment) throw new NotFoundException('Anexo não encontrado');
+    await this.attachmentRepo.remove(attachment);
+  }
+
+  async adminListAttachments(lessonId: string) {
+    const attachments = await this.attachmentRepo.find({ where: { aulaId: lessonId }, order: { createdAt: 'ASC' } });
+    return Promise.all(
+      attachments.map(async (att) => ({
+        id: att.id,
+        nome: att.nome,
+        fileName: att.fileName,
+        contentType: att.contentType,
+        tamanhoBytes: att.tamanhoBytes,
+        downloadUrl: await this.storageService.generateAttachmentDownloadUrl(att.fileKey, att.fileName),
+      })),
+    );
   }
 
   // =====================
@@ -374,14 +431,28 @@ export class CoursesService {
     // Gera URL do vídeo se disponível
     let videoUrl: string | null = null;
     if (lesson.videoKey) {
-      // Se o vídeo já foi processado para HLS, usa o manifesto
       if (lesson.status === 'pronto') {
         videoUrl = await this.storageService.getHlsManifestUrl(lesson.videoKey);
       } else {
-        // Fallback MVP: serve o arquivo de vídeo original diretamente
         videoUrl = await this.storageService.generateViewUrl(lesson.videoKey);
       }
     }
+
+    // Busca anexos com URLs de download
+    const rawAnexos = await this.attachmentRepo.find({
+      where: { aulaId: lessonId },
+      order: { createdAt: 'ASC' },
+    });
+    const anexos = await Promise.all(
+      rawAnexos.map(async (a) => ({
+        id: a.id,
+        nome: a.nome,
+        fileName: a.fileName,
+        contentType: a.contentType,
+        tamanhoBytes: a.tamanhoBytes,
+        downloadUrl: await this.storageService.generateAttachmentDownloadUrl(a.fileKey, a.fileName),
+      })),
+    );
 
     // Busca progresso do user
     const progress = await this.progressRepo.findOne({
@@ -410,6 +481,7 @@ export class CoursesService {
       cursoTitulo: course.titulo,
       moduloId: lesson.moduloId,
       moduloTitulo: lesson.modulo.titulo,
+      anexos,
       aulaAnterior: currentIndex > 0 ? siblingLessons[currentIndex - 1] : null,
       proximaAula: currentIndex < siblingLessons.length - 1 ? siblingLessons[currentIndex + 1] : null,
     };
@@ -442,3 +514,4 @@ export class CoursesService {
     return this.progressRepo.save(progress);
   }
 }
+

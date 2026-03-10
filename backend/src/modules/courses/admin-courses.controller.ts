@@ -67,6 +67,58 @@ export class AdminCoursesController {
     await this.coursesService.adminDeleteCourse(id);
   }
 
+  // ========== ANEXOS ==========
+
+  @Get(':courseId/modules/:moduleId/lessons/:lessonId/attachments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar anexos de uma aula' })
+  async listAttachments(@Param('lessonId') lessonId: string) {
+    return this.coursesService.adminListAttachments(lessonId);
+  }
+
+  @Post(':courseId/modules/:moduleId/lessons/:lessonId/attachments/upload-url')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Gerar URL pré-assinada para upload de anexo' })
+  async generateAttachmentUploadUrl(
+    @Param('lessonId') lessonId: string,
+    @Body() body: { fileName: string; contentType: string },
+  ) {
+    return this.coursesService.adminGetAttachmentUploadUrl(
+      lessonId,
+      body.fileName,
+      body.contentType,
+    );
+  }
+
+  @Post(':courseId/modules/:moduleId/lessons/:lessonId/attachments')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Registrar anexo após upload' })
+  @ApiResponse({ status: 201 })
+  async createAttachment(
+    @Param('lessonId') lessonId: string,
+    @Body()
+    body: {
+      nome: string;
+      fileKey: string;
+      fileName: string;
+      contentType: string;
+      tamanhoBytes: number;
+    },
+  ) {
+    return this.coursesService.adminCreateAttachment(lessonId, body);
+  }
+
+  @Delete(':courseId/modules/:moduleId/lessons/:lessonId/attachments/:attachmentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Excluir anexo de uma aula' })
+  async deleteAttachment(
+    @Param('lessonId') lessonId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    await this.coursesService.adminDeleteAttachment(lessonId, attachmentId);
+  }
+
   // ========== UPLOAD ==========
 
   @Post(':id/upload-url')

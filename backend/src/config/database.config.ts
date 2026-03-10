@@ -17,6 +17,7 @@ import { SystemSetting } from '@/modules/settings/entities/system-setting.entity
 import { Course } from '@/modules/courses/entities/course.entity';
 import { CourseModule as CourseModuleEntity } from '@/modules/courses/entities/course-module.entity';
 import { Lesson } from '@/modules/courses/entities/lesson.entity';
+import { LessonAttachment } from '@/modules/courses/entities/lesson-attachment.entity';
 import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entity';
 import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity';
 
@@ -49,6 +50,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     Course,
     CourseModuleEntity,
     Lesson,
+    LessonAttachment,
     LessonProgress,
     CoursePlanAccess,
   ],

@@ -25,12 +25,7 @@ export class CoursesController {
     return this.coursesService.listCoursesForUser(req.user.userId);
   }
 
-  @Get(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Detalhes do curso com módulos, aulas e progresso' })
-  async getCourseDetail(@Param('id') id: string, @Request() req: any) {
-    return this.coursesService.getCourseDetailForUser(id, req.user.userId);
-  }
+  // IMPORTANTE: rotas estáticas 'lessons/...' ANTES da rota paramétrica ':id'
 
   @Get('lessons/:lessonId')
   @ApiBearerAuth()
@@ -48,5 +43,12 @@ export class CoursesController {
     @Request() req: any,
   ) {
     return this.coursesService.updateProgress(req.user.userId, lessonId, dto);
+  }
+
+  @Get(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Detalhes do curso com módulos, aulas e progresso' })
+  async getCourseDetail(@Param('id') id: string, @Request() req: any) {
+    return this.coursesService.getCourseDetailForUser(id, req.user.userId);
   }
 }

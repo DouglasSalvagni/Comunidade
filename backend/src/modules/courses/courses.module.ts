@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Course } from './entities/course.entity';
 import { CourseModule as CourseModuleEntity } from './entities/course-module.entity';
 import { Lesson } from './entities/lesson.entity';
+import { LessonAttachment } from './entities/lesson-attachment.entity';
 import { LessonProgress } from './entities/lesson-progress.entity';
 import { CoursePlanAccess } from './entities/course-plan-access.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
@@ -18,6 +19,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
       Course,
       CourseModuleEntity,
       Lesson,
+      LessonAttachment,
       LessonProgress,
       CoursePlanAccess,
       Subscription,

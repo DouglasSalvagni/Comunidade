@@ -87,4 +87,43 @@ export class StorageService {
     const hlsKey = `output/${videoKey}/master.m3u8`;
     return this.generateViewUrl(hlsKey);
   }
+
+  /**
+   * Gera uma URL pré-assinada para upload de um arquivo de apoio (PDF, etc.).
+   */
+  async generateAttachmentUploadUrl(
+    key: string,
+    contentType: string,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    const client = this.ensureClient();
+    const fullKey = `attachments/${key}`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: fullKey,
+      ContentType: contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+    return { uploadUrl, key: fullKey };
+  }
+
+  /**
+   * Gera URL de download para um anexo.
+   * Usa CDN se configurado; caso contrário, signed URL com Content-Disposition attachment.
+   */
+  async generateAttachmentDownloadUrl(key: string, fileName: string): Promise<string> {
+    if (this.cdnBaseUrl) {
+      return `${this.cdnBaseUrl.replace(/\/$/, '')}/${key}`;
+    }
+
+    const client = this.ensureClient();
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
+    });
+
+    return getSignedUrl(client, command, { expiresIn: 3600 });
+  }
 }

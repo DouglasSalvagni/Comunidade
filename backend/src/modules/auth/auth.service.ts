@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { AppleOAuthDto } from './dto/apple-oauth.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { StorageService } from '../courses/storage.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly storageService: StorageService,
     @Optional() private readonly legalService?: LegalService,
   ) { }
 
@@ -56,7 +58,7 @@ export class AuthService {
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+      user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
       refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
@@ -113,7 +115,7 @@ export class AuthService {
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+      user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.jwtService.sign(payload),
       refreshToken: user.authProvider === 'local' && !user.emailVerified ? '' : this.generateRefreshToken(payload),
     };
@@ -150,16 +152,50 @@ export class AuthService {
     }
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
-    return { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired };
+    return { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired };
   }
 
-  async updateProfile(userId: string, data: { name?: string }) {
+  async updateProfile(
+    userId: string,
+    data: { name?: string; bio?: string; profileLinks?: Array<{ label: string; url: string }> },
+  ) {
     const user = await this.usersService.findOne(userId);
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
-    const updated = await this.usersService.update(userId, { name: data?.name ?? user.name });
-    return this.sanitizeUser(updated);
+    const normalizedLinks = Array.isArray(data?.profileLinks)
+      ? data.profileLinks
+        .filter((link) => link?.label?.trim() && link?.url?.trim())
+        .slice(0, 10)
+        .map((link) => ({ label: link.label.trim(), url: link.url.trim() }))
+      : user.profileLinks ?? [];
+    const updated = await this.usersService.update(userId, {
+      name: data?.name ?? user.name,
+      bio: data?.bio !== undefined ? data.bio : user.bio ?? null,
+      profileLinks: data?.profileLinks !== undefined ? normalizedLinks : user.profileLinks ?? [],
+    } as any);
+    return this.sanitizeUserWithAvatar(updated);
+  }
+
+  async generateAvatarUploadUrl(userId: string, fileName: string, contentType: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+    const safeName = (fileName || 'avatar')
+      .replace(/[^a-zA-Z0-9._-]/g, '-')
+      .slice(0, 120);
+    const key = `avatars/${user.id}/${Date.now()}-${safeName || 'avatar'}`;
+    return this.storageService.generateAttachmentUploadUrl(key, contentType || 'application/octet-stream');
+  }
+
+  async updateAvatar(userId: string, avatarKey: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+    const updated = await this.usersService.update(userId, { avatarKey } as any);
+    return this.sanitizeUserWithAvatar(updated);
   }
 
   async deleteAccount(userId: string) {
@@ -216,7 +252,7 @@ export class AuthService {
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+      user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
     };
@@ -291,7 +327,7 @@ export class AuthService {
       const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
       const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
       return {
-        user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+        user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired },
         accessToken: this.jwtService.sign(jwtPayload),
         refreshToken: this.generateRefreshToken(jwtPayload),
       };
@@ -337,7 +373,7 @@ export class AuthService {
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     const hasAcceptedAnyRequired = this.legalService ? await this.legalService.hasUserAcceptedRequiredEver(user.id) : false;
     return {
-      user: { ...this.sanitizeUser(user), acceptedLegal, hasAcceptedAnyRequired },
+      user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal, hasAcceptedAnyRequired },
       accessToken: this.jwtService.sign(jwtPayload),
       refreshToken: this.generateRefreshToken(jwtPayload),
     };
@@ -357,7 +393,7 @@ export class AuthService {
     }
     const newHash = await bcrypt.hash(newPassword, 10);
     const updated = await this.usersService.updatePasswordHash(user.id, newHash);
-    return this.sanitizeUser(updated);
+    return this.sanitizeUserWithAvatar(updated);
   }
 
   private generateRefreshToken(payload: JwtPayload): string {
@@ -369,6 +405,20 @@ export class AuthService {
   private sanitizeUser(user: User) {
     const { passwordHash, ...sanitizedUser } = user;
     return sanitizedUser;
+  }
+
+  private async sanitizeUserWithAvatar(user: User) {
+    const sanitized = this.sanitizeUser(user) as any;
+    if (!sanitized.avatarKey) {
+      sanitized.avatarUrl = null;
+      return sanitized;
+    }
+    try {
+      sanitized.avatarUrl = await this.storageService.generateViewUrl(sanitized.avatarKey);
+    } catch {
+      sanitized.avatarUrl = null;
+    }
+    return sanitized;
   }
 
   async forgotPassword(email: string) {
@@ -418,7 +468,7 @@ export class AuthService {
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
     const acceptedLegal = this.legalService ? await this.legalService.hasUserAcceptedActive(user.id) : false;
     return {
-      user: { ...this.sanitizeUser(user), acceptedLegal },
+      user: { ...(await this.sanitizeUserWithAvatar(user)), acceptedLegal },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.generateRefreshToken(payload),
     };

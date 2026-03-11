@@ -21,6 +21,10 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  bio?: string | null;
+  profileLinks?: ProfileLink[];
+  avatarKey?: string | null;
+  avatarUrl?: string | null;
   role: 'user' | 'admin';
   isActive: boolean;
   emailVerified: boolean;
@@ -29,6 +33,20 @@ export interface User {
   currentSubscription?: Subscription | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProfileLink {
+  label: string;
+  url: string;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  bio: string | null;
+  profileLinks: ProfileLink[];
+  avatarUrl: string | null;
+  createdAt: string;
 }
 
 // Interface para login/register response
@@ -439,8 +457,21 @@ class ApiService {
     return response.data.data;
   }
 
-  async updateMyProfile(data: { name?: string }): Promise<User> {
+  async updateMyProfile(data: { name?: string; bio?: string; profileLinks?: ProfileLink[] }): Promise<User> {
     const response = await this.client.patch<ApiResponse<User>>('/auth/profile', data);
+    return response.data.data;
+  }
+
+  async getMyAvatarUploadUrl(fileName: string, contentType: string): Promise<{ uploadUrl: string; key: string }> {
+    const response = await this.client.post<ApiResponse<{ uploadUrl: string; key: string }>>('/auth/profile/avatar/upload-url', {
+      fileName,
+      contentType,
+    });
+    return response.data.data;
+  }
+
+  async updateMyAvatar(key: string): Promise<User> {
+    const response = await this.client.patch<ApiResponse<User>>('/auth/profile/avatar', { key });
     return response.data.data;
   }
 
@@ -545,6 +576,21 @@ class ApiService {
     const response = await this.client.get<{ data: User[]; meta: any }>('/users', {
       params,
     });
+    return response.data;
+  }
+
+  async getMembers(params?: {
+    search?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{
+    data: Member[];
+    meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+  }> {
+    const response = await this.client.get<{
+      data: Member[];
+      meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+    }>('/users/members', { params });
     return response.data;
   }
 

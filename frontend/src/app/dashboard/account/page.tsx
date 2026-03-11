@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { api, Subscription, User } from "@/services/api";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -22,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AccountPage = () => {
   const router = useRouter();
@@ -29,12 +31,15 @@ const AccountPage = () => {
   const [saving, setSaving] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [bio, setBio] = useState("");
+  const [links, setLinks] = useState<Array<{ label: string; url: string }>>([]);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -50,6 +55,8 @@ const AccountPage = () => {
         ]);
         setUser(me);
         setName(me.name || "");
+        setBio(me.bio || "");
+        setLinks(Array.isArray(me.profileLinks) ? me.profileLinks : []);
         setSubscription(currentSubscription);
       } catch (e: any) {
         toast.error(e?.message || "Falha ao carregar perfil");
@@ -75,8 +82,13 @@ const AccountPage = () => {
     if (!name || !user) return;
     setSaving(true);
     try {
-      const updated = await api.updateMyProfile({ name });
+      const normalizedLinks = links
+        .map((link) => ({ label: (link.label || "").trim(), url: (link.url || "").trim() }))
+        .filter((link) => link.label && link.url);
+      const updated = await api.updateMyProfile({ name, bio, profileLinks: normalizedLinks });
       setUser(updated);
+      setBio(updated.bio || "");
+      setLinks(Array.isArray(updated.profileLinks) ? updated.profileLinks : []);
       toast.success("Perfil atualizado");
     } catch (e: any) {
       toast.error(e?.message || "Falha ao atualizar perfil");
@@ -123,6 +135,52 @@ const AccountPage = () => {
     }
   };
 
+  const getInitials = (fullName?: string) => {
+    const cleaned = (fullName || "").trim();
+    if (!cleaned) return "U";
+    const parts = cleaned.split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  };
+
+  const onAvatarChange = async (file?: File) => {
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const { uploadUrl, key } = await api.getMyAvatarUploadUrl(
+        file.name,
+        file.type || "application/octet-stream",
+      );
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      });
+      if (!uploadResponse.ok) {
+        throw new Error("Falha no upload do avatar");
+      }
+      const updated = await api.updateMyAvatar(key);
+      setUser(updated);
+      toast.success("Avatar atualizado");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao atualizar avatar");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const updateLink = (index: number, key: "label" | "url", value: string) => {
+    setLinks((prev) => prev.map((link, i) => (i === index ? { ...link, [key]: value } : link)));
+  };
+
+  const addLink = () => {
+    setLinks((prev) => [...prev, { label: "", url: "" }]);
+  };
+
+  const removeLink = (index: number) => {
+    setLinks((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -164,8 +222,61 @@ const AccountPage = () => {
         <Card className="p-6 max-w-lg">
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label>Avatar</Label>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || "Avatar"} />
+                  <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingAvatar}
+                    onChange={(e) => onAvatarChange(e.target.files?.[0])}
+                  />
+                  {uploadingAvatar ? (
+                    <p className="mt-1 text-xs text-muted-foreground">Enviando avatar...</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Escreva uma bio curta"
+                rows={4}
+              />
+            </div>
+            <div className="space-y-3">
+              <Label>Links do perfil</Label>
+              {links.map((link, index) => (
+                <div key={`link-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                  <Input
+                    value={link.label}
+                    onChange={(e) => updateLink(index, "label", e.target.value)}
+                    placeholder="Rótulo"
+                  />
+                  <Input
+                    value={link.url}
+                    onChange={(e) => updateLink(index, "url", e.target.value)}
+                    placeholder="https://..."
+                  />
+                  <Button type="button" variant="outline" onClick={() => removeLink(index)}>
+                    Remover
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" onClick={addLink}>
+                Adicionar link
+              </Button>
             </div>
             <div className="space-y-2">
               <Label>Email</Label>

@@ -1,5 +1,30 @@
-import { IsEmail, IsString, IsOptional, IsBoolean, MinLength, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  MinLength,
+  MaxLength,
+  IsArray,
+  ValidateNested,
+  IsUrl,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+class ProfileLinkDto {
+  @ApiProperty({ example: 'LinkedIn' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  label: string;
+
+  @ApiProperty({ example: 'https://linkedin.com/in/exemplo' })
+  @IsString()
+  @IsUrl({ require_tld: false })
+  @MaxLength(500)
+  url: string;
+}
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -53,4 +78,35 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Biografia do usuário em HTML',
+    required: false,
+    maxLength: 10000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10000)
+  bio?: string;
+
+  @ApiProperty({
+    description: 'Chave do avatar no storage',
+    required: false,
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarKey?: string;
+
+  @ApiProperty({
+    description: 'Links públicos do perfil',
+    required: false,
+    type: [ProfileLinkDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProfileLinkDto)
+  profileLinks?: ProfileLinkDto[];
 }

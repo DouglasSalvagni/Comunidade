@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
+import { StorageService } from '@/modules/courses/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -13,7 +14,120 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
+    private readonly storageService: StorageService,
   ) { }
+
+  private encodeMembersCursor(user: Pick<User, 'id' | 'createdAt'>): string {
+    const payload = JSON.stringify({ id: user.id, createdAt: user.createdAt.toISOString() });
+    return Buffer.from(payload).toString('base64url');
+  }
+
+  private decodeMembersCursor(cursor?: string): { id: string; createdAt: Date } | null {
+    if (!cursor) return null;
+    try {
+      const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+      if (!parsed?.id || !parsed?.createdAt) return null;
+      const createdAt = new Date(parsed.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return null;
+      return { id: String(parsed.id), createdAt };
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolveAvatarUrl(avatarKey?: string | null): Promise<string | null> {
+    if (!avatarKey) return null;
+    try {
+      return await this.storageService.generateViewUrl(avatarKey);
+    } catch {
+      return null;
+    }
+  }
+
+  async listMembersCursor(
+    limit = 20,
+    cursor?: string,
+    search?: string,
+  ): Promise<{
+    data: Array<{
+      id: string;
+      name: string;
+      bio: string | null;
+      profileLinks: Array<{ label: string; url: string }>;
+      avatarUrl: string | null;
+      createdAt: Date;
+    }>;
+    meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+  }> {
+    const normalizedLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+    const decodedCursor = this.decodeMembersCursor(cursor);
+    const normalizedSearch = (search || '').trim();
+
+    const queryBuilder = this.userRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.name',
+        'user.bio',
+        'user.profileLinks',
+        'user.avatarKey',
+        'user.createdAt',
+      ])
+      .where('user.isActive = :isActive', { isActive: true })
+      .andWhere('user.role = :role', { role: 'user' });
+
+    if (normalizedSearch) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('user.name ILIKE :search', { search: `%${normalizedSearch}%` }).orWhere(
+            'user.email ILIKE :search',
+            { search: `%${normalizedSearch}%` },
+          );
+        }),
+      );
+    }
+
+    if (decodedCursor) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('user.createdAt < :cursorCreatedAt', { cursorCreatedAt: decodedCursor.createdAt }).orWhere(
+            '(user.createdAt = :cursorCreatedAt AND user.id < :cursorId)',
+            { cursorCreatedAt: decodedCursor.createdAt, cursorId: decodedCursor.id },
+          );
+        }),
+      );
+    }
+
+    const rows = await queryBuilder
+      .orderBy('user.createdAt', 'DESC')
+      .addOrderBy('user.id', 'DESC')
+      .take(normalizedLimit + 1)
+      .getMany();
+
+    const hasMore = rows.length > normalizedLimit;
+    const selectedRows = hasMore ? rows.slice(0, normalizedLimit) : rows;
+
+    const data = await Promise.all(
+      selectedRows.map(async (member) => ({
+        id: member.id,
+        name: member.name,
+        bio: member.bio || null,
+        profileLinks: Array.isArray(member.profileLinks) ? member.profileLinks : [],
+        avatarUrl: await this.resolveAvatarUrl(member.avatarKey),
+        createdAt: member.createdAt,
+      })),
+    );
+
+    const last = selectedRows[selectedRows.length - 1];
+    return {
+      data,
+      meta: {
+        nextCursor: hasMore && last ? this.encodeMembersCursor(last) : null,
+        hasMore,
+        limit: normalizedLimit,
+      },
+    };
+  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = this.userRepository.create(createUserDto);

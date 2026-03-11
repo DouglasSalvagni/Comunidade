@@ -14,6 +14,7 @@ import { AntiAbuseService } from '@/common/anti-abuse/anti-abuse.service';
 import { AuthAntiAbuseGuard } from '@/common/anti-abuse/auth-anti-abuse.guard';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { SettingsModule } from '@/modules/settings/settings.module';
+import { CoursesModule } from '@/modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SettingsModule } from '@/modules/settings/settings.module';
     LegalModule,
     SubscriptionsModule,
     SettingsModule,
+    CoursesModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

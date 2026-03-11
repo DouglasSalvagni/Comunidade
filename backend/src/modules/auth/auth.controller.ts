@@ -234,11 +234,35 @@ export class AuthController {
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update current user profile (name only)' })
+  @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'User profile updated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProfile(@Request() req, @Body() body: UpdateProfileDto) {
     return this.authService.updateProfile(req.user.userId, body);
+  }
+
+  @Post('profile/avatar/upload-url')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Gerar URL pré-assinada para upload de avatar' })
+  @ApiResponse({ status: 200, description: 'URL de upload gerada com sucesso' })
+  async getAvatarUploadUrl(
+    @Request() req,
+    @Body() body: { fileName: string; contentType: string },
+  ) {
+    return this.authService.generateAvatarUploadUrl(req.user.userId, body.fileName, body.contentType);
+  }
+
+  @Patch('profile/avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Salvar avatar do usuário após upload no storage' })
+  @ApiResponse({ status: 200, description: 'Avatar atualizado com sucesso' })
+  async updateAvatar(
+    @Request() req,
+    @Body() body: { key: string },
+  ) {
+    return this.authService.updateAvatar(req.user.userId, body.key);
   }
 
   @Patch('profile/password')

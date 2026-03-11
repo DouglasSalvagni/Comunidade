@@ -11,7 +11,6 @@ import { CoursesService } from './courses.service';
 import { StorageService } from './storage.service';
 import { CoursesController } from './courses.controller';
 import { AdminCoursesController } from './admin-courses.controller';
-import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -24,10 +23,9 @@ import { AuthModule } from '@/modules/auth/auth.module';
       CoursePlanAccess,
       Subscription,
     ]),
-    AuthModule,
   ],
   controllers: [CoursesController, AdminCoursesController],
   providers: [CoursesService, StorageService],
-  exports: [CoursesService],
+  exports: [CoursesService, StorageService],
 })
 export class CoursesModule {}

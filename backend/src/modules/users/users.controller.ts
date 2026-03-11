@@ -49,6 +49,22 @@ export class UsersController {
     return this.usersService.findAllPaginated(Number(page) || 1, Number(limit) || 20, search);
   }
 
+  @Get('members')
+  @Roles('user', 'admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar membros para gaveta com cursor e busca' })
+  @ApiResponse({ status: 200, description: 'Membros listados com sucesso.' })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  async listMembers(
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit = 20,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.listMembersCursor(Number(limit) || 20, cursor, search);
+  }
+
   @Get(':id')
   @Roles('admin')
   @ApiBearerAuth()

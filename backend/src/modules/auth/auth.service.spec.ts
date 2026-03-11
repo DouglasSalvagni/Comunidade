@@ -15,7 +15,8 @@ describe('AuthService password recovery', () => {
     } as any as UsersService;
     const mailService = { sendPasswordReset: jest.fn().mockResolvedValue(undefined) } as any as MailService;
     const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
-    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
+    const storageService = { generateViewUrl: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService, storageService);
     const res = await svc.forgotPassword('a@b.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendPasswordReset).toHaveBeenCalled();
@@ -26,7 +27,8 @@ describe('AuthService password recovery', () => {
     const usersService = { findByEmail: jest.fn().mockResolvedValue(user) } as any as UsersService;
     const mailService = { sendPasswordReset: jest.fn() } as any as MailService;
     const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
-    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
+    const storageService = { generateViewUrl: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService, storageService);
     const res = await svc.forgotPassword('c@d.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendPasswordReset).not.toHaveBeenCalled();
@@ -43,7 +45,8 @@ describe('AuthService email verification', () => {
     } as any as UsersService;
     const mailService = { sendEmailVerification: jest.fn().mockResolvedValue(undefined) } as any as MailService;
     const subscriptionsService = { tryAutoGrantCourtesy: jest.fn() } as any;
-    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService);
+    const storageService = { generateViewUrl: jest.fn() } as any;
+    const svc = new AuthService(usersService, jwt, mailService, subscriptionsService, storageService);
     const res = await svc.requestEmailVerification('a@b.com');
     expect(res).toEqual({ ok: true });
     expect(mailService.sendEmailVerification).toHaveBeenCalled();

@@ -25,6 +25,15 @@ export class User {
   @Column()
   name: string;
 
+  @Column({ name: 'bio', type: 'text', nullable: true })
+  bio?: string | null;
+
+  @Column({ name: 'profile_links', type: 'jsonb', nullable: true })
+  profileLinks?: Array<{ label: string; url: string }> | null;
+
+  @Column({ name: 'avatar_key', type: 'varchar', nullable: true })
+  avatarKey?: string | null;
+
   @Column({ default: 'user' })
   role: 'user' | 'admin';
 

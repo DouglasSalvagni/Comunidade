@@ -182,241 +182,326 @@ const AccountPage = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold">Meu Perfil</h1>
-        <p className="text-muted-foreground">Atualize seu nome de exibição.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Meu Perfil</h1>
+        <p className="text-muted-foreground mt-2">Gerencie suas informações pessoais e configurações de segurança.</p>
       </div>
 
       {loading ? (
-        <Card className="p-6 max-w-lg space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-12" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-12" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <Skeleton className="h-10 w-24" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-6">
+            <Card className="p-6 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-20 w-20 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-8 w-40" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              </div>
+            </Card>
           </div>
-          <div className="pt-6 space-y-4">
-            <Skeleton className="h-7 w-40" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-28" />
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="p-6 space-y-4">
+              <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-            <Skeleton className="h-10 w-44" />
+            </Card>
           </div>
-        </Card>
+        </div>
       ) : (
-        <Card className="p-6 max-w-lg">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Avatar</Label>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || "Avatar"} />
-                  <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    disabled={uploadingAvatar}
-                    onChange={(e) => onAvatarChange(e.target.files?.[0])}
-                  />
-                  {uploadingAvatar ? (
-                    <p className="mt-1 text-xs text-muted-foreground">Enviando avatar...</p>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Escreva uma bio curta"
-                rows={4}
-              />
-            </div>
-            <div className="space-y-3">
-              <Label>Links do perfil</Label>
-              {links.map((link, index) => (
-                <div key={`link-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Input
-                    value={link.label}
-                    onChange={(e) => updateLink(index, "label", e.target.value)}
-                    placeholder="Rótulo"
-                  />
-                  <Input
-                    value={link.url}
-                    onChange={(e) => updateLink(index, "url", e.target.value)}
-                    placeholder="https://..."
-                  />
-                  <Button type="button" variant="outline" onClick={() => removeLink(index)}>
-                    Remover
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" onClick={addLink}>
-                Adicionar link
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={user?.email || ""} disabled className="bg-muted text-muted-foreground" />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={onSave} disabled={saving || !name}>Salvar</Button>
-            </div>
-            {user?.authProvider === 'local' ? (
-              <div className="pt-6 space-y-3">
-                <h3 className="text-lg font-semibold">Alterar Senha</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="current">Senha atual</Label>
-                  <div className="relative">
-                    <Input id="current" type={showCurrent ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="pr-10" />
-                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowCurrent(s => !s)}>
-                      {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Coluna Principal - Perfil */}
+          <div className="lg:col-span-8 space-y-6">
+            <Card>
+              <div className="p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="relative group">
+                    <Avatar className="h-24 w-24 border-2 border-muted">
+                      <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name || "Avatar"} className="object-cover" />
+                      <AvatarFallback className="text-2xl">{getInitials(user?.name)}</AvatarFallback>
+                    </Avatar>
+                    <label 
+                      htmlFor="avatar-upload" 
+                      className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer shadow-sm hover:bg-primary/90 transition-colors"
+                    >
+                      <Loader2 className={`w-4 h-4 ${uploadingAvatar ? 'animate-spin' : ''}`} />
+                      <span className="sr-only">Alterar avatar</span>
+                    </label>
+                    <Input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                      onChange={(e) => onAvatarChange(e.target.files?.[0])}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-medium">Sua foto</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Isso será exibido em seu perfil e em comentários.
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new">Nova senha</Label>
-                  <div className="relative">
-                    <Input id="new" type={showNew ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" />
-                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowNew(s => !s)}>
-                      {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome de exibição</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Biografia</Label>
+                    <Textarea
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Conte um pouco sobre você..."
+                      rows={4}
+                      className="resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {bio.length}/500
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Links sociais</Label>
+                    {links.map((link, index) => (
+                      <div key={`link-${index}`} className="flex gap-2">
+                        <Input
+                          value={link.label}
+                          onChange={(e) => updateLink(index, "label", e.target.value)}
+                          placeholder="Título (ex: LinkedIn)"
+                          className="w-1/3"
+                        />
+                        <Input
+                          value={link.url}
+                          onChange={(e) => updateLink(index, "url", e.target.value)}
+                          placeholder="URL (https://...)"
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => removeLink(index)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Loader2 className="w-4 h-4 sr-only" /> 
+                          {/* Hack to reuse icon sizing but show X */}
+                          <span className="text-lg leading-none">&times;</span>
+                        </Button>
+                      </div>
+                    ))}
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={addLink}
+                      className="w-full border-dashed"
+                    >
+                      Adicionar link
+                    </Button>
                   </div>
                 </div>
+              </div>
+              <div className="p-6 border-t bg-muted/50 flex justify-end">
+                <Button onClick={onSave} disabled={saving || !name}>
+                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Salvar alterações
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Coluna Lateral - Configurações */}
+          <div className="lg:col-span-4 space-y-6">
+            <Card>
+              <div className="p-6 space-y-4">
+                <h3 className="font-semibold">Identificação</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm">Confirmar nova senha</Label>
-                  <div className="relative">
-                    <Input id="confirm" type={showConfirm ? "text" : "password"} value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="pr-10" />
-                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => setShowConfirm(s => !s)}>
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                  <Label>Email</Label>
+                  <Input value={user?.email || ""} disabled className="bg-muted text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    Para alterar seu email, entre em contato com o suporte.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {user?.authProvider === 'local' && (
+              <Card>
+                <div className="p-6 space-y-4">
+                  <h3 className="font-semibold">Segurança</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="current">Senha atual</Label>
+                      <div className="relative">
+                        <Input 
+                          id="current" 
+                          type={showCurrent ? "text" : "password"} 
+                          value={currentPassword} 
+                          onChange={(e) => setCurrentPassword(e.target.value)} 
+                          className="pr-10" 
+                        />
+                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowCurrent(s => !s)}>
+                          {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new">Nova senha</Label>
+                      <div className="relative">
+                        <Input 
+                          id="new" 
+                          type={showNew ? "text" : "password"} 
+                          value={newPassword} 
+                          onChange={(e) => setNewPassword(e.target.value)} 
+                          className="pr-10" 
+                        />
+                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowNew(s => !s)}>
+                          {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm">Confirmar nova senha</Label>
+                      <div className="relative">
+                        <Input 
+                          id="confirm" 
+                          type={showConfirm ? "text" : "password"} 
+                          value={confirmNewPassword} 
+                          onChange={(e) => setConfirmNewPassword(e.target.value)} 
+                          className="pr-10" 
+                        />
+                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowConfirm(s => !s)}>
+                          {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={onChangePassword} 
+                      disabled={savingPwd || !currentPassword || !newPassword || newPassword !== confirmNewPassword}
+                      className="w-full mt-2"
+                      variant="secondary"
+                    >
+                      {savingPwd && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Atualizar senha
+                    </Button>
                   </div>
                 </div>
-                <div>
-                  <Button onClick={onChangePassword} disabled={savingPwd || !currentPassword || !newPassword || newPassword !== confirmNewPassword}>Salvar nova senha</Button>
-                </div>
-              </div>
-            ) : (
-              <div className="pt-6">
-                <p className="text-sm text-muted-foreground">Sua conta está conectada via login social (ex.: Google). Alteração de senha não está disponível.</p>
-              </div>
+              </Card>
             )}
 
-            <div className="pt-6 border-t">
-              <h3 className="text-lg font-semibold text-red-600">Excluir conta</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-3">
-                Esta ação é permanente e remove seu acesso à plataforma.
-              </p>
-              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={deleting}>
-                    {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Excluir conta
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar exclusão da conta?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Todos os dados associados à sua conta serão removidos.
-                    </AlertDialogDescription>
-                    {hasActivePaidPlan ? (
-                      <div className="text-sm text-muted-foreground space-y-2">
-                        <p>
-                          Seu plano pago está ativo
-                          {subscription?.periodEnd ? ` até ${formatDate(subscription.periodEnd)}.` : "."}
-                        </p>
-                        <p>Você pode cancelar sua assinatura antes de excluir a conta.</p>
-                      </div>
-                    ) : null}
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-                    {hasActivePaidPlan ? (
-                      <>
-                        <Button asChild variant="outline" disabled={deleting}>
-                          <Link href="/dashboard/subscriptions">Ir para Assinatura</Link>
-                        </Button>
+            <Card className="border-destructive/20">
+              <div className="p-6 space-y-4">
+                <h3 className="font-semibold text-destructive">Zona de Perigo</h3>
+                <p className="text-sm text-muted-foreground">
+                  A exclusão da conta é permanente e não pode ser desfeita.
+                </p>
+                
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full" disabled={deleting}>
+                      Excluir minha conta
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar exclusão da conta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Todos os dados associados à sua conta serão removidos.
+                      </AlertDialogDescription>
+                      {hasActivePaidPlan ? (
+                        <div className="text-sm text-muted-foreground space-y-2 bg-muted p-3 rounded-md mt-2">
+                          <p className="font-medium text-foreground">Atenção:</p>
+                          <p>
+                            Seu plano pago está ativo
+                            {subscription?.periodEnd ? ` até ${formatDate(subscription.periodEnd)}.` : "."}
+                          </p>
+                          <p>Você pode cancelar sua assinatura antes de excluir a conta.</p>
+                        </div>
+                      ) : null}
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                      {hasActivePaidPlan ? (
+                        <>
+                          <Button asChild variant="outline" disabled={deleting}>
+                            <Link href="/dashboard/subscriptions">Gerenciar Assinatura</Link>
+                          </Button>
+                          <AlertDialogAction
+                            onClick={(event) => {
+                              event.preventDefault();
+                              if (!deleting) {
+                                setIsDeleteDialogOpen(false);
+                                setIsCancelAndDeleteDialogOpen(true);
+                              }
+                            }}
+                            disabled={deleting}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Excluir mesmo assim
+                          </AlertDialogAction>
+                        </>
+                      ) : (
                         <AlertDialogAction
                           onClick={(event) => {
                             event.preventDefault();
                             if (!deleting) {
-                              setIsDeleteDialogOpen(false);
-                              setIsCancelAndDeleteDialogOpen(true);
+                              onDeleteAccount(false);
                             }
                           }}
                           disabled={deleting}
+                          className="bg-destructive hover:bg-destructive/90"
                         >
-                          Excluir mesmo assim
+                          {deleting ? "Excluindo..." : "Confirmar exclusão"}
                         </AlertDialogAction>
-                      </>
-                    ) : (
+                      )}
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={isCancelAndDeleteDialogOpen} onOpenChange={setIsCancelAndDeleteDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancelar assinatura e excluir conta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Ao continuar, sua assinatura será cancelada imediatamente e sua conta será excluída permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={deleting}>Voltar</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={(event) => {
                           event.preventDefault();
                           if (!deleting) {
-                            onDeleteAccount(false);
+                            onDeleteAccount(true);
                           }
                         }}
                         disabled={deleting}
+                        className="bg-destructive hover:bg-destructive/90"
                       >
-                        {deleting ? "Excluindo..." : "Confirmar exclusão"}
+                        {deleting ? "Processando..." : "Cancelar e excluir"}
                       </AlertDialogAction>
-                    )}
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <AlertDialog open={isCancelAndDeleteDialogOpen} onOpenChange={setIsCancelAndDeleteDialogOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancelar assinatura e excluir conta?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Ao continuar, sua assinatura será cancelada e, em seguida, sua conta será excluída permanentemente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={deleting}>Voltar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (!deleting) {
-                          onDeleteAccount(true);
-                        }
-                      }}
-                      disabled={deleting}
-                    >
-                      {deleting ? "Processando..." : "Cancelar assinatura e excluir"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </Card>
           </div>
-        </Card>
+        </div>
       )}
     </div>
   );

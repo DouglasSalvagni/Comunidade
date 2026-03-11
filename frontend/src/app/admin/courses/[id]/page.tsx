@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { api, AdminCourseDetail, LessonAttachment } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Save, ChevronDown, ChevronUp, GripVertical, Upload, Video, FileText, Paperclip, X } from "lucide-react";
+import { Plus, Trash2, Save, ChevronDown, ChevronUp, GripVertical, Upload, Video, FileText, Paperclip, X, Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -138,6 +138,7 @@ function SortableModuleCard({
   onUploadVideo,
   onLessonDragEnd,
   onEditLessonContent,
+  onRenameModule,
 }: {
   modulo: AdminCourseDetail["modulos"][0];
   courseId: string;
@@ -148,6 +149,7 @@ function SortableModuleCard({
   onUploadVideo: (moduleId: string, lessonId: string) => void;
   onLessonDragEnd: (moduleId: string, activeId: string, overId: string) => void;
   onEditLessonContent: (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => void;
+  onRenameModule: (moduleId: string, newTitulo: string) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: modulo.id,
@@ -164,26 +166,95 @@ function SortableModuleCard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // ── Inline title editing ──
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(modulo.titulo);
+  const [savingTitle, setSavingTitle] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = (e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent card toggle
+    setDraftTitle(modulo.titulo);
+    setEditingTitle(true);
+    // Focus happens after render via useEffect
+  };
+
+  useEffect(() => {
+    if (editingTitle) inputRef.current?.focus();
+  }, [editingTitle]);
+
+  const commitEdit = async () => {
+    const trimmed = draftTitle.trim();
+    if (!trimmed || trimmed === modulo.titulo) {
+      setEditingTitle(false);
+      return;
+    }
+    setSavingTitle(true);
+    try {
+      await onRenameModule(modulo.id, trimmed);
+    } finally {
+      setSavingTitle(false);
+      setEditingTitle(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setDraftTitle(modulo.titulo);
+    setEditingTitle(false);
+  };
+
   return (
     <div ref={setNodeRef} style={style}>
       <Card className="overflow-hidden">
-        <CardHeader className="py-3 px-4 cursor-pointer" onClick={onToggle}>
+        <CardHeader
+          className="py-3 px-4"
+          // Only toggle when NOT editing the title
+          onClick={editingTitle ? undefined : onToggle}
+          style={{ cursor: editingTitle ? "default" : "pointer" }}
+        >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <button
-                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
                 onClick={(e) => e.stopPropagation()}
                 {...attributes}
                 {...listeners}
               >
                 <GripVertical className="h-4 w-4" />
               </button>
-              <CardTitle className="text-base">{modulo.titulo}</CardTitle>
-              <Badge variant="outline" className="text-xs">
+
+              {editingTitle ? (
+                // ── Edit mode ──
+                <input
+                  ref={inputRef}
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+                    if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={savingTitle}
+                  className="flex-1 min-w-0 text-base font-semibold bg-transparent border-b border-primary outline-none px-0 py-0.5 text-foreground placeholder:text-muted-foreground"
+                />
+              ) : (
+                // ── View mode ──
+                <button
+                  className="group flex items-center gap-1.5 text-left flex-1 min-w-0"
+                  onClick={startEditing}
+                  title="Clique para editar o nome do módulo"
+                >
+                  <span className="text-base font-semibold truncate">{modulo.titulo}</span>
+                  <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </button>
+              )}
+
+              <Badge variant="outline" className="text-xs shrink-0">
                 {modulo.aulas.length} {modulo.aulas.length === 1 ? "aula" : "aulas"}
               </Badge>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -635,6 +706,25 @@ export default function AdminCourseDetailPage() {
     input.click();
   };
 
+  // ── Module rename ──
+  const handleRenameModule = async (moduleId: string, newTitulo: string) => {
+    if (!id) return;
+    try {
+      await api.adminUpdateModule(id, moduleId, { titulo: newTitulo });
+      // Update local state optimistically so the title shows immediately
+      if (course) {
+        const newModulos = course.modulos.map((m) =>
+          m.id === moduleId ? { ...m, titulo: newTitulo } : m
+        );
+        setCourse({ ...course, modulos: newModulos });
+      }
+    } catch (err) {
+      console.error("Erro ao renomear módulo:", err);
+      // Reload to restore the original title if the request failed
+      await loadCourse();
+    }
+  };
+
   // ── Lesson content edit ──
   const handleEditLessonContent = (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => {
     setEditingLesson({ moduleId, lessonId, titulo, conteudoTexto });
@@ -839,6 +929,7 @@ export default function AdminCourseDetailPage() {
                     onUploadVideo={handleUploadVideo}
                     onLessonDragEnd={handleLessonDragEnd}
                     onEditLessonContent={handleEditLessonContent}
+                    onRenameModule={handleRenameModule}
                   />
                 );
               })}

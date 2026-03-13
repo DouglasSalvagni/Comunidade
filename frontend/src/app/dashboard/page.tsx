@@ -49,7 +49,7 @@ const DashboardPage = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Olá, {loading ? <Skeleton className="h-4 w-24 inline-block align-middle" /> : getFirstName(user?.name)}. Bem-vindo de volta!
+            Olá, {loading ? "..." : getFirstName(user?.name)}. Bem-vindo de volta!
           </p>
         </div>
         <div className="flex gap-2">
@@ -75,7 +75,7 @@ const DashboardPage = () => {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              {loading ? <Skeleton className="h-3 w-32" /> : (user?.emailVerified ? "Acesso total liberado" : "Verifique seu email")}
+              {loading ? "Carregando..." : (user?.emailVerified ? "Acesso total liberado" : "Verifique seu email")}
             </p>
           </CardContent>
         </Card>
@@ -94,7 +94,7 @@ const DashboardPage = () => {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              {loading ? <Skeleton className="h-3 w-24" /> : (subscription?.status === 'active' ? "Assinatura ativa" : "Nenhuma assinatura ativa")}
+              {loading ? "Carregando..." : (subscription?.status === 'active' ? "Assinatura ativa" : "Nenhuma assinatura ativa")}
             </p>
           </CardContent>
         </Card>

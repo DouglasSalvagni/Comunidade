@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
@@ -7,6 +7,8 @@ import { CommunityService } from './community.service';
 import { GenerateCommunityPostUploadUrlDto } from './dto/generate-community-post-upload-url.dto';
 import { AddCommunityPostAttachmentDto } from './dto/add-community-post-attachment.dto';
 import { CreateCommunityCommentDto } from './dto/create-community-comment.dto';
+import { UpdateCommunityPostDto } from './dto/update-community-post.dto';
+import { UpdateCommunityCommentDto } from './dto/update-community-comment.dto';
 
 @ApiTags('Community Posts')
 @Controller('community/posts')
@@ -57,6 +59,17 @@ export class CommunityPostsController {
     return this.communityService.togglePostLike(postId, req.user.userId, req.user.role);
   }
 
+  @Patch(':postId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Editar post da comunidade' })
+  async updatePost(
+    @Param('postId') postId: string,
+    @Body() dto: UpdateCommunityPostDto,
+    @Request() req: any,
+  ) {
+    return this.communityService.updatePost(postId, req.user.userId, req.user.role, dto);
+  }
+
   @Get(':postId/comments')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar comentários do post com paginação por cursor' })
@@ -86,5 +99,17 @@ export class CommunityPostsController {
     @Request() req: any,
   ) {
     return this.communityService.createCommentOnPost(postId, req.user.userId, req.user.role, dto);
+  }
+
+  @Patch(':postId/comments/:commentId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Editar comentário ou resposta no post' })
+  async updateComment(
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateCommunityCommentDto,
+    @Request() req: any,
+  ) {
+    return this.communityService.updateCommentOnPost(postId, commentId, req.user.userId, req.user.role, dto);
   }
 }

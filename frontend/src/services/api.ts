@@ -209,6 +209,7 @@ export interface CommunityPost {
   likesCount: number;
   createdAt: string;
   updatedAt: string;
+  editedAt: string | null;
   author?: User;
   attachments?: CommunityPostAttachment[];
   space?: CommunitySpace;
@@ -224,6 +225,7 @@ export interface CommunityComment {
   likesCount: number;
   createdAt: string;
   updatedAt: string;
+  editedAt: string | null;
   author?: User;
   replies?: CommunityComment[];
 }
@@ -767,6 +769,14 @@ class ApiService {
     return response.data.data;
   }
 
+  async updateCommunityPost(
+    postId: string,
+    data: { title?: string; contentHtml?: string },
+  ): Promise<CommunityPost> {
+    const response = await this.client.patch<ApiResponse<CommunityPost>>(`/community/posts/${postId}`, data);
+    return response.data.data;
+  }
+
   async getCommunityPostAttachmentUploadUrl(
     postId: string,
     fileName: string,
@@ -817,6 +827,18 @@ class ApiService {
     data: { contentHtml: string; parentCommentId?: string },
   ): Promise<CommunityComment> {
     const response = await this.client.post<ApiResponse<CommunityComment>>(`/community/posts/${postId}/comments`, data);
+    return response.data.data;
+  }
+
+  async updateCommunityComment(
+    postId: string,
+    commentId: string,
+    data: { contentHtml: string },
+  ): Promise<CommunityComment> {
+    const response = await this.client.patch<ApiResponse<CommunityComment>>(
+      `/community/posts/${postId}/comments/${commentId}`,
+      data,
+    );
     return response.data.data;
   }
 

@@ -25,8 +25,13 @@ export default function DashboardCommunitySpacePage() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [savingPostEdit, setSavingPostEdit] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingPostTitle, setEditingPostTitle] = useState("");
+  const [editingPostContentHtml, setEditingPostContentHtml] = useState("");
   const [title, setTitle] = useState("");
   const [contentHtml, setContentHtml] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -37,12 +42,14 @@ export default function DashboardCommunitySpacePage() {
     if (!spaceId) return;
     setLoading(true);
     try {
-      const [allSpaces, feed] = await Promise.all([
+      const [allSpaces, feed, profile] = await Promise.all([
         api.getCommunitySpaces(),
         api.getCommunitySpaceFeed(spaceId, { limit: 50 }),
+        api.getProfile(),
       ]);
       setSpaces(allSpaces);
       setPosts(feed);
+      setCurrentUserId(profile.id);
     } catch {
       toast.error("Não foi possível carregar o canal.");
     } finally {
@@ -135,6 +142,39 @@ export default function DashboardCommunitySpacePage() {
     }
   };
 
+  const startEditingPost = (post: CommunityPost) => {
+    setEditingPostId(post.id);
+    setEditingPostTitle(post.title || "");
+    setEditingPostContentHtml(post.contentHtml);
+  };
+
+  const cancelEditingPost = () => {
+    setEditingPostId(null);
+    setEditingPostTitle("");
+    setEditingPostContentHtml("");
+  };
+
+  const savePostEdit = async () => {
+    if (!editingPostId || !editingPostContentHtml.trim()) {
+      toast.error("Escreva o conteúdo do post.");
+      return;
+    }
+    setSavingPostEdit(true);
+    try {
+      await api.updateCommunityPost(editingPostId, {
+        title: editingPostTitle,
+        contentHtml: editingPostContentHtml,
+      });
+      await load();
+      cancelEditingPost();
+      toast.success("Post atualizado.");
+    } catch {
+      toast.error("Não foi possível atualizar o post.");
+    } finally {
+      setSavingPostEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -202,6 +242,7 @@ export default function DashboardCommunitySpacePage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm text-muted-foreground">
                   {post.author?.name || "Membro"} • {new Date(post.createdAt).toLocaleString()}
+                  {post.editedAt ? ` • Editado em ${new Date(post.editedAt).toLocaleString()}` : ""}
                 </div>
                 {post.isPinned && (
                   <Badge variant="outline">
@@ -213,11 +254,36 @@ export default function DashboardCommunitySpacePage() {
               {post.title && <CardTitle className="text-xl">{post.title}</CardTitle>}
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+              {editingPostId === post.id ? (
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Título opcional"
+                    value={editingPostTitle}
+                    onChange={(event) => setEditingPostTitle(event.target.value)}
+                    maxLength={180}
+                  />
+                  <RichTextEditor value={editingPostContentHtml} onChange={setEditingPostContentHtml} />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={cancelEditingPost} disabled={savingPostEdit}>
+                      Cancelar
+                    </Button>
+                    <Button type="button" onClick={savePostEdit} disabled={savingPostEdit}>
+                      {savingPostEdit ? "Salvando..." : "Salvar edição"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+              )}
               {(post.attachments || []).length > 0 && (
                 <PostAttachments attachments={post.attachments || []} />
               )}
               <div className="flex items-center gap-2">
+                {currentUserId === post.authorId && editingPostId !== post.id && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => startEditingPost(post)}>
+                    Editar
+                  </Button>
+                )}
                 <Button type="button" variant="outline" size="sm" onClick={() => toggleLike(post.id)}>
                   <Heart className="h-4 w-4 mr-1" />
                   {post.likesCount}

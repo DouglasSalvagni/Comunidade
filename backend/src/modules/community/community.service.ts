@@ -21,6 +21,8 @@ import { CommunityAccessService } from './community-access.service';
 import { CreateCommunityPostDto } from './dto/create-community-post.dto';
 import { StorageService } from '@/modules/courses/storage.service';
 import { CreateCommunityCommentDto } from './dto/create-community-comment.dto';
+import { UpdateCommunityPostDto } from './dto/update-community-post.dto';
+import { UpdateCommunityCommentDto } from './dto/update-community-comment.dto';
 
 @Injectable()
 export class CommunityService {
@@ -295,6 +297,35 @@ export class CommunityService {
     return { liked: true, likesCount: updated.likesCount };
   }
 
+  async updatePost(
+    postId: string,
+    userId: string,
+    userRole: 'user' | 'admin',
+    dto: UpdateCommunityPostDto,
+  ): Promise<CommunityPost> {
+    const post = await this.getPostOrFail(postId);
+    await this.assertCanReadSpace(post.spaceId, userId, userRole);
+
+    if (userRole !== 'admin' && post.authorId !== userId) {
+      throw new ForbiddenException('Sem permissão para editar este post');
+    }
+    if (dto.title === undefined && dto.contentHtml === undefined) {
+      throw new BadRequestException('Nada para atualizar');
+    }
+
+    if (dto.title !== undefined) {
+      const normalizedTitle = dto.title.trim();
+      post.title = normalizedTitle.length > 0 ? normalizedTitle : null;
+    }
+    if (dto.contentHtml !== undefined) {
+      post.contentHtml = dto.contentHtml;
+    }
+
+    post.editedAt = new Date();
+    await this.postRepo.save(post);
+    return this.getPostDetail(post.id);
+  }
+
   async createCommentOnPost(
     postId: string,
     userId: string,
@@ -330,6 +361,36 @@ export class CommunityService {
 
     return this.commentRepo.findOneOrFail({
       where: { id: saved.id },
+      relations: ['author'],
+    });
+  }
+
+  async updateCommentOnPost(
+    postId: string,
+    commentId: string,
+    userId: string,
+    userRole: 'user' | 'admin',
+    dto: UpdateCommunityCommentDto,
+  ): Promise<CommunityComment> {
+    const post = await this.getPostOrFail(postId);
+    await this.assertCanReadSpace(post.spaceId, userId, userRole);
+
+    const comment = await this.commentRepo.findOne({
+      where: { id: commentId, postId, status: 'published' },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comentário não encontrado');
+    }
+    if (userRole !== 'admin' && comment.authorId !== userId) {
+      throw new ForbiddenException('Sem permissão para editar este comentário');
+    }
+
+    comment.contentHtml = dto.contentHtml;
+    comment.editedAt = new Date();
+    await this.commentRepo.save(comment);
+
+    return this.commentRepo.findOneOrFail({
+      where: { id: comment.id },
       relations: ['author'],
     });
   }

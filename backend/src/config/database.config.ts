@@ -20,6 +20,13 @@ import { Lesson } from '@/modules/courses/entities/lesson.entity';
 import { LessonAttachment } from '@/modules/courses/entities/lesson-attachment.entity';
 import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entity';
 import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity';
+import { CommunitySpace } from '@/modules/community/entities/community-space.entity';
+import { CommunitySpacePlanAccess } from '@/modules/community/entities/community-space-plan-access.entity';
+import { CommunitySpaceCourseAccess } from '@/modules/community/entities/community-space-course-access.entity';
+import { CommunityPost } from '@/modules/community/entities/community-post.entity';
+import { CommunityPostAttachment } from '@/modules/community/entities/community-post-attachment.entity';
+import { CommunityPostLike } from '@/modules/community/entities/community-post-like.entity';
+import { CommunityComment } from '@/modules/community/entities/community-comment.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -53,6 +60,13 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     LessonAttachment,
     LessonProgress,
     CoursePlanAccess,
+    CommunitySpace,
+    CommunitySpacePlanAccess,
+    CommunitySpaceCourseAccess,
+    CommunityPost,
+    CommunityPostAttachment,
+    CommunityPostLike,
+    CommunityComment,
   ],
   autoLoadEntities: true,
   synchronize: false,

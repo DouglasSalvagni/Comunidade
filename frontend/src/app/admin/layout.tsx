@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Users, Tag, FileText, Shield, CreditCard, BookOpen } from 'lucide-react';
+import { Home, Users, Tag, FileText, Shield, CreditCard, BookOpen, MessagesSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/services/api';
@@ -65,6 +65,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     });
   };
 
+  const linkClass = (href: string) => {
+    const active = pathname === href || pathname.startsWith(`${href}/`);
+    return `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+      active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary'
+    }`;
+  };
+
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 lg:block">
@@ -76,35 +83,39 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-4 text-sm font-medium">
-              <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin" className={linkClass('/admin')}>
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link href="/admin/plans" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/plans" className={linkClass('/admin/plans')}>
                 <CreditCard className="h-4 w-4" />
                 Planos
               </Link>
-              <Link href="/admin/courses" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/courses" className={linkClass('/admin/courses')}>
                 <BookOpen className="h-4 w-4" />
                 Cursos
               </Link>
-              <Link href="/admin/legal" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/community" className={linkClass('/admin/community')}>
+                <MessagesSquare className="h-4 w-4" />
+                Comunidade
+              </Link>
+              <Link href="/admin/legal" className={linkClass('/admin/legal')}>
                 <FileText className="h-4 w-4" />
                 Termos & Privacidade
               </Link>
-              <Link href="/admin/anti-abuse" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/anti-abuse" className={linkClass('/admin/anti-abuse')}>
                 <Shield className="h-4 w-4" />
                 Anti-Abuse
               </Link>
-              <Link href="/admin/users" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/users" className={linkClass('/admin/users')}>
                 <Users className="h-4 w-4" />
                 Usuários
               </Link>
-              <Link href="/admin/partnerships" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/partnerships" className={linkClass('/admin/partnerships')}>
                 <Tag className="h-4 w-4" />
                 Parcerias & Cupons
               </Link>
-              <Link href="/admin/affiliates" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/affiliates" className={linkClass('/admin/affiliates')}>
                 <Users className="h-4 w-4" />
                 Afiliados
               </Link>

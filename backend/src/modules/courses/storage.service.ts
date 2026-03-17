@@ -126,4 +126,14 @@ export class StorageService {
 
     return getSignedUrl(client, command, { expiresIn: 3600 });
   }
+
+  async generateAttachmentForcedDownloadUrl(key: string, fileName: string): Promise<string> {
+    const client = this.ensureClient();
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${encodeURIComponent(fileName)}"`,
+    });
+    return getSignedUrl(client, command, { expiresIn: 3600 });
+  }
 }

@@ -266,6 +266,12 @@
 3. Integrar composer com editor rico e upload de anexos.
 4. Integrar curtidas, comentários e respostas.
 
+### Checklist da execução (Fase 4)
+- [x] Rotas e navegação admin/dashboard da comunidade implementadas, incluindo sidebar do dashboard.
+- [x] Telas de espaços/feed/post implementadas no frontend.
+- [x] Composer com editor rico e fluxo de upload de anexos integrado.
+- [x] Curtidas, comentários e respostas integrados no frontend.
+
 ## Fase 5 — Qualidade e rollout
 1. Testes unitários backend (acesso, validações, regras de profundidade).
 2. Testes de integração das rotas principais.

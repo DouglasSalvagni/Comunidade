@@ -157,6 +157,77 @@ export interface ActiveCoupon {
   expiresAt?: string;
 }
 
+export interface CommunitySpacePlanAccess {
+  id: string;
+  planId: string;
+  plan?: Plan;
+}
+
+export interface CommunitySpaceCourseAccess {
+  id: string;
+  courseId: string;
+  course?: AdminCourse;
+}
+
+export interface CommunitySpace {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  visibility: 'public' | 'restricted';
+  isActive: boolean;
+  sortOrder: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  planAccess?: CommunitySpacePlanAccess[];
+  courseAccess?: CommunitySpaceCourseAccess[];
+}
+
+export interface CommunityPostAttachment {
+  id: string;
+  postId: string;
+  fileKey: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
+  downloadUrl?: string;
+  viewUrl?: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  spaceId: string;
+  authorId: string;
+  title: string | null;
+  contentHtml: string;
+  isPinned: boolean;
+  pinnedAt: string | null;
+  status: 'published' | 'archived';
+  commentsCount: number;
+  likesCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  attachments?: CommunityPostAttachment[];
+  space?: CommunitySpace;
+}
+
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  parentCommentId: string | null;
+  contentHtml: string;
+  status: 'published' | 'deleted';
+  likesCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author?: User;
+  replies?: CommunityComment[];
+}
+
 // ===== INTERFACES DE CURSOS =====
 
 export interface CourseListItem {
@@ -671,6 +742,151 @@ class ApiService {
 
   async adminDeletePlan(id: string): Promise<void> {
     await this.client.delete(`/admin/plans/${id}`);
+  }
+
+  async getCommunitySpaces(): Promise<CommunitySpace[]> {
+    const response = await this.client.get<ApiResponse<CommunitySpace[]>>('/community/spaces');
+    return response.data.data;
+  }
+
+  async getCommunitySpaceFeed(spaceId: string, params?: { limit?: number }): Promise<CommunityPost[]> {
+    const response = await this.client.get<ApiResponse<CommunityPost[]>>(`/community/spaces/${spaceId}/feed`, { params });
+    return response.data.data;
+  }
+
+  async createCommunityPost(
+    spaceId: string,
+    data: { title?: string; contentHtml: string },
+  ): Promise<CommunityPost> {
+    const response = await this.client.post<ApiResponse<CommunityPost>>(`/community/spaces/${spaceId}/posts`, data);
+    return response.data.data;
+  }
+
+  async getCommunityPost(postId: string): Promise<CommunityPost> {
+    const response = await this.client.get<ApiResponse<CommunityPost>>(`/community/posts/${postId}`);
+    return response.data.data;
+  }
+
+  async getCommunityPostAttachmentUploadUrl(
+    postId: string,
+    fileName: string,
+    contentType: string,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    const response = await this.client.post<ApiResponse<{ uploadUrl: string; key: string }>>(
+      `/community/posts/${postId}/attachments/upload-url`,
+      { fileName, contentType },
+    );
+    return response.data.data;
+  }
+
+  async addCommunityPostAttachment(
+    postId: string,
+    data: { fileKey: string; fileName: string; contentType: string; sizeBytes?: number },
+  ): Promise<CommunityPostAttachment> {
+    const response = await this.client.post<ApiResponse<CommunityPostAttachment>>(
+      `/community/posts/${postId}/attachments`,
+      data,
+    );
+    return response.data.data;
+  }
+
+  async toggleCommunityPostLike(postId: string): Promise<{ liked: boolean; likesCount: number }> {
+    const response = await this.client.post<ApiResponse<{ liked: boolean; likesCount: number }>>(
+      `/community/posts/${postId}/likes/toggle`,
+      {},
+    );
+    return response.data.data;
+  }
+
+  async listCommunityPostComments(
+    postId: string,
+    params?: { limit?: number; cursor?: string },
+  ): Promise<{
+    data: Array<CommunityComment & { replies: CommunityComment[] }>;
+    meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+  }> {
+    const response = await this.client.get<{
+      data: Array<CommunityComment & { replies: CommunityComment[] }>;
+      meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+    }>(`/community/posts/${postId}/comments`, { params });
+    return response.data;
+  }
+
+  async createCommunityComment(
+    postId: string,
+    data: { contentHtml: string; parentCommentId?: string },
+  ): Promise<CommunityComment> {
+    const response = await this.client.post<ApiResponse<CommunityComment>>(`/community/posts/${postId}/comments`, data);
+    return response.data.data;
+  }
+
+  async adminGetCommunitySpaces(): Promise<CommunitySpace[]> {
+    const response = await this.client.get<ApiResponse<CommunitySpace[]>>('/admin/community/spaces');
+    return response.data.data;
+  }
+
+  async adminGetCommunitySpace(id: string): Promise<CommunitySpace> {
+    const response = await this.client.get<ApiResponse<CommunitySpace>>(`/admin/community/spaces/${id}`);
+    return response.data.data;
+  }
+
+  async adminCreateCommunitySpace(data: {
+    name: string;
+    slug: string;
+    description?: string;
+    visibility?: 'public' | 'restricted';
+    isActive?: boolean;
+    sortOrder?: number;
+    planIds?: string[];
+    courseIds?: string[];
+  }): Promise<CommunitySpace> {
+    const response = await this.client.post<ApiResponse<CommunitySpace>>('/admin/community/spaces', data);
+    return response.data.data;
+  }
+
+  async adminUpdateCommunitySpace(
+    id: string,
+    data: Partial<{
+      name: string;
+      slug: string;
+      description: string;
+      visibility: 'public' | 'restricted';
+      isActive: boolean;
+      sortOrder: number;
+    }>,
+  ): Promise<CommunitySpace> {
+    const response = await this.client.patch<ApiResponse<CommunitySpace>>(`/admin/community/spaces/${id}`, data);
+    return response.data.data;
+  }
+
+  async adminDeleteCommunitySpace(id: string): Promise<void> {
+    await this.client.delete(`/admin/community/spaces/${id}`);
+  }
+
+  async adminUpdateCommunitySpacePlanAccess(id: string, ids: string[]): Promise<CommunitySpacePlanAccess[]> {
+    const response = await this.client.patch<ApiResponse<CommunitySpacePlanAccess[]>>(
+      `/admin/community/spaces/${id}/access/plans`,
+      { ids },
+    );
+    return response.data.data;
+  }
+
+  async adminUpdateCommunitySpaceCourseAccess(id: string, ids: string[]): Promise<CommunitySpaceCourseAccess[]> {
+    const response = await this.client.patch<ApiResponse<CommunitySpaceCourseAccess[]>>(
+      `/admin/community/spaces/${id}/access/courses`,
+      { ids },
+    );
+    return response.data.data;
+  }
+
+  async adminPinCommunityPost(postId: string): Promise<CommunityPost> {
+    const response = await this.client.post<ApiResponse<CommunityPost>>(`/admin/community/posts/${postId}/pin`, {});
+    return response.data.data;
+  }
+
+  async adminUnpinCommunityPost(postId: string): Promise<CommunityPost> {
+    const response = await this.client.post<ApiResponse<CommunityPost>>(`/admin/community/posts/${postId}/unpin`, {});
+    return response.data.data;
   }
 
   // Exportar inst├óncia ├║nica da API

@@ -166,12 +166,13 @@ export class CommunityService {
     limit = 20,
   ): Promise<CommunityPost[]> {
     await this.assertCanReadSpace(spaceId, userId, userRole);
-    return this.postRepo.find({
+    const posts = await this.postRepo.find({
       where: { spaceId, status: 'published' },
       relations: ['author', 'attachments'],
       order: { isPinned: 'DESC', pinnedAt: 'DESC', createdAt: 'DESC' },
       take: Math.min(Math.max(limit, 1), 50),
     });
+    return this.attachDownloadUrlsToPosts(posts);
   }
 
   async createPostInSpace(
@@ -258,7 +259,7 @@ export class CommunityService {
     if (!post) {
       throw new NotFoundException('Post não encontrado');
     }
-    return post;
+    return this.attachDownloadUrlsToPost(post);
   }
 
   async getPostForUser(postId: string, userId: string, userRole: 'user' | 'admin'): Promise<CommunityPost> {
@@ -476,5 +477,26 @@ export class CommunityService {
     } catch {
       return null;
     }
+  }
+
+  private async attachDownloadUrlsToPosts(posts: CommunityPost[]): Promise<CommunityPost[]> {
+    return Promise.all(posts.map((post) => this.attachDownloadUrlsToPost(post)));
+  }
+
+  private async attachDownloadUrlsToPost(post: CommunityPost): Promise<CommunityPost> {
+    if (!post.attachments || post.attachments.length === 0) {
+      return post;
+    }
+    const attachments = await Promise.all(
+      post.attachments.map(async (attachment) => ({
+        ...attachment,
+        downloadUrl: await this.storageService.generateAttachmentForcedDownloadUrl(
+          attachment.fileKey,
+          attachment.fileName,
+        ),
+        viewUrl: await this.storageService.generateViewUrl(attachment.fileKey),
+      })),
+    );
+    return { ...post, attachments: attachments as CommunityPostAttachment[] };
   }
 }

@@ -251,7 +251,11 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (user) {
+      user.avatarUrl = await this.resolveAvatarUrl(user.avatarKey) ?? undefined;
+    }
+    return user;
   }
 
   async findByEmail(email: string): Promise<User | null> {

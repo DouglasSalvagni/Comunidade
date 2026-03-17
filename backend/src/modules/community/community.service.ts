@@ -359,10 +359,22 @@ export class CommunityService {
     const saved = await this.commentRepo.save(comment);
     await this.postRepo.increment({ id: postId }, 'commentsCount', 1);
 
-    return this.commentRepo.findOneOrFail({
+    const fetched = await this.commentRepo.findOneOrFail({
       where: { id: saved.id },
       relations: ['author'],
     });
+
+    if (fetched.author?.avatarKey) {
+      try {
+        (fetched.author as any).avatarUrl = await this.storageService.generateViewUrl(fetched.author.avatarKey);
+      } catch {
+        (fetched.author as any).avatarUrl = null;
+      }
+    } else if (fetched.author) {
+      (fetched.author as any).avatarUrl = null;
+    }
+
+    return fetched;
   }
 
   async updateCommentOnPost(
@@ -389,10 +401,22 @@ export class CommunityService {
     comment.editedAt = new Date();
     await this.commentRepo.save(comment);
 
-    return this.commentRepo.findOneOrFail({
+    const fetched = await this.commentRepo.findOneOrFail({
       where: { id: comment.id },
       relations: ['author'],
     });
+
+    if (fetched.author?.avatarKey) {
+      try {
+        (fetched.author as any).avatarUrl = await this.storageService.generateViewUrl(fetched.author.avatarKey);
+      } catch {
+        (fetched.author as any).avatarUrl = null;
+      }
+    } else if (fetched.author) {
+      (fetched.author as any).avatarUrl = null;
+    }
+
+    return fetched;
   }
 
   async listCommentsByPost(
@@ -455,9 +479,35 @@ export class CommunityService {
       repliesByParent.get(key)!.push(reply);
     }
 
-    const data = selected.map((comment) => ({
-      ...comment,
-      replies: repliesByParent.get(comment.id) || [],
+    const data = await Promise.all(selected.map(async (comment) => {
+      if (comment.author?.avatarKey) {
+        try {
+          (comment.author as any).avatarUrl = await this.storageService.generateViewUrl(comment.author.avatarKey);
+        } catch {
+          (comment.author as any).avatarUrl = null;
+        }
+      } else if (comment.author) {
+        (comment.author as any).avatarUrl = null;
+      }
+
+      const currentReplies = repliesByParent.get(comment.id) || [];
+      const repliesWithAvatars = await Promise.all(currentReplies.map(async (reply) => {
+        if (reply.author?.avatarKey) {
+          try {
+            (reply.author as any).avatarUrl = await this.storageService.generateViewUrl(reply.author.avatarKey);
+          } catch {
+            (reply.author as any).avatarUrl = null;
+          }
+        } else if (reply.author) {
+          (reply.author as any).avatarUrl = null;
+        }
+        return reply;
+      }));
+
+      return {
+        ...comment,
+        replies: repliesWithAvatars,
+      };
     }));
 
     const last = selected[selected.length - 1];
@@ -545,6 +595,16 @@ export class CommunityService {
   }
 
   private async attachDownloadUrlsToPost(post: CommunityPost): Promise<CommunityPost> {
+    if (post.author?.avatarKey) {
+      try {
+        (post.author as any).avatarUrl = await this.storageService.generateViewUrl(post.author.avatarKey);
+      } catch {
+        (post.author as any).avatarUrl = null;
+      }
+    } else if (post.author) {
+      (post.author as any).avatarUrl = null;
+    }
+
     if (!post.attachments || post.attachments.length === 0) {
       return post;
     }

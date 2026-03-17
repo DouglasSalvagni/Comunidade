@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PostAttachments } from "@/components/community/PostAttachments";
 import { ArrowLeft, CornerDownRight, Heart, MessageCircle, Send, MoreHorizontal, Edit2, CornerUpLeft } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
@@ -38,6 +38,7 @@ export default function DashboardCommunityPostPage() {
   const [commentHtml, setCommentHtml] = useState("");
   const [replyTo, setReplyTo] = useState<CommentWithReplies | null>(null);
   const [replyHtml, setReplyHtml] = useState("");
+  const [profile, setProfile] = useState<User | null>(null);
 
   const backHref = useMemo(() => {
     if (!post?.spaceId) return "/dashboard/community";
@@ -48,7 +49,7 @@ export default function DashboardCommunityPostPage() {
     if (!postId) return;
     setLoading(true);
     try {
-      const [postData, commentsData, profile] = await Promise.all([
+      const [postData, commentsData, profileData] = await Promise.all([
         api.getCommunityPost(postId),
         api.listCommunityPostComments(postId, { limit: 20 }),
         api.getProfile(),
@@ -57,7 +58,8 @@ export default function DashboardCommunityPostPage() {
       setComments(commentsData.data);
       setCursor(commentsData.meta.nextCursor);
       setHasMore(commentsData.meta.hasMore);
-      setCurrentUserId(profile.id);
+      setCurrentUserId(profileData.id);
+      setProfile(profileData);
     } catch {
       toast.error("Não foi possível carregar o post.");
     } finally {
@@ -220,6 +222,7 @@ export default function DashboardCommunityPostPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 border border-muted">
+                  <AvatarImage src={post.author?.avatarUrl || undefined} alt={post.author?.name || "Membro"} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {(post.author?.name || "M").substring(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -305,10 +308,13 @@ export default function DashboardCommunityPostPage() {
       {/* Área de Comentário */}
       <div className="flex gap-4 items-start">
         <Avatar className="h-10 w-10 border border-muted hidden sm:block">
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">VO</AvatarFallback>
+          <AvatarImage src={profile?.avatarUrl || undefined} alt={profile?.name || "Meu Perfil"} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {(profile?.name || "U").substring(0, 2).toUpperCase()}
+          </AvatarFallback>
         </Avatar>
         <div className="flex-1 space-y-3">
-          <div className="bg-background rounded-xl border border-muted/60 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all overflow-hidden">
+          <div className="bg-card rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">
             <RichTextEditor value={commentHtml} onChange={setCommentHtml} placeholder="Escreva um comentário..." />
           </div>
           <div className="flex justify-end">
@@ -330,13 +336,14 @@ export default function DashboardCommunityPostPage() {
           <div key={comment.id} className="group">
             <div className="flex gap-3 sm:gap-4">
               <Avatar className="h-10 w-10 border border-muted shrink-0 mt-1">
+                <AvatarImage src={comment.author?.avatarUrl || undefined} alt={comment.author?.name || "Membro"} />
                 <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                   {(comment.author?.name || "M").substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
               <div className="flex-1 space-y-2">
-                <div className="bg-muted/20 p-4 rounded-2xl rounded-tl-sm border border-muted/30">
+                <div className="bg-card p-4 rounded-2xl rounded-tl-sm border border-muted/30 shadow-sm">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex items-baseline gap-2">
                       <span className="text-sm font-semibold">{comment.author?.name || "Membro"}</span>
@@ -383,12 +390,13 @@ export default function DashboardCommunityPostPage() {
                     {comment.replies.map((reply) => (
                       <div key={reply.id} className="flex gap-3 group/reply">
                         <Avatar className="h-8 w-8 border border-muted shrink-0 mt-1">
+                          <AvatarImage src={reply.author?.avatarUrl || undefined} alt={reply.author?.name || "Membro"} />
                           <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
                             {(reply.author?.name || "M").substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <div className="bg-muted/10 p-3 rounded-2xl rounded-tl-sm border border-muted/20">
+                          <div className="bg-card p-3 rounded-2xl rounded-tl-sm border border-muted/20 shadow-sm">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="flex items-baseline gap-2">
                                 <span className="text-sm font-semibold">{reply.author?.name || "Membro"}</span>

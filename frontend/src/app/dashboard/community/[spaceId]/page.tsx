@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { api, CommunityPost, CommunitySpace } from "@/services/api";
+import { api, CommunityPost, CommunitySpace, User } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ export default function DashboardCommunitySpacePage() {
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [savingPostEdit, setSavingPostEdit] = useState(false);
@@ -65,6 +66,7 @@ export default function DashboardCommunitySpacePage() {
       setSpaces(allSpaces);
       setPosts(feed);
       setCurrentUserId(profile.id);
+      setProfile(profile);
     } catch {
       toast.error("Não foi possível carregar o canal.");
     } finally {
@@ -205,49 +207,57 @@ export default function DashboardCommunitySpacePage() {
         <p className="text-base text-muted-foreground mt-2">{selectedSpace?.description || "Converse com a comunidade neste espaço."}</p>
       </div>
 
-      <Card className="border-muted/50 shadow-sm bg-muted/20">
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <Input
-            placeholder="Título do post (opcional)"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            maxLength={180}
-            className="border-transparent bg-background shadow-none focus-visible:ring-1 text-lg font-medium"
-          />
-          <div className="bg-background rounded-md border border-transparent focus-within:border-border focus-within:ring-1 focus-within:ring-ring transition-all">
-            <RichTextEditor
-              value={contentHtml}
-              onChange={setContentHtml}
-              placeholder="Compartilhe algo com o canal..."
+      <Card className="border-muted/50 shadow-sm bg-card">
+        <CardContent className="p-4 sm:p-6 flex gap-4">
+          <Avatar className="h-10 w-10 border border-muted hidden sm:block shrink-0">
+            <AvatarImage src={profile?.avatarUrl || undefined} alt={profile?.name || "Meu Perfil"} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+              {(profile?.name || "U").substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 space-y-4 min-w-0">
+            <Input
+              placeholder="Título do post (opcional)"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              maxLength={180}
+              className="border-none bg-muted/30 shadow-none focus-visible:ring-0 text-lg font-medium px-4 h-12 rounded-lg"
             />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept="image/*,application/pdf"
-                    onChange={(event) => onPickFiles(event.target.files)}
-                  />
-                  <Paperclip className="h-4 w-4 mr-2" />
-                  Anexar
-                </label>
-              </Button>
-              <div className="flex flex-wrap gap-2">
-                {files.map((file, index) => (
-                  <Badge key={`${file.name}-${index}`} variant="secondary" className="cursor-pointer font-normal" onClick={() => removeFile(index)}>
-                    {file.name}
-                  </Badge>
-                ))}
-              </div>
+            <div className="bg-background rounded-md border border-input focus-within:ring-1 focus-within:ring-ring transition-all">
+              <RichTextEditor
+                value={contentHtml}
+                onChange={setContentHtml}
+                placeholder="Compartilhe algo com o canal..."
+              />
             </div>
-            <Button type="button" onClick={createPost} disabled={creating} className="rounded-full px-6">
-              <Send className="h-4 w-4 mr-2" />
-              {creating ? "Publicando..." : "Publicar"}
-            </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      multiple
+                      accept="image/*,application/pdf"
+                      onChange={(event) => onPickFiles(event.target.files)}
+                    />
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Anexar
+                  </label>
+                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {files.map((file, index) => (
+                    <Badge key={`${file.name}-${index}`} variant="secondary" className="cursor-pointer font-normal" onClick={() => removeFile(index)}>
+                      {file.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <Button type="button" onClick={createPost} disabled={creating} className="rounded-full px-6">
+                <Send className="h-4 w-4 mr-2" />
+                {creating ? "Publicando..." : "Publicar"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -264,6 +274,7 @@ export default function DashboardCommunitySpacePage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border border-muted">
+                      <AvatarImage src={post.author?.avatarUrl || undefined} alt={authorName} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{authorInitials}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">

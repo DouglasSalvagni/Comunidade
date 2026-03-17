@@ -34,6 +34,8 @@ export class User {
   @Column({ name: 'avatar_key', type: 'varchar', nullable: true })
   avatarKey?: string | null;
 
+  avatarUrl?: string | null;
+
   @Column({ default: 'user' })
   role: 'user' | 'admin';
 

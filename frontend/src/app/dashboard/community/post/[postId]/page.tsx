@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { api, CommunityComment, CommunityPost } from "@/services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PostAttachments } from "@/components/community/PostAttachments";
-import { ArrowLeft, CornerDownRight, Heart, MessageCircle, Send } from "lucide-react";
+import { ArrowLeft, CornerDownRight, Heart, MessageCircle, Send, MoreHorizontal, Edit2, CornerUpLeft } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
@@ -202,34 +204,69 @@ export default function DashboardCommunityPostPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <Button variant="ghost" asChild className="w-fit">
+    <div className="space-y-8 max-w-3xl mx-auto py-6">
+      <Button variant="ghost" asChild className="w-fit -ml-4 text-muted-foreground hover:text-foreground">
         <Link href={backHref}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar ao canal
         </Link>
       </Button>
 
-      <Card>
-        <CardHeader>
-          <div className="text-sm text-muted-foreground">
-            {post.author?.name || "Membro"} • {new Date(post.createdAt).toLocaleString()}
-            {post.editedAt ? ` • Editado em ${new Date(post.editedAt).toLocaleString()}` : ""}
+      {/* Post Principal */}
+      <Card className="border-none shadow-sm bg-card overflow-hidden">
+        <CardHeader className="p-0">
+          {/* We remove padding here to make it flush if we want, but let's just use standard padding */}
+          <div className="p-6 pb-2">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 border border-muted">
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                    {(post.author?.name || "M").substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-base font-semibold">{post.author?.name || "Membro"}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(post.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    {post.editedAt ? ` (Editado)` : ""}
+                  </span>
+                </div>
+              </div>
+              
+              {currentUserId === post.authorId && !editingPost && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={startEditingPost}>
+                      <Edit2 className="h-4 w-4 mr-2" /> Editar Post
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+            {post.title && <h1 className="text-2xl font-bold mt-5 tracking-tight">{post.title}</h1>}
           </div>
-          {post.title && <CardTitle>{post.title}</CardTitle>}
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        <CardContent className="p-6 pt-3">
           {editingPost ? (
-            <div className="space-y-3">
+            <div className="space-y-4 bg-muted/10 p-4 rounded-lg border border-muted/50">
               <Input
                 placeholder="Título opcional"
                 value={editingPostTitle}
                 onChange={(event) => setEditingPostTitle(event.target.value)}
                 maxLength={180}
+                className="bg-background"
               />
-              <RichTextEditor value={editingPostContentHtml} onChange={setEditingPostContentHtml} />
+              <div className="bg-background rounded-md">
+                <RichTextEditor value={editingPostContentHtml} onChange={setEditingPostContentHtml} />
+              </div>
               <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" onClick={cancelEditingPost} disabled={savingPostEdit}>
+                <Button variant="ghost" onClick={cancelEditingPost} disabled={savingPostEdit}>
                   Cancelar
                 </Button>
                 <Button onClick={savePostEdit} disabled={savingPostEdit}>
@@ -238,145 +275,196 @@ export default function DashboardCommunityPostPage() {
               </div>
             </div>
           ) : (
-            <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+            <div className="prose prose-base max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
           )}
-          {(post.attachments || []).length > 0 && (
-            <PostAttachments attachments={post.attachments || []} />
+
+          {!editingPost && (post.attachments || []).length > 0 && (
+            <div className="mt-6">
+              <PostAttachments attachments={post.attachments || []} />
+            </div>
           )}
-          <div className="flex items-center gap-2">
-            {currentUserId === post.authorId && !editingPost && (
-              <Button variant="ghost" size="sm" onClick={startEditingPost}>
-                Editar
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={toggleLike}>
-              <Heart className="h-4 w-4 mr-1" />
-              {post.likesCount}
-            </Button>
-            <Badge variant="outline">
-              <MessageCircle className="h-3 w-3 mr-1" />
-              {post.commentsCount}
-            </Badge>
-          </div>
         </CardContent>
+
+        <CardFooter className="p-6 pt-0 flex items-center gap-4 text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleLike}
+            className="hover:text-primary hover:bg-primary/10 rounded-full px-4"
+          >
+            <Heart className={`h-5 w-5 mr-2 ${post.likesCount > 0 ? 'fill-current text-primary' : ''}`} />
+            <span className="font-medium">{post.likesCount}</span>
+          </Button>
+          <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium">
+            <MessageCircle className="h-5 w-5" />
+            {post.commentsCount} {post.commentsCount === 1 ? 'comentário' : 'comentários'}
+          </div>
+        </CardFooter>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo comentário</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <RichTextEditor value={commentHtml} onChange={setCommentHtml} placeholder="Escreva seu comentário..." />
+      {/* Área de Comentário */}
+      <div className="flex gap-4 items-start">
+        <Avatar className="h-10 w-10 border border-muted hidden sm:block">
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">VO</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 space-y-3">
+          <div className="bg-background rounded-xl border border-muted/60 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all overflow-hidden">
+            <RichTextEditor value={commentHtml} onChange={setCommentHtml} placeholder="Escreva um comentário..." />
+          </div>
           <div className="flex justify-end">
-            <Button onClick={submitComment} disabled={posting}>
+            <Button onClick={submitComment} disabled={posting} className="rounded-full px-6">
               <Send className="h-4 w-4 mr-2" />
               Comentar
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <div className="space-y-4">
+      <div className="border-t border-muted/30 my-8"></div>
+
+      {/* Lista de Comentários */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold mb-4">Comentários ({comments.length})</h3>
+        
         {comments.map((comment) => (
-          <Card key={comment.id}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm text-muted-foreground">
-                  {comment.author?.name || "Membro"} • {new Date(comment.createdAt).toLocaleString()}
-                  {comment.editedAt ? ` • Editado em ${new Date(comment.editedAt).toLocaleString()}` : ""}
-                </div>
-                {currentUserId === comment.authorId && editingCommentId !== comment.id && (
-                  <Button variant="ghost" size="sm" onClick={() => startEditingComment(comment)}>
-                    Editar
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {editingCommentId === comment.id ? (
-                <div className="space-y-3">
-                  <RichTextEditor value={editingCommentHtml} onChange={setEditingCommentHtml} />
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" onClick={cancelEditingComment} disabled={savingCommentEdit}>
-                      Cancelar
-                    </Button>
-                    <Button onClick={saveCommentEdit} disabled={savingCommentEdit}>
-                      {savingCommentEdit ? "Salvando..." : "Salvar edição"}
-                    </Button>
+          <div key={comment.id} className="group">
+            <div className="flex gap-3 sm:gap-4">
+              <Avatar className="h-10 w-10 border border-muted shrink-0 mt-1">
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  {(comment.author?.name || "M").substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 space-y-2">
+                <div className="bg-muted/20 p-4 rounded-2xl rounded-tl-sm border border-muted/30">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold">{comment.author?.name || "Membro"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(comment.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    {currentUserId === comment.authorId && editingCommentId !== comment.id && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => startEditingComment(comment)}>
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
+                  
+                  {editingCommentId === comment.id ? (
+                    <div className="space-y-3 mt-2">
+                      <div className="bg-background rounded-md">
+                        <RichTextEditor value={editingCommentHtml} onChange={setEditingCommentHtml} />
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={cancelEditingComment} disabled={savingCommentEdit}>
+                          Cancelar
+                        </Button>
+                        <Button size="sm" onClick={saveCommentEdit} disabled={savingCommentEdit}>
+                          Salvar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: comment.contentHtml }} />
+                  )}
                 </div>
-              ) : (
-                <>
-                  <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: comment.contentHtml }} />
-                  <Button variant="ghost" size="sm" className="w-fit" onClick={() => setReplyTo(comment)}>
-                    <CornerDownRight className="h-4 w-4 mr-1" />
+                
+                <div className="pl-2">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => setReplyTo(comment)}>
+                    <CornerUpLeft className="h-3 w-3 mr-1.5" />
                     Responder
                   </Button>
-                </>
-              )}
+                </div>
 
-              {(comment.replies || []).length > 0 && (
-                <div className="space-y-3 pl-4 border-l">
-                  {comment.replies.map((reply) => (
-                    <div key={reply.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs text-muted-foreground">
-                          {reply.author?.name || "Membro"} • {new Date(reply.createdAt).toLocaleString()}
-                          {reply.editedAt ? ` • Editado em ${new Date(reply.editedAt).toLocaleString()}` : ""}
-                        </div>
-                        {currentUserId === reply.authorId && editingCommentId !== reply.id && (
-                          <Button variant="ghost" size="sm" onClick={() => startEditingComment(reply)}>
-                            Editar
-                          </Button>
-                        )}
-                      </div>
-                      {editingCommentId === reply.id ? (
-                        <div className="space-y-3">
-                          <RichTextEditor value={editingCommentHtml} onChange={setEditingCommentHtml} />
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" onClick={cancelEditingComment} disabled={savingCommentEdit}>
-                              Cancelar
-                            </Button>
-                            <Button onClick={saveCommentEdit} disabled={savingCommentEdit}>
-                              {savingCommentEdit ? "Salvando..." : "Salvar edição"}
-                            </Button>
+                {/* Respostas (Replies) */}
+                {(comment.replies || []).length > 0 && (
+                  <div className="space-y-4 mt-4 pl-4 sm:pl-6 border-l-2 border-muted/30">
+                    {comment.replies.map((reply) => (
+                      <div key={reply.id} className="flex gap-3 group/reply">
+                        <Avatar className="h-8 w-8 border border-muted shrink-0 mt-1">
+                          <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
+                            {(reply.author?.name || "M").substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="bg-muted/10 p-3 rounded-2xl rounded-tl-sm border border-muted/20">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-semibold">{reply.author?.name || "Membro"}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(reply.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                                </span>
+                              </div>
+                              {currentUserId === reply.authorId && editingCommentId !== reply.id && (
+                                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/reply:opacity-100 transition-opacity" onClick={() => startEditingComment(reply)}>
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                            
+                            {editingCommentId === reply.id ? (
+                              <div className="space-y-3 mt-2">
+                                <div className="bg-background rounded-md">
+                                  <RichTextEditor value={editingCommentHtml} onChange={setEditingCommentHtml} />
+                                </div>
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button variant="ghost" size="sm" onClick={cancelEditingComment} disabled={savingCommentEdit}>
+                                    Cancelar
+                                  </Button>
+                                  <Button size="sm" onClick={saveCommentEdit} disabled={savingCommentEdit}>
+                                    Salvar
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: reply.contentHtml }} />
+                            )}
                           </div>
                         </div>
-                      ) : (
-                        <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: reply.contentHtml }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         ))}
+        
+        {comments.length === 0 && !loading && (
+          <div className="text-center py-10 text-muted-foreground">
+            Seja o primeiro a comentar neste post.
+          </div>
+        )}
       </div>
 
       {replyTo && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Respondendo {replyTo.author?.name || "membro"}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <RichTextEditor value={replyHtml} onChange={setReplyHtml} placeholder="Escreva sua resposta..." />
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setReplyTo(null)}>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t shadow-lg z-50 animate-in slide-in-from-bottom-2">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium flex items-center text-muted-foreground">
+                <CornerDownRight className="h-4 w-4 mr-2" />
+                Respondendo a <span className="text-foreground ml-1 font-semibold">{replyTo.author?.name || "membro"}</span>
+              </span>
+              <Button variant="ghost" size="sm" className="h-8" onClick={() => setReplyTo(null)}>
                 Cancelar
               </Button>
-              <Button onClick={submitReply} disabled={posting}>
-                <Send className="h-4 w-4 mr-2" />
-                Responder
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1 bg-background rounded-lg border focus-within:ring-1 focus-within:ring-primary/50 overflow-hidden">
+                <RichTextEditor value={replyHtml} onChange={setReplyHtml} placeholder="Escreva sua resposta..." />
+              </div>
+              <Button onClick={submitReply} disabled={posting} className="h-auto px-6 rounded-lg">
+                <Send className="h-4 w-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {hasMore && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={loadMoreComments}>
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" className="rounded-full px-8" onClick={loadMoreComments}>
             Carregar mais comentários
           </Button>
         </div>

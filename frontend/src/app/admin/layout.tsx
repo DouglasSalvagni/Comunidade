@@ -66,7 +66,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   const linkClass = (href: string) => {
-    const active = pathname === href || pathname.startsWith(`${href}/`);
+    const active = href === '/admin' 
+      ? pathname === '/admin' || pathname === '/admin/'
+      : pathname === href || pathname.startsWith(`${href}/`);
+      
     return `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
       active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-primary'
     }`;
@@ -74,7 +77,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 lg:block">
+      <div className="hidden border-r bg-muted/40 lg:block lg:sticky lg:top-0 h-screen">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-[60px] items-center border-b px-6">
             <Link href="/admin" className="flex items-center gap-2 font-semibold">

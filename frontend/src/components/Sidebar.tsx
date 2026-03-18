@@ -109,15 +109,6 @@ const Sidebar = ({ className }: { className?: string }) => {
                     isActive ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/40 group-hover:text-sidebar-primary"
                   )} />
                   <span className="flex-1 tracking-tight">{item.label}</span>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="activeIndicator"
-                      className="absolute -left-1 w-1.5 h-6 bg-sidebar-primary rounded-full shadow-[0_0_10px_rgba(var(--sidebar-primary),0.5)]"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
                 </Link>
               );
             })}

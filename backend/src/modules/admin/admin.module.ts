@@ -14,6 +14,7 @@ import { AdminPartnershipsController } from './admin-partnerships.controller';
 import { AdminPlansController } from './admin-plans.controller';
 import { AdminSettingsController } from './admin-settings.controller';
 import { SettingsModule } from '@/modules/settings/settings.module';
+import { CoursesModule } from '@/modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SettingsModule } from '@/modules/settings/settings.module';
     UsersModule,
     AuthModule,
     SettingsModule,
+    CoursesModule,
   ],
   providers: [],
   controllers: [

@@ -12,17 +12,25 @@ import {
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const appName    = process.env.NEXT_PUBLIC_APP_NAME        || "Comunidade";
-const appDesc    = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Plataforma de conteúdo digital";
-const faviconUrl = process.env.NEXT_PUBLIC_FAVICON_URL     || "/favicon.ico";
-const locale     = process.env.NEXT_PUBLIC_APP_LOCALE      || "pt-BR";
+const appNameFallback = process.env.NEXT_PUBLIC_APP_NAME || "Comunidade";
+const appDescFallback = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Plataforma de conteúdo digital";
+const faviconUrlFallback = process.env.NEXT_PUBLIC_FAVICON_URL || "/favicon.ico";
+const locale = process.env.NEXT_PUBLIC_APP_LOCALE || "pt-BR";
 
-export const metadata: Metadata = {
-  title: appName,
-  description: appDesc,
-  icons: { icon: faviconUrl, shortcut: faviconUrl },
-  openGraph: { title: appName, description: appDesc, locale, type: "website" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicSettings();
+  
+  const appName = settings.platform_name || appNameFallback;
+  const appDesc = settings.platform_description || appDescFallback;
+  const faviconUrl = settings.favicon_url || settings.logo_compact_url || faviconUrlFallback;
+
+  return {
+    title: appName,
+    description: appDesc,
+    icons: { icon: faviconUrl, shortcut: faviconUrl },
+    openGraph: { title: appName, description: appDesc, locale, type: "website" },
+  };
+}
 
 /**
  * Gera o CSS inline das cores de tema a partir das variáveis de ambiente.
@@ -44,7 +52,25 @@ function buildInlineTheme(): string {
 
 const inlineThemeCss = buildInlineTheme();
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+import { cache } from "react";
+
+const getPublicSettings = cache(async (): Promise<Record<string, string | null>> => {
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/api/v1";
+    // Usa force-cache com revalidate em vez de no-store, para evitar lentidão e duplicidade de fetch no SSR.
+    const res = await fetch(`${API_URL}/settings/public`, { next: { revalidate: 30 } });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Falha silenciosa
+  }
+  return {};
+});
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const settings = await getPublicSettings();
+
   return (
     <html lang={locale} suppressHydrationWarning>
       {/*
@@ -67,7 +93,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
         suppressHydrationWarning
       >
-        <ClientProviders>{children}</ClientProviders>
+        <ClientProviders initialSettings={settings}>{children}</ClientProviders>
       </body>
     </html>
   );

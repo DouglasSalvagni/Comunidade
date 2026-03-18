@@ -16,11 +16,11 @@ import { ThemeProvider } from "@/components/ThemeProvider";
  *  - ThemeProvider (injeta CSS vars + favicon)
  *  - BrandLogo (logo_url e platform_name)
  */
-export function ClientProviders({ children }: { children: React.ReactNode }) {
+export function ClientProviders({ children, initialSettings = {} }: { children: React.ReactNode, initialSettings?: Record<string, string | null> }) {
   return (
     <CookieConsentProvider>
       <SessionProvider>
-        <SettingsProvider>
+        <SettingsProvider initialSettings={initialSettings}>
           <ThemeProvider>
             {children}
             <Toaster richColors position="top-right" />

@@ -8,6 +8,7 @@ const PUBLIC_KEYS = [
   'platform_description',
   'logo_url',
   'logo_compact_url',
+  'favicon_url',
   'primary_color',
   'secondary_color',
   'accent_color',

@@ -997,6 +997,11 @@ class ApiService {
     return response.data.data;
   }
 
+  async adminGetSettingsUploadUrl(fileName: string, contentType: string, type: 'logo' | 'favicon' | 'logo_compact'): Promise<{ uploadUrl: string; key: string; viewUrl: string }> {
+    const response = await this.client.post<ApiResponse<{ uploadUrl: string; key: string; viewUrl: string }>>(`/admin/settings/upload-url`, { fileName, contentType, type });
+    return response.data.data;
+  }
+
   // ===== CURSOS ÔÇö ADMIN =====
 
   async adminGetCourses(): Promise<AdminCourse[]> {

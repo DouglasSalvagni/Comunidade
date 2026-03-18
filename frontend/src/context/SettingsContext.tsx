@@ -18,9 +18,9 @@ const SettingsContext = createContext<SettingsContextValue>({
   reload: () => {},
 });
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<PublicSettings>({});
-  const [loading, setLoading] = useState(true);
+export function SettingsProvider({ children, initialSettings = {} }: { children: ReactNode, initialSettings?: PublicSettings }) {
+  const [settings, setSettings] = useState<PublicSettings>(initialSettings);
+  const [loading, setLoading] = useState(Object.keys(initialSettings).length === 0);
 
   const load = useCallback(async () => {
     try {
@@ -36,7 +36,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { 
+    if (Object.keys(initialSettings).length === 0) {
+      load(); 
+    }
+  }, [load, initialSettings]);
 
   return (
     <SettingsContext.Provider value={{ settings, loading, reload: load }}>

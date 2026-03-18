@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, Save, RefreshCw } from "lucide-react";
+import { ImageUploadCrop } from "@/components/ImageUploadCrop";
 
-const SETTING_META: Record<string, { label: string; description: string; type?: "url" | "email" | "text" }> = {
+const SETTING_META: Record<string, { label: string; description: string; type?: "url" | "email" | "text" | "image" }> = {
   platform_name:        { label: "Nome da Plataforma", description: "Exibido no título, e-mails e metatags.", type: "text" },
   platform_description: { label: "Descrição da Plataforma", description: "Subtítulo/tagline usado em SEO.", type: "text" },
-  logo_url:             { label: "URL do Logo (horizontal)", description: "Exibido na Sidebar e Header.", type: "url" },
-  logo_compact_url:     { label: "URL do Logo Compacto / Ícone", description: "Usado como favicon dinâmico e versão mobile.", type: "url" },
+  logo_url:             { label: "URL do Logo (horizontal)", description: "Exibido na Sidebar e Header.", type: "image" },
+  logo_compact_url:     { label: "URL do Logo Compacto / Ícone", description: "Usado como versão mobile.", type: "image" },
+  favicon_url:          { label: "URL do Favicon", description: "Ícone da aba do navegador.", type: "image" },
   support_email:        { label: "E-mail de Suporte", description: "E-mail exibido nos e-mails transacionais.", type: "email" },
 };
 
@@ -20,7 +22,7 @@ const SECTIONS = [
   {
     title: "🏷️ Identidade",
     description: "Nome, descrição e logos da plataforma.",
-    keys: ["platform_name", "platform_description", "logo_url", "logo_compact_url"],
+    keys: ["platform_name", "platform_description", "logo_url", "logo_compact_url", "favicon_url"],
   },
   {
     title: "📧 Suporte",
@@ -125,29 +127,76 @@ export default function AdminSettingsPage() {
                   {meta.description && (
                     <p className="text-xs text-muted-foreground">{meta.description}</p>
                   )}
-                  <div className="flex gap-2">
-                    <Input
-                      id={`setting-${key}`}
-                      type={meta.type === "email" ? "email" : "text"}
-                      value={value}
-                      onChange={(e) => handleChange(key, e.target.value)}
-                      placeholder={meta.type === "url" ? "https://" : ""}
-                      className="flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      disabled={!isDirty || isSaving}
-                      onClick={() => handleSave(key)}
-                      className="shrink-0 gap-1.5"
-                    >
-                      {isSaving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      Salvar
-                    </Button>
-                  </div>
+                  {meta.type === "image" ? (
+                    <div className="flex flex-col gap-2">
+                      <ImageUploadCrop
+                        label={meta.label}
+                        value={value}
+                        onChange={(url) => {
+                          handleChange(key, url);
+                          // Auto save when upload finishes
+                          setSettings((prev) => {
+                            const newSettings = { ...prev, [key]: url };
+                            api.adminUpsertSetting(key, url).then(() => {
+                              setDirty((d) => ({ ...d, [key]: false }));
+                              toast.success(`"${meta.label}" salvo com sucesso!`);
+                            }).catch(() => toast.error(`Erro ao salvar "${key}"`));
+                            return newSettings;
+                          });
+                        }}
+                        uploadType={key === 'favicon_url' ? 'favicon' : key === 'logo_compact_url' ? 'logo_compact' : 'logo'}
+                        aspectRatio={key === 'favicon_url' || key === 'logo_compact_url' ? 1 : undefined}
+                      />
+                      <div className="flex gap-2 items-center">
+                        <span className="text-xs text-muted-foreground">Ou URL:</span>
+                        <Input
+                          id={`setting-${key}`}
+                          type="text"
+                          value={value}
+                          onChange={(e) => handleChange(key, e.target.value)}
+                          placeholder="https://"
+                          className="flex-1 text-xs h-8"
+                        />
+                        <Button
+                          size="sm"
+                          disabled={!isDirty || isSaving}
+                          onClick={() => handleSave(key)}
+                          className="shrink-0 gap-1.5 h-8"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Save className="w-3 h-3" />
+                          )}
+                          Salvar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        id={`setting-${key}`}
+                        type={meta.type === "email" ? "email" : "text"}
+                        value={value}
+                        onChange={(e) => handleChange(key, e.target.value)}
+                        placeholder={meta.type === "url" ? "https://" : ""}
+                        className="flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        disabled={!isDirty || isSaving}
+                        onClick={() => handleSave(key)}
+                        className="shrink-0 gap-1.5"
+                      >
+                        {isSaving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        Salvar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}

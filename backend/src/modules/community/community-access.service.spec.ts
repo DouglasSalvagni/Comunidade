@@ -19,14 +19,14 @@ describe('CommunityAccessService', () => {
     expect(subscriptionRepo.findOne).not.toHaveBeenCalled();
   });
 
-  it('bloqueia espaço restrito sem regras de plano', async () => {
+  it('libera espaço restrito sem regras de plano', async () => {
     const { service, subscriptionRepo } = makeService();
     const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [] }] as any[];
-    subscriptionRepo.findOne.mockResolvedValue(null);
 
     const result = await service.filterAccessibleSpaces('u1', spaces as any);
 
-    expect(result).toEqual([]);
+    expect(result.map((s) => s.id)).toEqual(['s1']);
+    expect(subscriptionRepo.findOne).not.toHaveBeenCalled();
   });
 
   it('libera espaço restrito quando plano do usuário bate', async () => {

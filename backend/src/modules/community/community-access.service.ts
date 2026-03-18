@@ -35,8 +35,7 @@ export class CommunityAccessService {
     }
 
     const spacesWithPlanRules = spaces.filter((space) => (space.planAccess ?? []).length > 0);
-    const hasRestrictedSpace = spaces.some((space) => space.visibility === 'restricted');
-    if (!hasRestrictedSpace && spacesWithPlanRules.length === 0) {
+    if (spacesWithPlanRules.length === 0) {
       return spaces;
     }
 
@@ -70,15 +69,7 @@ export class CommunityAccessService {
         return planRules.some((rule) => rule.planId === userPlanId);
       }
 
-      if (space.visibility === 'public') {
-        return true;
-      }
-
-      if (!userPlanId) {
-        return false;
-      }
-
-      return false;
+      return true;
     });
   }
 }

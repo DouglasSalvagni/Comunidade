@@ -23,6 +23,16 @@ type SpaceForm = {
   planIds: string[];
 };
 
+function buildSlugFromName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const EMPTY_FORM: SpaceForm = {
   name: "",
   slug: "",
@@ -115,7 +125,9 @@ export default function AdminCommunityPage() {
   };
 
   const saveSpace = async () => {
-    if (!form.name.trim() || !form.slug.trim()) {
+    const name = form.name.trim();
+    const slug = editingId ? form.slug.trim() : buildSlugFromName(form.name);
+    if (!name || !slug) {
       toast.error("Nome e slug são obrigatórios.");
       return;
     }
@@ -123,8 +135,8 @@ export default function AdminCommunityPage() {
     try {
       if (editingId) {
         await api.adminUpdateCommunitySpace(editingId, {
-          name: form.name.trim(),
-          slug: form.slug.trim(),
+          name,
+          slug,
           description: form.description || "",
           visibility: form.visibility,
           isActive: form.isActive,
@@ -136,10 +148,9 @@ export default function AdminCommunityPage() {
         toast.success("Espaço atualizado.");
       } else {
         await api.adminCreateCommunitySpace({
-          name: form.name.trim(),
-          slug: form.slug.trim(),
+          name,
+          slug,
           description: form.description || "",
-          visibility: form.visibility,
           isActive: form.isActive,
           sortOrder: Number(form.sortOrder) || 0,
           planIds: form.planIds,
@@ -239,37 +250,28 @@ export default function AdminCommunityPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
+              <Input
+                value={form.name}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                    slug: editingId ? current.slug : buildSlugFromName(event.target.value),
+                  }))
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Visibilidade</Label>
-                <Select value={form.visibility} onValueChange={(value) => setForm((current) => ({ ...current, visibility: value as "public" | "restricted" }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Público</SelectItem>
-                    <SelectItem value="restricted">Restrito</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Ordem</Label>
-                <Input
-                  type="number"
-                  value={String(form.sortOrder)}
-                  onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number(event.target.value) || 0 }))}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Ordem</Label>
+              <Input
+                type="number"
+                value={String(form.sortOrder)}
+                onChange={(event) => setForm((current) => ({ ...current, sortOrder: Number(event.target.value) || 0 }))}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={form.isActive} onCheckedChange={(checked) => setForm((current) => ({ ...current, isActive: checked }))} />

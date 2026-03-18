@@ -296,6 +296,18 @@ export interface LessonDetail {
   proximaAula: { id: string; titulo: string; ordem: number } | null;
 }
 
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  content: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminCourse {
   id: string;
   titulo: string;
@@ -1108,6 +1120,27 @@ class ApiService {
 
   async adminUpdateCoursePlanAccess(courseId: string, planIds: string[]): Promise<any> {
     const response = await this.client.patch<ApiResponse<any>>(`/admin/courses/${courseId}/plan-access`, { planIds });
+    return response.data.data;
+  }
+
+  // ===== NOTIFICAÇÕES =====
+  async getNotifications(params?: { limit?: number; offset?: number }): Promise<{ items: Notification[]; total: number }> {
+    const response = await this.client.get<ApiResponse<{ items: Notification[]; total: number }>>('/notifications', { params });
+    return response.data.data;
+  }
+
+  async getUnreadNotificationsCount(): Promise<{ count: number }> {
+    const response = await this.client.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
+    return response.data.data;
+  }
+
+  async markNotificationAsRead(id: string): Promise<{ success: boolean }> {
+    const response = await this.client.patch<ApiResponse<{ success: boolean }>>(`/notifications/${id}/read`);
+    return response.data.data;
+  }
+
+  async markAllNotificationsAsRead(): Promise<{ success: boolean }> {
+    const response = await this.client.patch<ApiResponse<{ success: boolean }>>('/notifications/read-all');
     return response.data.data;
   }
 

@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { useCallback } from "react";
+import NotificationBell from "./NotificationBell";
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -77,6 +78,7 @@ const Header = ({ isSidebarOpen, setIsSidebarOpen, user: propUser }: HeaderProps
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">

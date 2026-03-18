@@ -26,6 +26,7 @@ import { CommunityPost } from '@/modules/community/entities/community-post.entit
 import { CommunityPostAttachment } from '@/modules/community/entities/community-post-attachment.entity';
 import { CommunityPostLike } from '@/modules/community/entities/community-post-like.entity';
 import { CommunityComment } from '@/modules/community/entities/community-comment.entity';
+import { Notification } from '@/modules/notifications/entities/notification.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -65,6 +66,7 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     CommunityPostAttachment,
     CommunityPostLike,
     CommunityComment,
+    Notification,
   ],
   autoLoadEntities: true,
   synchronize: false,

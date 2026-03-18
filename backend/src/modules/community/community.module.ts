@@ -14,10 +14,12 @@ import { CommunityPostLike } from './entities/community-post-like.entity';
 import { CommunityComment } from './entities/community-comment.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
 import { CoursesModule } from '@/modules/courses/courses.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
   imports: [
     CoursesModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([
       CommunitySpace,
       CommunitySpacePlanAccess,

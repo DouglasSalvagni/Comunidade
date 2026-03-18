@@ -13,6 +13,7 @@ import { LessonProgress } from './entities/lesson-progress.entity';
 import { CoursePlanAccess } from './entities/course-plan-access.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
 import { StorageService } from './storage.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -38,6 +39,7 @@ export class CoursesService {
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
     private readonly storageService: StorageService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // =====================
@@ -73,12 +75,56 @@ export class CoursesService {
     const course = await this.courseRepo.findOne({ where: { id } });
     if (!course) throw new NotFoundException('Curso não encontrado');
 
+    const wasDraft = course.status === 'rascunho';
+
     if (dto.titulo !== undefined) course.titulo = dto.titulo;
     if (dto.descricao !== undefined) course.descricao = dto.descricao;
     if (dto.thumbnailUrl !== undefined) course.thumbnailUrl = dto.thumbnailUrl;
     if (dto.status !== undefined) course.status = dto.status;
 
-    return this.courseRepo.save(course);
+    const saved = await this.courseRepo.save(course);
+
+    // NOTIFICATION: Curso recém publicado
+    if (wasDraft && dto.status === 'publicado') {
+      this.notifyUsersAboutNewCourse(saved).catch(err => 
+        console.error('Falha ao notificar novo curso:', err)
+      );
+    }
+
+    return saved;
+  }
+
+  private async notifyUsersAboutNewCourse(course: Course) {
+    const planAccess = await this.coursePlanRepo.find({ where: { cursoId: course.id } });
+    
+    let eligibleUserIds: string[] = [];
+
+    if (planAccess.length === 0) {
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    } else {
+      const planIds = planAccess.map(p => p.planId);
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']), planId: In(planIds) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    }
+
+    eligibleUserIds = [...new Set(eligibleUserIds)];
+
+    for (const userId of eligibleUserIds) {
+      await this.notificationsService.create({
+        userId,
+        type: 'COURSE_NEW',
+        title: 'Novo Curso Disponível!',
+        content: `O curso "${course.titulo}" acabou de ser lançado e já está disponível no seu plano.`,
+        link: `/dashboard/courses/${course.id}`,
+      });
+    }
   }
 
   async adminDeleteCourse(id: string): Promise<void> {
@@ -108,7 +154,50 @@ export class CoursesService {
       titulo: dto.titulo,
       ordem: nextOrdem,
     });
-    return this.moduleRepo.save(mod);
+    
+    const savedMod = await this.moduleRepo.save(mod);
+
+    // NOTIFICATION: Novo Módulo Criado
+    if (course.status === 'publicado') {
+      this.notifyUsersAboutNewModule(course, savedMod).catch(err => 
+        console.error('Falha ao notificar novo módulo:', err)
+      );
+    }
+
+    return savedMod;
+  }
+
+  private async notifyUsersAboutNewModule(course: Course, module: CourseModule) {
+    const planAccess = await this.coursePlanRepo.find({ where: { cursoId: course.id } });
+    
+    let eligibleUserIds: string[] = [];
+
+    if (planAccess.length === 0) {
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    } else {
+      const planIds = planAccess.map(p => p.planId);
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']), planId: In(planIds) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    }
+
+    eligibleUserIds = [...new Set(eligibleUserIds)];
+
+    for (const userId of eligibleUserIds) {
+      await this.notificationsService.create({
+        userId,
+        type: 'COURSE_NEW_MODULE',
+        title: `Novo módulo em ${course.titulo}`,
+        content: `O módulo "${module.titulo}" acabou de ser liberado no curso!`,
+        link: `/dashboard/courses/${course.id}`,
+      });
+    }
   }
 
   async adminUpdateModule(moduleId: string, dto: Partial<{ titulo: string; ordem: number }>): Promise<CourseModule> {
@@ -138,13 +227,16 @@ export class CoursesService {
   // =====================
 
   async adminCreateLesson(moduleId: string, dto: CreateLessonDto): Promise<Lesson> {
-    const mod = await this.moduleRepo.findOne({ where: { id: moduleId } });
-    if (!mod) throw new NotFoundException('Módulo não encontrado');
+    const modulo = await this.moduleRepo.findOne({
+      where: { id: moduleId },
+      relations: ['curso'],
+    });
+    if (!modulo) throw new NotFoundException('Módulo não encontrado');
 
     const maxOrdem = await this.lessonRepo
-      .createQueryBuilder('l')
-      .where('l.modulo_id = :moduleId', { moduleId })
-      .select('MAX(l.ordem)', 'max')
+      .createQueryBuilder('lesson')
+      .where('lesson.moduloId = :moduleId', { moduleId })
+      .select('MAX(lesson.ordem)', 'max')
       .getRawOne();
     const nextOrdem = dto.ordem ?? ((maxOrdem?.max ?? -1) + 1);
 
@@ -155,8 +247,62 @@ export class CoursesService {
       videoKey: dto.videoKey ?? null,
       duracaoSegundos: dto.duracaoSegundos ?? 0,
       ordem: nextOrdem,
+      status: 'pendente', // O Enum não tem "publicado", então vamos de "pendente" (ou pronto)
     });
-    return this.lessonRepo.save(lesson);
+    
+    const savedLesson = await this.lessonRepo.save(lesson);
+
+    // NOTIFICATION: Nova aula no curso (Apenas se o curso estiver publicado)
+    if (modulo.curso?.status === 'publicado') {
+      // Idealmente, deveríamos notificar apenas quem tem acesso ao curso.
+      // Como não temos um endpoint direto para isso, a notificação de nova aula 
+      // precisaria de uma query mais complexa de subscriptions.
+      // Por enquanto, podemos deixar o gancho pronto ou notificar com base em query de acesso.
+      this.notifyUsersAboutNewLesson(modulo.curso, savedLesson).catch(err => 
+        console.error('Falha ao notificar nova aula:', err)
+      );
+    }
+
+    return savedLesson;
+  }
+
+  private async notifyUsersAboutNewLesson(course: Course, lesson: Lesson) {
+    // 1. Achar todos os usuários que têm acesso ao curso (com base nos planos)
+    const planAccess = await this.coursePlanRepo.find({ where: { cursoId: course.id } });
+    
+    let eligibleUserIds: string[] = [];
+
+    if (planAccess.length === 0) {
+      // Curso é aberto a todos com assinatura ativa
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    } else {
+      // Curso restrito a certos planos
+      const planIds = planAccess.map(p => p.planId);
+      const activeSubs = await this.subscriptionRepo.find({
+        where: { status: In(['active', 'expiring']), planId: In(planIds) },
+        select: ['userId']
+      });
+      eligibleUserIds = activeSubs.map(s => s.userId);
+    }
+
+    // Remover duplicatas
+    eligibleUserIds = [...new Set(eligibleUserIds)];
+
+    // 2. Disparar notificação em lote (simulado com loop)
+    // Em produção com milhares de usuários, usaríamos uma fila (SQS/RabbitMQ)
+    for (const userId of eligibleUserIds) {
+      await this.notificationsService.create({
+        userId,
+        type: 'COURSE_NEW_LESSON',
+        title: `Nova aula em ${course.titulo}`,
+        content: `A aula "${lesson.titulo}" acabou de ser adicionada.`,
+        link: `/dashboard/courses/lessons/${lesson.id}`,
+      });
+    }
   }
 
   async adminUpdateLesson(
@@ -492,12 +638,17 @@ export class CoursesService {
   // =====================
 
   async updateProgress(userId: string, lessonId: string, dto: UpdateProgressDto): Promise<LessonProgress> {
-    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    const lesson = await this.lessonRepo.findOne({
+      where: { id: lessonId },
+      relations: ['modulo', 'modulo.curso'],
+    });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
 
     let progress = await this.progressRepo.findOne({
       where: { usuarioId: userId, aulaId: lessonId },
     });
+
+    const wasCompleted = progress?.concluida || false;
 
     if (progress) {
       if (dto.concluida !== undefined) progress.concluida = dto.concluida;
@@ -511,7 +662,39 @@ export class CoursesService {
       });
     }
 
-    return this.progressRepo.save(progress);
+    const savedProgress = await this.progressRepo.save(progress);
+
+    // NOTIFICATION: Conclusão de Curso (100%)
+    if (dto.concluida === true && !wasCompleted && lesson.modulo?.cursoId) {
+      const courseId = lesson.modulo.cursoId;
+      const course = await this.courseRepo.findOne({
+        where: { id: courseId },
+        relations: ['modulos', 'modulos.aulas'],
+      });
+
+      if (course) {
+        const totalLessons = course.modulos.reduce((sum, m) => sum + (m.aulas?.length || 0), 0);
+        if (totalLessons > 0) {
+          const lessonIds = course.modulos.flatMap((m) => m.aulas.map((a) => a.id));
+          const completedLessons = await this.progressRepo.count({
+            where: { usuarioId: userId, aulaId: In(lessonIds), concluida: true },
+          });
+
+          // Se acabou de completar a última aula
+          if (completedLessons === totalLessons) {
+            await this.notificationsService.create({
+              userId,
+              type: 'COURSE_COMPLETED',
+              title: 'Parabéns!',
+              content: `Você concluiu 100% do curso "${course.titulo}". Continue assim!`,
+              link: `/dashboard/courses/${courseId}`,
+            });
+          }
+        }
+      }
+    }
+
+    return savedProgress;
   }
 }
 

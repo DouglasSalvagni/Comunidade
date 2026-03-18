@@ -9,6 +9,7 @@ import { GatewayMetaService } from './services/gateway-meta.service';
 import { InvoiceService } from './services/invoice.service';
 import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
 import { PartnershipAffiliate } from './entities/partnership-affiliate.entity';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -26,6 +27,7 @@ export class SubscriptionsService {
     private readonly gatewayMetaService: GatewayMetaService,
     private readonly invoiceService: InvoiceService,
     private readonly couponsService: SubscriptionsCouponsService,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
   private readonly logger = new Logger(SubscriptionsService.name);
@@ -288,7 +290,18 @@ export class SubscriptionsService {
       periodEnd: periodEnd,
     });
 
-    return this.subscriptionRepository.save(newSubscription);
+    const savedSubscription = await this.subscriptionRepository.save(newSubscription);
+
+    // NOTIFICATION: Assinatura Criada/Alterada Manualmente (Upgrade/Downgrade)
+    await this.notificationsService.create({
+      userId,
+      type: 'SUBSCRIPTION_CHANGED',
+      title: 'Assinatura Atualizada',
+      content: `Seu plano foi alterado para ${plan.name} com sucesso!`,
+      link: '/dashboard/subscriptions',
+    });
+
+    return savedSubscription;
   }
 
   async checkSubscriptionAccess(userId: string): Promise<boolean> {
@@ -680,19 +693,34 @@ export class SubscriptionsService {
   }
 
   /**
-   * Marca uma subscription como 'expiring' (usado por webhooks de cancelamento)
+   * Marca uma subscription como 'expiring' (usado por webhooks de cancelamento e também manualmente)
    */
   async expireSubscription(subscriptionId: string): Promise<void> {
-    const subscription = await this.subscriptionRepository.findOne({ where: { id: subscriptionId } });
+    const subscription = await this.subscriptionRepository.findOne({ 
+      where: { id: subscriptionId },
+      relations: ['plan'] 
+    });
     if (!subscription) {
       throw new NotFoundException(`Subscription ${subscriptionId} não encontrada`);
     }
 
+    const wasActive = subscription.status === 'active';
     subscription.status = 'expiring';
     if (!subscription.periodEnd) {
       subscription.periodEnd = new Date();
     }
     await this.subscriptionRepository.save(subscription);
+
+    // NOTIFICATION: Cancelamento de Assinatura
+    if (wasActive) {
+      await this.notificationsService.create({
+        userId: subscription.userId,
+        type: 'SUBSCRIPTION_CANCELED',
+        title: 'Assinatura Cancelada',
+        content: `Sua assinatura do plano ${subscription.plan?.name || 'Premium'} foi cancelada e terminará em ${subscription.periodEnd.toLocaleDateString('pt-BR')}.`,
+        link: '/dashboard/subscriptions',
+      });
+    }
   }
 
   /**

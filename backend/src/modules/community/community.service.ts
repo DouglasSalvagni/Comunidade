@@ -22,6 +22,7 @@ import { StorageService } from '@/modules/courses/storage.service';
 import { CreateCommunityCommentDto } from './dto/create-community-comment.dto';
 import { UpdateCommunityPostDto } from './dto/update-community-post.dto';
 import { UpdateCommunityCommentDto } from './dto/update-community-comment.dto';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 type FeedCursorPayload = {
   id: string;
@@ -47,6 +48,7 @@ export class CommunityService {
     private readonly commentRepo: Repository<CommunityComment>,
     private readonly communityAccessService: CommunityAccessService,
     private readonly storageService: StorageService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async adminListSpaces(): Promise<CommunitySpace[]> {
@@ -294,6 +296,11 @@ export class CommunityService {
     });
 
     const saved = await this.postRepo.save(post);
+
+    // NOTIFICATION: NOTIFICAR USUÁRIOS QUE SEGUEM O ESPAÇO (TODO no futuro)
+    // Se o espaço puder ser "seguido" ou se quisermos notificar todos os membros, 
+    // a lógica iria aqui. No MVP, podemos notificar caso haja menções.
+
     return this.getPostDetail(saved.id);
   }
 
@@ -394,6 +401,18 @@ export class CommunityService {
     await this.postLikeRepo.save(like);
     await this.postRepo.increment({ id: postId }, 'likesCount', 1);
     const updated = await this.getPostOrFail(postId);
+
+    // NOTIFICATION: Curtida no Post
+    if (post.authorId !== userId) {
+      await this.notificationsService.create({
+        userId: post.authorId,
+        type: 'COMMUNITY_LIKE',
+        title: 'Nova curtida no seu post',
+        content: 'Alguém curtiu o seu post.',
+        link: `/dashboard/community/post/${postId}`,
+      });
+    }
+
     return { liked: true, likesCount: updated.likesCount };
   }
 
@@ -437,17 +456,19 @@ export class CommunityService {
     await this.assertCanReadSpace(post.spaceId, userId, userRole);
 
     let parentCommentId: string | null = null;
+    let parentAuthorId: string | null = null;
     if (dto.parentCommentId) {
-      const parent = await this.commentRepo.findOne({
+      const parentComment = await this.commentRepo.findOne({
         where: { id: dto.parentCommentId, postId, status: 'published' },
       });
-      if (!parent) {
+      if (!parentComment) {
         throw new NotFoundException('Comentário pai não encontrado');
       }
-      if (parent.parentCommentId) {
+      if (parentComment.parentCommentId) {
         throw new BadRequestException('Profundidade máxima de resposta atingida');
       }
-      parentCommentId = parent.id;
+      parentCommentId = parentComment.id;
+      parentAuthorId = parentComment.authorId;
     }
 
     const comment = this.commentRepo.create({
@@ -473,6 +494,27 @@ export class CommunityService {
       }
     } else if (fetched.author) {
       (fetched.author as any).avatarUrl = null;
+    }
+
+    // NOTIFICATION: Comentário no Post ou Resposta a Comentário
+    if (parentCommentId && parentAuthorId && parentAuthorId !== userId) {
+      // É uma resposta a um comentário
+      await this.notificationsService.create({
+        userId: parentAuthorId,
+        type: 'COMMUNITY_REPLY',
+        title: 'Nova resposta ao seu comentário',
+        content: `${fetched.author?.name || 'Alguém'} respondeu ao seu comentário.`,
+        link: `/dashboard/community/post/${postId}`,
+      });
+    } else if (!parentCommentId && post.authorId !== userId) {
+      // É um comentário direto no post
+      await this.notificationsService.create({
+        userId: post.authorId,
+        type: 'COMMUNITY_COMMENT',
+        title: 'Novo comentário no seu post',
+        content: `${fetched.author?.name || 'Alguém'} comentou no seu post.`,
+        link: `/dashboard/community/post/${postId}`,
+      });
     }
 
     return fetched;

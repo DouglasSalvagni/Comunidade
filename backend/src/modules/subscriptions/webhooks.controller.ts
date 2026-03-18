@@ -14,6 +14,7 @@ import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
 import { GatewayMetaService } from './services/gateway-meta.service';
 import { GatewayWebhookService } from './services/gateway-webhook.service';
 import { InvoiceService } from './services/invoice.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @ApiTags('Webhooks')
 @Controller('webhooks')
@@ -28,6 +29,7 @@ export class WebhooksController {
     private readonly gatewayWebhookService: GatewayWebhookService,
     private readonly invoiceService: InvoiceService,
     private readonly subscriptionsCouponsService: SubscriptionsCouponsService,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
   @Post('asaas')
@@ -145,6 +147,17 @@ export class WebhooksController {
       }
 
       this.logger.log(`✅ Subscription criada com sucesso`);
+
+      // NOTIFICATION: Nova Assinatura Criada (Upgrade do Free para Pago ou Nova Assinatura)
+      if (createdSubscription?.userId) {
+        await this.notificationsService.create({
+          userId: createdSubscription.userId,
+          type: 'SUBSCRIPTION_CREATED',
+          title: 'Assinatura Ativada',
+          content: 'Sua assinatura foi criada com sucesso! Aproveite todos os benefícios do seu novo plano.',
+          link: '/dashboard/subscriptions',
+        });
+      }
 
       // Busca dados da subscription no Asaas para pegar o primeiro pagamento
       await this.createFirstInvoiceFromAsaas(subscription.id, createdSubscription);
@@ -323,6 +336,15 @@ export class WebhooksController {
       await this.subscriptionsCouponsService.markUsedByUser(subscription.userId);
     }
 
+    // NOTIFICATION: Pagamento Confirmado
+    await this.notificationsService.create({
+      userId: subscription.userId,
+      type: 'PAYMENT_CONFIRMED',
+      title: 'Pagamento Confirmado',
+      content: `O pagamento da sua fatura no valor de R$ ${payment.value} foi aprovado com sucesso!`,
+      link: '/dashboard/account',
+    });
+
     this.logger.log(`✅ Assinatura ativada: ${subscription.id}`);
   }
 
@@ -364,6 +386,15 @@ export class WebhooksController {
         throw error;
       }
     }
+
+    // NOTIFICATION: Pagamento Vencido / Recusado
+    await this.notificationsService.create({
+      userId: subscription.userId,
+      type: 'PAYMENT_FAILED',
+      title: 'Problema com seu pagamento',
+      content: `Sua última fatura no valor de R$ ${payment.value} está atrasada ou foi recusada. Verifique para não perder o acesso.`,
+      link: payment.invoiceUrl || '/dashboard/account',
+    });
 
     // Pausa a assinatura quando há pagamento vencido
     await this.subscriptionsService.pauseSubscription(subscription.id);

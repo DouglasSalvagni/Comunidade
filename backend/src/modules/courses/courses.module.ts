@@ -11,9 +11,11 @@ import { CoursesService } from './courses.service';
 import { StorageService } from './storage.service';
 import { CoursesController } from './courses.controller';
 import { AdminCoursesController } from './admin-courses.controller';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
   imports: [
+    NotificationsModule,
     TypeOrmModule.forFeature([
       Course,
       CourseModuleEntity,

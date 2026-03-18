@@ -24,6 +24,7 @@ import { PremiumGuard } from './guards/premium.guard';
 import { SubscriptionsCouponsController } from './subscriptions-coupons.controller';
 import { SubscriptionsCouponsService } from './subscriptions-coupons.service';
 import { SettingsModule } from '@/modules/settings/settings.module';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { SettingsModule } from '@/modules/settings/settings.module';
     ]),
     ConfigModule,
     SettingsModule,
+    NotificationsModule,
   ],
   providers: [
     SubscriptionsService,

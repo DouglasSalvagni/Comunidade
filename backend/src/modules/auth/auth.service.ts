@@ -15,6 +15,7 @@ import { AppleOAuthDto } from './dto/apple-oauth.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { StorageService } from '../courses/storage.service';
+import { NotificationsService } from '@/modules/notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly storageService: StorageService,
+    private readonly notificationsService: NotificationsService,
     @Optional() private readonly legalService?: LegalService,
   ) { }
 
@@ -487,6 +489,16 @@ export class AuthService {
     user.passwordResetTokenHash = null;
     user.passwordResetExpiresAt = null;
     await repo.save(user);
+
+    // NOTIFICATION: Redefinição de senha
+    await this.notificationsService.create({
+      userId: user.id,
+      type: 'SECURITY_PASSWORD_RESET',
+      title: 'Senha redefinida',
+      content: 'Sua senha foi alterada com sucesso. Se não foi você, contate o suporte imediatamente.',
+      link: '/dashboard/account',
+    });
+
     return { ok: true };
   }
 }

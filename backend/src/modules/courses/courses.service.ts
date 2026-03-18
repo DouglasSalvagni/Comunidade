@@ -312,6 +312,16 @@ export class CoursesService {
     const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
 
+    // Se estiver atualizando videoKey e a nova for diferente da antiga, remove a antiga do S3
+    if (dto.videoKey !== undefined && lesson.videoKey && lesson.videoKey !== dto.videoKey) {
+      // Deleta o vídeo antigo
+      await this.storageService.deleteFile(lesson.videoKey);
+      // Se houver processamento HLS (pasta output/...), também deveria ser removido, 
+      // mas como o sistema atual parece usar upload direto de MP4 sem processamento complexo registrado no banco,
+      // vamos focar no arquivo principal. Se houver HLS, o storage service poderia ter um deleteFolder.
+      // Assumindo vídeo único por enquanto.
+    }
+
     if (dto.titulo !== undefined) lesson.titulo = dto.titulo;
     if (dto.conteudoTexto !== undefined) lesson.conteudoTexto = dto.conteudoTexto;
     if (dto.videoKey !== undefined) lesson.videoKey = dto.videoKey;
@@ -323,8 +333,26 @@ export class CoursesService {
   }
 
   async adminDeleteLesson(lessonId: string): Promise<void> {
-    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    const lesson = await this.lessonRepo.findOne({ 
+      where: { id: lessonId },
+      relations: ['anexos']
+    });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
+
+    // 1. Deletar vídeo da aula do S3
+    if (lesson.videoKey) {
+      await this.storageService.deleteFile(lesson.videoKey);
+    }
+
+    // 2. Deletar anexos do S3
+    if (lesson.anexos && lesson.anexos.length > 0) {
+      for (const anexo of lesson.anexos) {
+        if (anexo.fileKey) {
+          await this.storageService.deleteFile(anexo.fileKey);
+        }
+      }
+    }
+
     await this.lessonRepo.remove(lesson);
   }
 
@@ -371,6 +399,12 @@ export class CoursesService {
   async adminDeleteAttachment(lessonId: string, attachmentId: string): Promise<void> {
     const attachment = await this.attachmentRepo.findOne({ where: { id: attachmentId, aulaId: lessonId } });
     if (!attachment) throw new NotFoundException('Anexo não encontrado');
+
+    // Deleta do S3
+    if (attachment.fileKey) {
+      await this.storageService.deleteFile(attachment.fileKey);
+    }
+
     await this.attachmentRepo.remove(attachment);
   }
 

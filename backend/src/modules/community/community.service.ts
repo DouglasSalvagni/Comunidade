@@ -664,6 +664,91 @@ export class CommunityService {
     };
   }
 
+  async adminDeletePost(postId: string): Promise<void> {
+    const post = await this.postRepo.findOne({ 
+      where: { id: postId },
+      relations: ['attachments'],
+    });
+    if (!post) {
+      throw new NotFoundException('Post não encontrado');
+    }
+
+    // Deleta anexos do S3
+    if (post.attachments && post.attachments.length > 0) {
+      for (const att of post.attachments) {
+        if (att.fileKey) {
+          await this.storageService.deleteFile(att.fileKey);
+        }
+      }
+    }
+
+    await this.postRepo.remove(post);
+  }
+
+  async deletePost(postId: string, userId: string, userRole: 'user' | 'admin'): Promise<void> {
+    const post = await this.postRepo.findOne({ 
+      where: { id: postId },
+      relations: ['attachments'],
+    });
+    if (!post) {
+      throw new NotFoundException('Post não encontrado');
+    }
+    if (userRole !== 'admin' && post.authorId !== userId) {
+      throw new ForbiddenException('Sem permissão para deletar este post');
+    }
+
+    // Deleta anexos do S3
+    if (post.attachments && post.attachments.length > 0) {
+      for (const att of post.attachments) {
+        if (att.fileKey) {
+          await this.storageService.deleteFile(att.fileKey);
+        }
+      }
+    }
+
+    await this.postRepo.remove(post);
+  }
+
+  async deleteComment(
+    postId: string,
+    commentId: string,
+    userId: string,
+    userRole: 'user' | 'admin',
+  ): Promise<void> {
+    const post = await this.getPostOrFail(postId);
+    await this.assertCanReadSpace(post.spaceId, userId, userRole);
+
+    const comment = await this.commentRepo.findOne({
+      where: { id: commentId, postId, status: 'published' },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comentário não encontrado');
+    }
+    if (userRole !== 'admin' && comment.authorId !== userId) {
+      throw new ForbiddenException('Sem permissão para deletar este comentário');
+    }
+
+    // Soft delete para manter a árvore de respostas se houver
+    comment.status = 'deleted';
+    comment.contentHtml = '<p><em>[Comentário excluído]</em></p>';
+    await this.commentRepo.save(comment);
+  }
+
+  // --- Helpers ---
+  
+  async adminDeleteAttachment(attachmentId: string): Promise<void> {
+    const attachment = await this.postAttachmentRepo.findOne({ where: { id: attachmentId } });
+    if (!attachment) {
+      throw new NotFoundException('Anexo não encontrado');
+    }
+    
+    if (attachment.fileKey) {
+      await this.storageService.deleteFile(attachment.fileKey);
+    }
+    
+    await this.postAttachmentRepo.remove(attachment);
+  }
+
   private async ensureUniqueSlug(slug: string, ignoreSpaceId?: string): Promise<void> {
     const existing = await this.spaceRepo.findOne({ where: { slug } });
     if (existing && existing.id !== ignoreSpaceId) {

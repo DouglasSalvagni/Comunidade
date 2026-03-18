@@ -185,11 +185,14 @@ export default function LessonPage() {
             onPause={handleVideoPause}
           />
         </div>
-      ) : lesson.status === "pendente" ? (
-        <div className="aspect-video w-full bg-muted rounded-xl flex items-center justify-center text-muted-foreground text-sm">
-          Vídeo em processamento...
-        </div>
       ) : null}
+      
+      {!lesson.videoUrl && !lesson.conteudoTexto && (!lesson.anexos || lesson.anexos.length === 0) && (
+        <div className="py-20 text-center text-muted-foreground bg-muted/30 rounded-xl border border-dashed">
+          <p className="text-lg font-medium">Conteúdo em breve</p>
+          <p className="text-sm">Esta aula ainda não possui vídeo, texto ou anexos.</p>
+        </div>
+      )}
 
       {/* Navegação + Concluir */}
       <div className="flex items-center justify-between flex-wrap gap-3">

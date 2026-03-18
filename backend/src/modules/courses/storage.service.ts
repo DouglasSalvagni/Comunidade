@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
@@ -39,6 +39,23 @@ export class StorageService {
       throw new Error('S3 storage client not configured. Set S3_ENDPOINT, S3_ACCESS_KEY and S3_SECRET_KEY.');
     }
     return this.s3Client;
+  }
+
+  async deleteFile(key: string): Promise<void> {
+    if (!key) return;
+    try {
+      const client = this.ensureClient();
+      await client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+      this.logger.log(`File deleted from S3: ${key}`);
+    } catch (error) {
+      this.logger.error(`Error deleting file from S3: ${key}`, error);
+      // We don't throw here to avoid blocking database deletion if S3 fails
+    }
   }
 
   /**

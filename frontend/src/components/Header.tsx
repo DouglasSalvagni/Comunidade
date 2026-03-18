@@ -55,7 +55,7 @@ const Header = ({ isSidebarOpen, setIsSidebarOpen, user: propUser }: HeaderProps
   }, []);
 
   return (
-    <header className="flex items-center justify-between p-4 border-b bg-background h-16">
+    <header className="sticky top-0 z-20 flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-16">
       <div className="flex items-center gap-4">
         <div className="md:hidden">
           <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>

@@ -159,8 +159,19 @@ All colors MUST be HSL.
     transition: var(--transition-bounce);
   }
 
+  .custom-scrollbar {
+    overflow-y: auto;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+  
+  .custom-scrollbar:hover {
+    scrollbar-color: hsl(var(--sidebar-border) / 0.5) transparent;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
+    background-color: transparent;
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -168,8 +179,13 @@ All colors MUST be HSL.
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--sidebar-border) / 0.5);
+    background: transparent;
     border-radius: 10px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-border) / 0.5);
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {

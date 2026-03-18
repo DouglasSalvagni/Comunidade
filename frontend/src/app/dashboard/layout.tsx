@@ -192,7 +192,7 @@ const DashboardLayoutContent = ({
       )}
       {!verifying && authorized && (
         <>
-          <div className="hidden md:block">
+          <div className="hidden md:block sticky top-0 h-screen shrink-0">
             <Sidebar />
           </div>
           <div className="flex min-w-0 flex-1">
@@ -203,7 +203,7 @@ const DashboardLayoutContent = ({
               </main>
             </div>
             <aside
-              className={`hidden border-l bg-background transition-all duration-300 lg:flex ${drawerOpen ? "w-80" : "w-16"}`}
+              className={`hidden border-l bg-background transition-all duration-300 lg:flex sticky top-0 h-screen shrink-0 ${drawerOpen ? "w-80" : "w-16"}`}
               aria-label="Membros"
             >
               <div className="flex h-screen w-full flex-col">
@@ -212,14 +212,14 @@ const DashboardLayoutContent = ({
                   aria-label={rightPanelLabel}
                   title={rightPanelLabel}
                   onClick={() => setDrawerOpen((prev) => !prev)}
-                  className="flex h-12 items-center justify-center border-b text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  className="flex h-12 shrink-0 items-center justify-center border-b text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                 >
                   {drawerOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
                 </button>
                 
                 {drawerOpen ? (
                   <>
-                    <div className="border-b p-3">
+                    <div className="border-b p-3 shrink-0">
                       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                         <Users className="h-4 w-4" />
                         Membros
@@ -234,7 +234,7 @@ const DashboardLayoutContent = ({
                         />
                       </div>
                     </div>
-                    <div ref={membersScrollRef} className="flex-1 overflow-y-auto p-3">
+                    <div ref={membersScrollRef} className="flex-1 overflow-y-auto p-3 custom-scrollbar">
                       {loadingMembers && members.length === 0 ? (
                         <div className="flex items-center justify-center py-10">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -267,7 +267,7 @@ const DashboardLayoutContent = ({
                     </div>
                   </>
                 ) : (
-                  <div ref={membersScrollRef} className="flex-1 overflow-y-auto py-3 flex flex-col items-center gap-2 scrollbar-hide">
+                  <div ref={membersScrollRef} className="flex-1 overflow-y-auto py-3 flex flex-col items-center gap-2 custom-scrollbar">
                     {loadingMembers && members.length === 0 ? (
                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     ) : (

@@ -510,7 +510,7 @@ export default function DashboardCommunitySpacePage() {
                 ) : (
                   <>
                     <div 
-                      className={`prose prose-sm max-w-none dark:prose-invert transition-all duration-200 ${!isExpanded ? 'line-clamp-4 mask-image-fade' : ''}`} 
+                      className={`prose prose-sm max-w-none dark:prose-invert break-words [&_:not(pre)>code]:break-words [&_:not(pre)>code]:whitespace-pre-wrap transition-all duration-200 ${!isExpanded ? 'line-clamp-4 mask-image-fade' : ''}`} 
                       dangerouslySetInnerHTML={{ __html: post.contentHtml }} 
                     />
                     

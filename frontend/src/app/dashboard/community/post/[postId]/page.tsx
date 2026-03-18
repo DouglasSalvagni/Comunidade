@@ -278,7 +278,7 @@ export default function DashboardCommunityPostPage() {
               </div>
             </div>
           ) : (
-            <div className="prose prose-base max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+            <div className="prose prose-base max-w-none dark:prose-invert break-words [&_:not(pre)>code]:break-words [&_:not(pre)>code]:whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
           )}
 
           {!editingPost && (post.attachments || []).length > 0 && (
@@ -313,7 +313,7 @@ export default function DashboardCommunityPostPage() {
             {(profile?.name || "U").substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 min-w-0 space-y-3">
           <div className="bg-card rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">
             <RichTextEditor value={commentHtml} onChange={setCommentHtml} placeholder="Escreva um comentário..." />
           </div>
@@ -342,7 +342,7 @@ export default function DashboardCommunityPostPage() {
                 </AvatarFallback>
               </Avatar>
               
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 min-w-0 space-y-2">
                 <div className="bg-card p-4 rounded-2xl rounded-tl-sm border border-muted/30 shadow-sm">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex items-baseline gap-2">
@@ -373,7 +373,7 @@ export default function DashboardCommunityPostPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: comment.contentHtml }} />
+                    <div className="prose prose-sm max-w-none dark:prose-invert break-words [&_:not(pre)>code]:break-words [&_:not(pre)>code]:whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: comment.contentHtml }} />
                   )}
                 </div>
                 
@@ -395,7 +395,7 @@ export default function DashboardCommunityPostPage() {
                             {(reply.author?.name || "M").substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="bg-card p-3 rounded-2xl rounded-tl-sm border border-muted/20 shadow-sm">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="flex items-baseline gap-2">
@@ -426,7 +426,7 @@ export default function DashboardCommunityPostPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: reply.contentHtml }} />
+                              <div className="prose prose-sm max-w-none dark:prose-invert break-words [&_:not(pre)>code]:break-words [&_:not(pre)>code]:whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: reply.contentHtml }} />
                             )}
                           </div>
                         </div>
@@ -459,7 +459,7 @@ export default function DashboardCommunityPostPage() {
               </Button>
             </div>
             <div className="flex gap-3">
-              <div className="flex-1 bg-background rounded-lg border focus-within:ring-1 focus-within:ring-primary/50 overflow-hidden">
+              <div className="flex-1 min-w-0 bg-background rounded-lg border focus-within:ring-1 focus-within:ring-primary/50 overflow-hidden">
                 <RichTextEditor value={replyHtml} onChange={setReplyHtml} placeholder="Escreva sua resposta..." />
               </div>
               <Button onClick={submitReply} disabled={posting} className="h-auto px-6 rounded-lg">

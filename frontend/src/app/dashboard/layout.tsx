@@ -21,6 +21,8 @@ const DashboardLayoutContent = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const showMembersDrawer = process.env.NEXT_PUBLIC_SHOW_MEMBERS_DRAWER === 'true';
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [verifying, setVerifying] = useState(true);
@@ -108,7 +110,7 @@ const DashboardLayoutContent = ({
 
   const loadMembers = useCallback(
     async ({ reset = false, cursor }: { reset?: boolean; cursor?: string | null } = {}) => {
-      if (!authorized) return;
+      if (!authorized || !showMembersDrawer) return;
       if (reset) {
         if (loadingMembersRef.current) return;
       } else {
@@ -150,7 +152,7 @@ const DashboardLayoutContent = ({
   );
 
   useEffect(() => {
-    if (!authorized) return;
+    if (!authorized || !showMembersDrawer) return;
     requestSeqRef.current += 1;
     setMembers([]);
     setMembersCursor(null);
@@ -202,10 +204,11 @@ const DashboardLayoutContent = ({
                 {children}
               </main>
             </div>
-            <aside
-              className={`hidden border-l bg-background transition-all duration-300 lg:flex sticky top-0 h-screen shrink-0 ${drawerOpen ? "w-80" : "w-16"}`}
-              aria-label="Membros"
-            >
+            {showMembersDrawer && (
+              <aside
+                className={`hidden border-l bg-background transition-all duration-300 lg:flex sticky top-0 h-screen shrink-0 ${drawerOpen ? "w-80" : "w-16"}`}
+                aria-label="Membros"
+              >
               <div className="flex h-screen w-full flex-col">
                 <button
                   type="button"
@@ -295,7 +298,9 @@ const DashboardLayoutContent = ({
                 )}
               </div>
             </aside>
-            
+            )}
+
+            {showMembersDrawer && (
             <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -336,6 +341,7 @@ const DashboardLayoutContent = ({
                 )}
               </DialogContent>
             </Dialog>
+            )}
           </div>
         </>
       )}

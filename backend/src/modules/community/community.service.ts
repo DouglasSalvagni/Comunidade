@@ -23,6 +23,13 @@ import { CreateCommunityCommentDto } from './dto/create-community-comment.dto';
 import { UpdateCommunityPostDto } from './dto/update-community-post.dto';
 import { UpdateCommunityCommentDto } from './dto/update-community-comment.dto';
 
+type FeedCursorPayload = {
+  id: string;
+  createdAt: Date;
+  pinnedAt: Date;
+  pinnedRank: number;
+};
+
 @Injectable()
 export class CommunityService {
   constructor(
@@ -144,15 +151,129 @@ export class CommunityService {
     userId: string,
     userRole: 'user' | 'admin',
     limit = 20,
-  ): Promise<CommunityPost[]> {
+    cursor?: string,
+    search?: string,
+  ): Promise<{
+    data: CommunityPost[];
+    meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+  }> {
     await this.assertCanReadSpace(spaceId, userId, userRole);
-    const posts = await this.postRepo.find({
-      where: { spaceId, status: 'published' },
-      relations: ['author', 'attachments'],
-      order: { isPinned: 'DESC', pinnedAt: 'DESC', createdAt: 'DESC' },
-      take: Math.min(Math.max(limit, 1), 50),
-    });
-    return this.attachDownloadUrlsToPosts(posts);
+    const normalizedLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+    const normalizedSearch = (search || '').trim();
+    const decodedCursor = this.decodeFeedCursor(cursor);
+
+    const query = this.postRepo
+      .createQueryBuilder('post')
+      .where('post.spaceId = :spaceId', { spaceId })
+      .andWhere('post.status = :status', { status: 'published' });
+
+    if (normalizedSearch) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('post.title ILIKE :search', { search: `%${normalizedSearch}%` }).orWhere(
+            'post.contentText ILIKE :search',
+            { search: `%${normalizedSearch}%` },
+          );
+        }),
+      );
+    }
+
+    if (decodedCursor) {
+      query.andWhere(
+        new Brackets((qb) => {
+          if (decodedCursor.pinnedRank === 1) {
+            qb.where('post.isPinned = false').orWhere(
+              new Brackets((samePinnedQb) => {
+                samePinnedQb
+                  .where('post.isPinned = true')
+                  .andWhere(
+                    new Brackets((orderQb) => {
+                      orderQb
+                        .where('post.pinnedAt < :cursorPinnedAt', { cursorPinnedAt: decodedCursor.pinnedAt })
+                        .orWhere(
+                          new Brackets((createdQb) => {
+                            createdQb
+                              .where('post.pinnedAt = :cursorPinnedAt', { cursorPinnedAt: decodedCursor.pinnedAt })
+                              .andWhere('post.createdAt < :cursorCreatedAt', {
+                                cursorCreatedAt: decodedCursor.createdAt,
+                              });
+                          }),
+                        )
+                        .orWhere(
+                          new Brackets((idQb) => {
+                            idQb
+                              .where('post.pinnedAt = :cursorPinnedAt', {
+                                cursorPinnedAt: decodedCursor.pinnedAt,
+                              })
+                              .andWhere('post.createdAt = :cursorCreatedAt', {
+                                cursorCreatedAt: decodedCursor.createdAt,
+                              })
+                              .andWhere('post.id < :cursorId', { cursorId: decodedCursor.id });
+                          }),
+                        );
+                    }),
+                  );
+              }),
+            );
+            return;
+          }
+
+          qb.where('post.isPinned = false')
+            .andWhere('post.createdAt < :cursorCreatedAt', {
+              cursorCreatedAt: decodedCursor.createdAt,
+            })
+            .orWhere(
+              new Brackets((idQb) => {
+                idQb
+                  .where('post.isPinned = false')
+                  .andWhere('post.createdAt = :cursorCreatedAt', {
+                    cursorCreatedAt: decodedCursor.createdAt,
+                  })
+                  .andWhere('post.id < :cursorId', { cursorId: decodedCursor.id });
+              }),
+            );
+        }),
+      );
+    }
+
+    const rows = await query
+      .orderBy('post.isPinned', 'DESC')
+      .addOrderBy('post.pinnedAt', 'DESC', 'NULLS LAST')
+      .addOrderBy('post.createdAt', 'DESC')
+      .addOrderBy('post.id', 'DESC')
+      .take(normalizedLimit + 1)
+      .getMany();
+
+    const hasMore = rows.length > normalizedLimit;
+    const selected = hasMore ? rows.slice(0, normalizedLimit) : rows;
+    const selectedIds = selected.map((post) => post.id);
+    const last = selected[selected.length - 1];
+
+    let data: CommunityPost[] = [];
+    if (selectedIds.length > 0) {
+      const detailedPosts = await this.postRepo
+        .createQueryBuilder('post')
+        .leftJoinAndSelect('post.author', 'author')
+        .leftJoinAndSelect('post.attachments', 'attachments')
+        .where('post.id IN (:...selectedIds)', { selectedIds })
+        .getMany();
+
+      const postById = new Map(detailedPosts.map((post) => [post.id, post]));
+      const orderedPosts = selectedIds
+        .map((postId) => postById.get(postId))
+        .filter((post): post is CommunityPost => Boolean(post));
+
+      data = await this.attachDownloadUrlsToPosts(orderedPosts);
+    }
+
+    return {
+      data,
+      meta: {
+        nextCursor: hasMore && last ? this.encodeFeedCursor(last) : null,
+        hasMore,
+        limit: normalizedLimit,
+      },
+    };
   }
 
   async createPostInSpace(
@@ -168,6 +289,7 @@ export class CommunityService {
       authorId: userId,
       title: dto.title ?? null,
       contentHtml: dto.contentHtml,
+      contentText: this.toSearchableText(dto.contentHtml),
       status: 'published',
     });
 
@@ -297,6 +419,7 @@ export class CommunityService {
     }
     if (dto.contentHtml !== undefined) {
       post.contentHtml = dto.contentHtml;
+      post.contentText = this.toSearchableText(dto.contentHtml);
     }
 
     post.editedAt = new Date();
@@ -566,6 +689,36 @@ export class CommunityService {
     } catch {
       return null;
     }
+  }
+
+  private encodeFeedCursor(post: Pick<CommunityPost, 'id' | 'createdAt' | 'isPinned' | 'pinnedAt'>): string {
+    const payload = JSON.stringify({
+      id: post.id,
+      createdAt: post.createdAt.toISOString(),
+      pinnedAt: (post.pinnedAt ?? new Date('1970-01-01T00:00:00.000Z')).toISOString(),
+      pinnedRank: post.isPinned ? 1 : 0,
+    });
+    return Buffer.from(payload).toString('base64url');
+  }
+
+  private decodeFeedCursor(cursor?: string): FeedCursorPayload | null {
+    if (!cursor) return null;
+    try {
+      const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+      if (!parsed?.id || !parsed?.createdAt || !parsed?.pinnedAt) return null;
+      const createdAt = new Date(parsed.createdAt);
+      const pinnedAt = new Date(parsed.pinnedAt);
+      const pinnedRank = Number(parsed.pinnedRank);
+      if (Number.isNaN(createdAt.getTime()) || Number.isNaN(pinnedAt.getTime())) return null;
+      if (pinnedRank !== 0 && pinnedRank !== 1) return null;
+      return { id: String(parsed.id), createdAt, pinnedAt, pinnedRank };
+    } catch {
+      return null;
+    }
+  }
+
+  private toSearchableText(contentHtml: string): string {
+    return contentHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   private async attachDownloadUrlsToPosts(posts: CommunityPost[]): Promise<CommunityPost[]> {

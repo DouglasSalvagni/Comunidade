@@ -71,7 +71,7 @@ export default function AdminCommunityPage() {
       setSelectedSpaceId(nextSelected);
       if (nextSelected) {
         const posts = await api.getCommunitySpaceFeed(nextSelected, { limit: 50 });
-        setFeed(posts);
+        setFeed(posts.data);
       } else {
         setFeed([]);
       }
@@ -90,7 +90,7 @@ export default function AdminCommunityPage() {
     if (!selectedSpaceId) return;
     api
       .getCommunitySpaceFeed(selectedSpaceId, { limit: 50 })
-      .then(setFeed)
+      .then((response) => setFeed(response.data))
       .catch(() => setFeed([]));
   }, [selectedSpaceId]);
 
@@ -187,7 +187,7 @@ export default function AdminCommunityPage() {
         await api.adminPinCommunityPost(post.id);
       }
       const posts = await api.getCommunitySpaceFeed(selectedSpaceId, { limit: 50 });
-      setFeed(posts);
+      setFeed(posts.data);
     } catch {
       toast.error("Não foi possível alterar fixação.");
     }

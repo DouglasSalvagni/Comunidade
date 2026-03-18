@@ -29,7 +29,9 @@
     "seed": "node dist/src/database/seeds/seed.js",
     "seed:ts": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
     "seed:members": "ts-node -r tsconfig-paths/register src/database/seeds/members-seed.ts",
-    "seed:members:clean": "ts-node -r tsconfig-paths/register src/database/seeds/members-cleanup.ts"
+    "seed:members:clean": "ts-node -r tsconfig-paths/register src/database/seeds/members-cleanup.ts",
+    "seed:postscomments": "ts-node -r tsconfig-paths/register src/database/seeds/community-posts-seed.ts",
+    "seed:postscomments:clean": "ts-node -r tsconfig-paths/register src/database/seeds/community-posts-cleanup.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1005.0",

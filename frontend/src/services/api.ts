@@ -208,6 +208,11 @@ export interface CommunityPost {
   space?: CommunitySpace;
 }
 
+export interface CommunityFeedResponse {
+  data: CommunityPost[];
+  meta: { nextCursor: string | null; hasMore: boolean; limit: number };
+}
+
 export interface CommunityComment {
   id: string;
   postId: string;
@@ -744,9 +749,12 @@ class ApiService {
     return response.data.data;
   }
 
-  async getCommunitySpaceFeed(spaceId: string, params?: { limit?: number }): Promise<CommunityPost[]> {
-    const response = await this.client.get<ApiResponse<CommunityPost[]>>(`/community/spaces/${spaceId}/feed`, { params });
-    return response.data.data;
+  async getCommunitySpaceFeed(
+    spaceId: string,
+    params?: { limit?: number; cursor?: string; search?: string },
+  ): Promise<CommunityFeedResponse> {
+    const response = await this.client.get<CommunityFeedResponse>(`/community/spaces/${spaceId}/feed`, { params });
+    return response.data;
   }
 
   async createCommunityPost(

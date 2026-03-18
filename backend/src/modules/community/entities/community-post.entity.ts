@@ -41,6 +41,9 @@ export class CommunityPost {
   @Column({ name: 'content_html', type: 'text' })
   contentHtml: string;
 
+  @Column({ name: 'content_text', type: 'text', default: '' })
+  contentText: string;
+
   @Column({ name: 'is_pinned', default: false })
   isPinned: boolean;
 

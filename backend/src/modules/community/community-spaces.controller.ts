@@ -24,12 +24,23 @@ export class CommunitySpacesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar feed de posts do espaço' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   async listSpaceFeed(
     @Param('spaceId') spaceId: string,
     @Request() req: any,
     @Query('limit') limit = 20,
+    @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
   ) {
-    return this.communityService.listFeedBySpace(spaceId, req.user.userId, req.user.role, Number(limit) || 20);
+    return this.communityService.listFeedBySpace(
+      spaceId,
+      req.user.userId,
+      req.user.role,
+      Number(limit) || 20,
+      cursor,
+      search,
+    );
   }
 
   @Post(':spaceId/posts')

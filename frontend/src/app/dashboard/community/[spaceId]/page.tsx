@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -18,9 +18,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
 const ACCEPTED_TYPES = new Set(["application/pdf"]);
+const FEED_DELAY_MS = Math.max(0, Number(process.env.NEXT_PUBLIC_COMMUNITY_FEED_DELAY_MS ?? 4000) || 0);
 
 function isAllowedContentType(contentType: string) {
   return contentType.startsWith("image/") || ACCEPTED_TYPES.has(contentType);
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default function DashboardCommunitySpacePage() {
@@ -39,6 +44,12 @@ export default function DashboardCommunitySpacePage() {
   const [contentHtml, setContentHtml] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerRef = useRef<HTMLDivElement | null>(null);
 
   const togglePostExpansion = (postId: string) => {
     setExpandedPosts((prev) => {
@@ -54,29 +65,114 @@ export default function DashboardCommunitySpacePage() {
 
   const selectedSpace = useMemo(() => spaces.find((s) => s.id === spaceId) || null, [spaces, spaceId]);
 
+  const loadFeed = async (options?: { reset?: boolean; cursor?: string | null; searchTerm?: string }) => {
+    if (!spaceId) return;
+    const response = await api.getCommunitySpaceFeed(spaceId, {
+      limit: 2,
+      cursor: options?.cursor || undefined,
+      search: options?.searchTerm?.trim() ? options.searchTerm.trim() : undefined,
+    });
+    const isScrollPagination = Boolean(options?.cursor);
+    if (isScrollPagination && FEED_DELAY_MS > 0) {
+      await wait(FEED_DELAY_MS);
+    }
+
+    setHasMore(response.meta.hasMore);
+    setNextCursor(response.meta.nextCursor);
+    if (options?.reset) {
+      setPosts(response.data);
+      return;
+    }
+
+    setPosts((current) => {
+      const currentIds = new Set(current.map((post) => post.id));
+      const appended = response.data.filter((post) => !currentIds.has(post.id));
+      return [...current, ...appended];
+    });
+  };
+
+  const triggerLoadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      await loadFeed({ cursor: nextCursor, searchTerm: search });
+    } catch {
+      toast.error("Não foi possível carregar mais posts.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loading, loadingMore, nextCursor, search]);
+
   const load = async () => {
     if (!spaceId) return;
     setLoading(true);
     try {
-      const [allSpaces, feed, profile] = await Promise.all([
+      const [allSpaces, profile] = await Promise.all([
         api.getCommunitySpaces(),
-        api.getCommunitySpaceFeed(spaceId, { limit: 50 }),
         api.getProfile(),
       ]);
       setSpaces(allSpaces);
-      setPosts(feed);
       setCurrentUserId(profile.id);
       setProfile(profile);
     } catch {
       toast.error("Não foi possível carregar o canal.");
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
   }, [spaceId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (!spaceId) return;
+    setLoading(true);
+    loadFeed({ reset: true, searchTerm: search })
+      .catch(() => toast.error("Não foi possível carregar o feed."))
+      .finally(() => setLoading(false));
+  }, [spaceId, search]);
+
+  useEffect(() => {
+    if (!observerRef.current || !hasMore || loading || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (!first?.isIntersecting) return;
+        void triggerLoadMore();
+      },
+      { rootMargin: "200px 0px" },
+    );
+
+    observer.observe(observerRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, triggerLoadMore]);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+
+    const checkAndLoad = () => {
+      if (!observerRef.current || !nextCursor) return;
+      const rect = observerRef.current.getBoundingClientRect();
+      if (rect.top <= window.innerHeight + 200) {
+        void triggerLoadMore();
+      }
+    };
+
+    checkAndLoad();
+    window.addEventListener("scroll", checkAndLoad, true);
+    window.addEventListener("resize", checkAndLoad);
+    return () => {
+      window.removeEventListener("scroll", checkAndLoad, true);
+      window.removeEventListener("resize", checkAndLoad);
+    };
+  }, [hasMore, loading, loadingMore, nextCursor, triggerLoadMore, posts.length]);
 
   const onPickFiles = (inputFiles: FileList | null) => {
     if (!inputFiles) return;
@@ -130,7 +226,7 @@ export default function DashboardCommunitySpacePage() {
       setTitle("");
       setContentHtml("");
       setFiles([]);
-      await load();
+      await loadFeed({ reset: true, searchTerm: search });
       toast.success("Post publicado.");
     } catch {
       toast.error("Não foi possível publicar o post.");
@@ -182,7 +278,7 @@ export default function DashboardCommunitySpacePage() {
         title: editingPostTitle,
         contentHtml: editingPostContentHtml,
       });
-      await load();
+      await loadFeed({ reset: true, searchTerm: search });
       cancelEditingPost();
       toast.success("Post atualizado.");
     } catch {
@@ -205,6 +301,14 @@ export default function DashboardCommunitySpacePage() {
       <div className="pb-4 border-b">
         <h1 className="text-3xl font-extrabold tracking-tight">{selectedSpace?.name || "Canal da comunidade"}</h1>
         <p className="text-base text-muted-foreground mt-2">{selectedSpace?.description || "Converse com a comunidade neste espaço."}</p>
+        <div className="mt-4">
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Buscar por título ou conteúdo"
+            className="max-w-md"
+          />
+        </div>
       </div>
 
       <Card className="border-muted/50 shadow-sm bg-card">
@@ -394,7 +498,13 @@ export default function DashboardCommunitySpacePage() {
         
         {posts.length === 0 && !loading && (
           <div className="text-center py-12 text-muted-foreground border rounded-lg border-dashed">
-            <p>Nenhum post encontrado. Seja o primeiro a compartilhar!</p>
+            <p>{search ? "Nenhum post encontrado para a busca." : "Nenhum post encontrado. Seja o primeiro a compartilhar!"}</p>
+          </div>
+        )}
+
+        {posts.length > 0 && (
+          <div ref={observerRef} className="py-6 flex justify-center">
+            {loadingMore ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /> : null}
           </div>
         )}
       </div>

@@ -10,7 +10,6 @@ import { Brackets, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { CommunitySpace } from './entities/community-space.entity';
 import { CommunitySpacePlanAccess } from './entities/community-space-plan-access.entity';
-import { CommunitySpaceCourseAccess } from './entities/community-space-course-access.entity';
 import { CommunityPost } from './entities/community-post.entity';
 import { CommunityPostAttachment } from './entities/community-post-attachment.entity';
 import { CommunityPostLike } from './entities/community-post-like.entity';
@@ -31,8 +30,6 @@ export class CommunityService {
     private readonly spaceRepo: Repository<CommunitySpace>,
     @InjectRepository(CommunitySpacePlanAccess)
     private readonly spacePlanAccessRepo: Repository<CommunitySpacePlanAccess>,
-    @InjectRepository(CommunitySpaceCourseAccess)
-    private readonly spaceCourseAccessRepo: Repository<CommunitySpaceCourseAccess>,
     @InjectRepository(CommunityPost)
     private readonly postRepo: Repository<CommunityPost>,
     @InjectRepository(CommunityPostAttachment)
@@ -47,7 +44,7 @@ export class CommunityService {
 
   async adminListSpaces(): Promise<CommunitySpace[]> {
     return this.spaceRepo.find({
-      relations: ['planAccess', 'planAccess.plan', 'courseAccess', 'courseAccess.course'],
+      relations: ['planAccess', 'planAccess.plan'],
       order: { sortOrder: 'ASC', createdAt: 'DESC' },
     });
   }
@@ -55,7 +52,7 @@ export class CommunityService {
   async adminGetSpace(spaceId: string): Promise<CommunitySpace> {
     const space = await this.spaceRepo.findOne({
       where: { id: spaceId },
-      relations: ['planAccess', 'planAccess.plan', 'courseAccess', 'courseAccess.course'],
+      relations: ['planAccess', 'planAccess.plan'],
     });
     if (!space) {
       throw new NotFoundException('Espaço não encontrado');
@@ -79,9 +76,6 @@ export class CommunityService {
 
     if (dto.planIds && dto.planIds.length > 0) {
       await this.adminUpdatePlanAccess(saved.id, dto.planIds);
-    }
-    if (dto.courseIds && dto.courseIds.length > 0) {
-      await this.adminUpdateCourseAccess(saved.id, dto.courseIds);
     }
 
     return this.adminGetSpace(saved.id);
@@ -131,26 +125,10 @@ export class CommunityService {
     });
   }
 
-  async adminUpdateCourseAccess(spaceId: string, courseIds: string[]): Promise<CommunitySpaceCourseAccess[]> {
-    await this.ensureSpaceExists(spaceId);
-    await this.spaceCourseAccessRepo.delete({ spaceId });
-
-    if (courseIds.length > 0) {
-      const entities = courseIds.map((courseId) => this.spaceCourseAccessRepo.create({ spaceId, courseId }));
-      await this.spaceCourseAccessRepo.save(entities);
-    }
-
-    return this.spaceCourseAccessRepo.find({
-      where: { spaceId },
-      relations: ['course'],
-      order: { id: 'ASC' },
-    });
-  }
-
   async listSpacesForUser(userId: string, userRole: 'user' | 'admin'): Promise<CommunitySpace[]> {
     const spaces = await this.spaceRepo.find({
       where: { isActive: true },
-      relations: ['planAccess', 'courseAccess'],
+      relations: ['planAccess'],
       order: { sortOrder: 'ASC', createdAt: 'DESC' },
     });
 

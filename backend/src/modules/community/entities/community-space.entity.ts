@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { CommunitySpacePlanAccess } from './community-space-plan-access.entity';
-import { CommunitySpaceCourseAccess } from './community-space-course-access.entity';
 import { CommunityPost } from './community-post.entity';
 
 export type CommunitySpaceVisibility = 'public' | 'restricted';
@@ -47,9 +46,6 @@ export class CommunitySpace {
 
   @OneToMany(() => CommunitySpacePlanAccess, (access) => access.space, { cascade: true })
   planAccess: CommunitySpacePlanAccess[];
-
-  @OneToMany(() => CommunitySpaceCourseAccess, (access) => access.space, { cascade: true })
-  courseAccess: CommunitySpaceCourseAccess[];
 
   @OneToMany(() => CommunityPost, (post) => post.space, { cascade: true })
   posts: CommunityPost[];

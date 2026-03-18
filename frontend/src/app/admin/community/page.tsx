@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { api, AdminCourse, CommunityPost, CommunitySpace, Plan } from "@/services/api";
+import { api, CommunityPost, CommunitySpace, Plan } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,6 @@ type SpaceForm = {
   isActive: boolean;
   sortOrder: number;
   planIds: string[];
-  courseIds: string[];
 };
 
 const EMPTY_FORM: SpaceForm = {
@@ -32,13 +31,11 @@ const EMPTY_FORM: SpaceForm = {
   isActive: true,
   sortOrder: 0,
   planIds: [],
-  courseIds: [],
 };
 
 export default function AdminCommunityPage() {
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [feed, setFeed] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
@@ -54,14 +51,12 @@ export default function AdminCommunityPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [spacesData, plansData, coursesData] = await Promise.all([
+      const [spacesData, plansData] = await Promise.all([
         api.adminGetCommunitySpaces(),
         api.adminGetPlans(),
-        api.adminGetCourses(),
       ]);
       setSpaces(spacesData);
       setPlans(plansData);
-      setCourses(coursesData);
       const nextSelected = selectedSpaceId || spacesData[0]?.id || "";
       setSelectedSpaceId(nextSelected);
       if (nextSelected) {
@@ -106,7 +101,6 @@ export default function AdminCommunityPage() {
         isActive: detail.isActive,
         sortOrder: detail.sortOrder,
         planIds: (detail.planAccess || []).map((item) => item.planId),
-        courseIds: (detail.courseAccess || []).map((item) => item.courseId),
       });
     } catch {
       toast.error("Não foi possível carregar o espaço.");
@@ -117,15 +111,6 @@ export default function AdminCommunityPage() {
     setForm((current) => ({
       ...current,
       planIds: current.planIds.includes(id) ? current.planIds.filter((planId) => planId !== id) : [...current.planIds, id],
-    }));
-  };
-
-  const toggleFormCourse = (id: string) => {
-    setForm((current) => ({
-      ...current,
-      courseIds: current.courseIds.includes(id)
-        ? current.courseIds.filter((courseId) => courseId !== id)
-        : [...current.courseIds, id],
     }));
   };
 
@@ -147,7 +132,6 @@ export default function AdminCommunityPage() {
         });
         await Promise.all([
           api.adminUpdateCommunitySpacePlanAccess(editingId, form.planIds),
-          api.adminUpdateCommunitySpaceCourseAccess(editingId, form.courseIds),
         ]);
         toast.success("Espaço atualizado.");
       } else {
@@ -159,7 +143,6 @@ export default function AdminCommunityPage() {
           isActive: form.isActive,
           sortOrder: Number(form.sortOrder) || 0,
           planIds: form.planIds,
-          courseIds: form.courseIds,
         });
         toast.success("Espaço criado.");
       }
@@ -304,22 +287,6 @@ export default function AdminCommunityPage() {
                       onChange={() => toggleFormPlan(plan.id)}
                     />
                     <span>{plan.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Acesso por curso</Label>
-              <div className="grid gap-2 max-h-28 overflow-auto border rounded-md p-2">
-                {courses.map((course) => (
-                  <label key={course.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.courseIds.includes(course.id)}
-                      onChange={() => toggleFormCourse(course.id)}
-                    />
-                    <span>{course.titulo}</span>
                   </label>
                 ))}
               </div>

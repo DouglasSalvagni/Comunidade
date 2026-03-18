@@ -8,13 +8,11 @@ import { CommunityPostsController } from './community-posts.controller';
 import { AdminCommunityPostsController } from './admin-community-posts.controller';
 import { CommunitySpace } from './entities/community-space.entity';
 import { CommunitySpacePlanAccess } from './entities/community-space-plan-access.entity';
-import { CommunitySpaceCourseAccess } from './entities/community-space-course-access.entity';
 import { CommunityPost } from './entities/community-post.entity';
 import { CommunityPostAttachment } from './entities/community-post-attachment.entity';
 import { CommunityPostLike } from './entities/community-post-like.entity';
 import { CommunityComment } from './entities/community-comment.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
-import { Course } from '@/modules/courses/entities/course.entity';
 import { CoursesModule } from '@/modules/courses/courses.module';
 
 @Module({
@@ -23,13 +21,11 @@ import { CoursesModule } from '@/modules/courses/courses.module';
     TypeOrmModule.forFeature([
       CommunitySpace,
       CommunitySpacePlanAccess,
-      CommunitySpaceCourseAccess,
       CommunityPost,
       CommunityPostAttachment,
       CommunityPostLike,
       CommunityComment,
       Subscription,
-      Course,
     ]),
   ],
   controllers: [

@@ -42,10 +42,4 @@ export class CreateCommunitySpaceDto {
   @ArrayUnique()
   @IsUUID('4', { each: true })
   planIds?: string[];
-
-  @IsOptional()
-  @IsArray()
-  @ArrayUnique()
-  @IsUUID('4', { each: true })
-  courseIds?: string[];
 }

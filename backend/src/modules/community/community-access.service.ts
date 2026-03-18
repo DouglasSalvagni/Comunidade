@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { CommunitySpace } from './entities/community-space.entity';
 import { Subscription } from '@/modules/subscriptions/entities/subscription.entity';
-import { Course } from '@/modules/courses/entities/course.entity';
 
 @Injectable()
 export class CommunityAccessService {
@@ -12,14 +11,12 @@ export class CommunityAccessService {
     private readonly spaceRepo: Repository<CommunitySpace>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
-    @InjectRepository(Course)
-    private readonly courseRepo: Repository<Course>,
   ) {}
 
   async canReadSpace(userId: string, spaceId: string): Promise<boolean> {
     const space = await this.spaceRepo.findOne({
       where: { id: spaceId, isActive: true },
-      relations: ['planAccess', 'courseAccess'],
+      relations: ['planAccess'],
     });
     if (!space) {
       throw new NotFoundException('Espaço não encontrado');
@@ -37,65 +34,51 @@ export class CommunityAccessService {
       return [];
     }
 
-    const restrictedSpaces = spaces.filter((space) => space.visibility === 'restricted');
-    if (restrictedSpaces.length === 0) {
+    const spacesWithPlanRules = spaces.filter((space) => (space.planAccess ?? []).length > 0);
+    const hasRestrictedSpace = spaces.some((space) => space.visibility === 'restricted');
+    if (!hasRestrictedSpace && spacesWithPlanRules.length === 0) {
       return spaces;
     }
 
+    const now = new Date();
     const subscription = await this.subscriptionRepo.findOne({
-      where: { userId, status: In(['active', 'expiring']) },
+      where: [
+        {
+          userId,
+          status: In(['active', 'expiring']),
+          periodStart: LessThanOrEqual(now),
+          periodEnd: IsNull(),
+        },
+        {
+          userId,
+          status: In(['active', 'expiring']),
+          periodStart: LessThanOrEqual(now),
+          periodEnd: MoreThanOrEqual(now),
+        },
+      ],
+      relations: ['plan'],
+      order: { createdAt: 'DESC' },
     });
     const userPlanId = subscription?.planId ?? null;
-    const needsCourseAccess = restrictedSpaces.some((space) => (space.courseAccess?.length ?? 0) > 0);
-    const accessibleCourseIds = needsCourseAccess
-      ? await this.getAccessibleCourseIdsForUser(userPlanId)
-      : new Set<string>();
 
     return spaces.filter((space) => {
+      const planRules = space.planAccess ?? [];
+      if (planRules.length > 0) {
+        if (!userPlanId) {
+          return false;
+        }
+        return planRules.some((rule) => rule.planId === userPlanId);
+      }
+
       if (space.visibility === 'public') {
         return true;
       }
 
-      const planRules = space.planAccess ?? [];
-      const courseRules = space.courseAccess ?? [];
-
-      const hasRules = planRules.length > 0 || courseRules.length > 0;
-      if (!hasRules) {
+      if (!userPlanId) {
         return false;
-      }
-
-      if (planRules.length > 0 && userPlanId) {
-        if (planRules.some((rule) => rule.planId === userPlanId)) {
-          return true;
-        }
-      }
-
-      if (courseRules.length > 0) {
-        if (courseRules.some((rule) => accessibleCourseIds.has(rule.courseId))) {
-          return true;
-        }
       }
 
       return false;
     });
-  }
-
-  private async getAccessibleCourseIdsForUser(userPlanId: string | null): Promise<Set<string>> {
-    const courses = await this.courseRepo.find({
-      where: { status: 'publicado' },
-      relations: ['planAccess'],
-    });
-
-    const accessible = courses.filter((course) => {
-      if (!course.planAccess || course.planAccess.length === 0) {
-        return true;
-      }
-      if (!userPlanId) {
-        return false;
-      }
-      return course.planAccess.some((rule) => rule.planId === userPlanId);
-    });
-
-    return new Set(accessible.map((course) => course.id));
   }
 }

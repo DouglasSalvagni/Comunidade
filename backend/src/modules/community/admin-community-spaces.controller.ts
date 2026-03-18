@@ -69,11 +69,4 @@ export class AdminCommunitySpacesController {
   async updatePlanAccess(@Param('id') id: string, @Body() body: UpdateCommunitySpaceAccessDto) {
     return this.communityService.adminUpdatePlanAccess(id, body.ids);
   }
-
-  @Patch(':id/access/courses')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Atualizar acesso por cursos do espaço' })
-  async updateCourseAccess(@Param('id') id: string, @Body() body: UpdateCommunitySpaceAccessDto) {
-    return this.communityService.adminUpdateCourseAccess(id, body.ids);
-  }
 }

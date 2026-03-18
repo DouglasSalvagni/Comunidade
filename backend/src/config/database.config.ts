@@ -22,7 +22,6 @@ import { LessonProgress } from '@/modules/courses/entities/lesson-progress.entit
 import { CoursePlanAccess } from '@/modules/courses/entities/course-plan-access.entity';
 import { CommunitySpace } from '@/modules/community/entities/community-space.entity';
 import { CommunitySpacePlanAccess } from '@/modules/community/entities/community-space-plan-access.entity';
-import { CommunitySpaceCourseAccess } from '@/modules/community/entities/community-space-course-access.entity';
 import { CommunityPost } from '@/modules/community/entities/community-post.entity';
 import { CommunityPostAttachment } from '@/modules/community/entities/community-post-attachment.entity';
 import { CommunityPostLike } from '@/modules/community/entities/community-post-like.entity';
@@ -62,7 +61,6 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     CoursePlanAccess,
     CommunitySpace,
     CommunitySpacePlanAccess,
-    CommunitySpaceCourseAccess,
     CommunityPost,
     CommunityPostAttachment,
     CommunityPostLike,

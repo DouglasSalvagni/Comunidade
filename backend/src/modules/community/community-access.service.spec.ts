@@ -5,27 +5,24 @@ describe('CommunityAccessService', () => {
   const makeService = () => {
     const spaceRepo = { findOne: jest.fn() } as any;
     const subscriptionRepo = { findOne: jest.fn() } as any;
-    const courseRepo = { find: jest.fn() } as any;
-    const service = new CommunityAccessService(spaceRepo, subscriptionRepo, courseRepo);
-    return { service, spaceRepo, subscriptionRepo, courseRepo };
+    const service = new CommunityAccessService(spaceRepo, subscriptionRepo);
+    return { service, spaceRepo, subscriptionRepo };
   };
 
   it('retorna espaços públicos sempre', async () => {
-    const { service, subscriptionRepo, courseRepo } = makeService();
+    const { service, subscriptionRepo } = makeService();
     const spaces = [{ id: 's1', visibility: 'public' }] as any[];
 
     const result = await service.filterAccessibleSpaces('u1', spaces as any);
 
     expect(result.map((s) => s.id)).toEqual(['s1']);
     expect(subscriptionRepo.findOne).not.toHaveBeenCalled();
-    expect(courseRepo.find).not.toHaveBeenCalled();
   });
 
-  it('bloqueia espaço restrito sem regras de plano/curso', async () => {
-    const { service, subscriptionRepo, courseRepo } = makeService();
-    const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [], courseAccess: [] }] as any[];
+  it('bloqueia espaço restrito sem regras de plano', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [] }] as any[];
     subscriptionRepo.findOne.mockResolvedValue(null);
-    courseRepo.find.mockResolvedValue([]);
 
     const result = await service.filterAccessibleSpaces('u1', spaces as any);
 
@@ -33,56 +30,103 @@ describe('CommunityAccessService', () => {
   });
 
   it('libera espaço restrito quando plano do usuário bate', async () => {
-    const { service, subscriptionRepo, courseRepo } = makeService();
+    const { service, subscriptionRepo } = makeService();
     const spaces = [
       {
         id: 's1',
         visibility: 'restricted',
         planAccess: [{ planId: 'p-gold' }],
-        courseAccess: [],
       },
     ] as any[];
     subscriptionRepo.findOne.mockResolvedValue({ planId: 'p-gold' });
-    courseRepo.find.mockResolvedValue([]);
 
     const result = await service.filterAccessibleSpaces('u1', spaces as any);
 
     expect(result.map((s) => s.id)).toEqual(['s1']);
   });
 
-  it('libera espaço restrito por curso quando usuário tem acesso ao curso', async () => {
-    const { service, subscriptionRepo, courseRepo } = makeService();
-    const spaces = [
-      {
-        id: 's1',
-        visibility: 'restricted',
-        planAccess: [],
-        courseAccess: [{ courseId: 'c1' }],
-      },
-    ] as any[];
-    subscriptionRepo.findOne.mockResolvedValue({ planId: 'p-gold' });
-    courseRepo.find.mockResolvedValue([
-      { id: 'c1', planAccess: [{ planId: 'p-gold' }] },
-      { id: 'c2', planAccess: [{ planId: 'p-silver' }] },
-    ]);
-
-    const result = await service.filterAccessibleSpaces('u1', spaces as any);
-
-    expect(result.map((s) => s.id)).toEqual(['s1']);
-  });
-
-  it('aplica regra OU entre plano e curso em espaço restrito', async () => {
-    const { service, subscriptionRepo, courseRepo } = makeService();
+  it('bloqueia espaço restrito quando plano do usuário não bate', async () => {
+    const { service, subscriptionRepo } = makeService();
     const spaces = [
       {
         id: 's1',
         visibility: 'restricted',
         planAccess: [{ planId: 'p-gold' }],
-        courseAccess: [{ courseId: 'c1' }],
       },
     ] as any[];
     subscriptionRepo.findOne.mockResolvedValue({ planId: 'p-silver' });
-    courseRepo.find.mockResolvedValue([{ id: 'c1', planAccess: [{ planId: 'p-silver' }] }]);
+
+    const result = await service.filterAccessibleSpaces('u1', spaces as any);
+
+    expect(result).toEqual([]);
+  });
+
+  it('bloqueia espaço restrito sem assinatura ativa', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [
+      {
+        id: 's1',
+        visibility: 'restricted',
+        planAccess: [{ planId: 'p-gold' }],
+      },
+    ] as any[];
+    subscriptionRepo.findOne.mockResolvedValue(null);
+
+    const result = await service.filterAccessibleSpaces('u1', spaces as any);
+
+    expect(result).toEqual([]);
+  });
+
+  it('consulta assinatura válida por período e ordena pela mais recente', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [{ planId: 'p-gold' }] }] as any[];
+    subscriptionRepo.findOne.mockResolvedValue(null);
+
+    await service.filterAccessibleSpaces('u1', spaces as any);
+
+    expect(subscriptionRepo.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relations: ['plan'],
+        order: { createdAt: 'DESC' },
+        where: expect.arrayContaining([
+          expect.objectContaining({
+            userId: 'u1',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('libera usuário no plano gratuito quando regra restrita aponta para esse plano', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [{ planId: 'p-free' }] }] as any[];
+    subscriptionRepo.findOne.mockResolvedValue({
+      planId: 'p-free',
+      plan: { slug: 'plano-gratuito' },
+    });
+
+    const result = await service.filterAccessibleSpaces('u1', spaces as any);
+
+    expect(result.map((s) => s.id)).toEqual(['s1']);
+  });
+
+  it('bloqueia espaço público quando há regras de plano e usuário não pertence ao plano', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [{ id: 's1', visibility: 'public', planAccess: [{ planId: 'p-gold' }] }] as any[];
+    subscriptionRepo.findOne.mockResolvedValue({ planId: 'p-free', plan: { slug: 'plano-gratuito' } });
+
+    const result = await service.filterAccessibleSpaces('u1', spaces as any);
+
+    expect(result).toEqual([]);
+  });
+
+  it('libera acesso pelo planId mesmo quando slug do plano for customizado', async () => {
+    const { service, subscriptionRepo } = makeService();
+    const spaces = [{ id: 's1', visibility: 'restricted', planAccess: [{ planId: 'p-free' }] }] as any[];
+    subscriptionRepo.findOne.mockResolvedValue({
+      planId: 'p-free',
+      plan: { slug: 'gratuito-custom', priceCents: 0 },
+    });
 
     const result = await service.filterAccessibleSpaces('u1', spaces as any);
 
@@ -97,16 +141,14 @@ describe('CommunityAccessService', () => {
   });
 
   it('canReadSpace retorna false quando espaço existe mas usuário não se enquadra', async () => {
-    const { service, spaceRepo, subscriptionRepo, courseRepo } = makeService();
+    const { service, spaceRepo, subscriptionRepo } = makeService();
     spaceRepo.findOne.mockResolvedValue({
       id: 's1',
       isActive: true,
       visibility: 'restricted',
       planAccess: [{ planId: 'p-gold' }],
-      courseAccess: [{ courseId: 'c1' }],
     });
     subscriptionRepo.findOne.mockResolvedValue({ planId: 'p-basic' });
-    courseRepo.find.mockResolvedValue([{ id: 'c1', planAccess: [{ planId: 'p-pro' }] }]);
 
     await expect(service.canReadSpace('u1', 's1')).resolves.toBe(false);
   });

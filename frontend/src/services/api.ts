@@ -163,12 +163,6 @@ export interface CommunitySpacePlanAccess {
   plan?: Plan;
 }
 
-export interface CommunitySpaceCourseAccess {
-  id: string;
-  courseId: string;
-  course?: AdminCourse;
-}
-
 export interface CommunitySpace {
   id: string;
   name: string;
@@ -181,7 +175,6 @@ export interface CommunitySpace {
   createdAt: string;
   updatedAt: string;
   planAccess?: CommunitySpacePlanAccess[];
-  courseAccess?: CommunitySpaceCourseAccess[];
 }
 
 export interface CommunityPostAttachment {
@@ -860,7 +853,6 @@ class ApiService {
     isActive?: boolean;
     sortOrder?: number;
     planIds?: string[];
-    courseIds?: string[];
   }): Promise<CommunitySpace> {
     const response = await this.client.post<ApiResponse<CommunitySpace>>('/admin/community/spaces', data);
     return response.data.data;
@@ -888,14 +880,6 @@ class ApiService {
   async adminUpdateCommunitySpacePlanAccess(id: string, ids: string[]): Promise<CommunitySpacePlanAccess[]> {
     const response = await this.client.patch<ApiResponse<CommunitySpacePlanAccess[]>>(
       `/admin/community/spaces/${id}/access/plans`,
-      { ids },
-    );
-    return response.data.data;
-  }
-
-  async adminUpdateCommunitySpaceCourseAccess(id: string, ids: string[]): Promise<CommunitySpaceCourseAccess[]> {
-    const response = await this.client.patch<ApiResponse<CommunitySpaceCourseAccess[]>>(
-      `/admin/community/spaces/${id}/access/courses`,
       { ids },
     );
     return response.data.data;

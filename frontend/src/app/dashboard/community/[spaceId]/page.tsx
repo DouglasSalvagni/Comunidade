@@ -11,14 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PostAttachments } from "@/components/community/PostAttachments";
-import { Heart, MessageCircle, Paperclip, Pin, Send, ChevronDown, ChevronUp, MoreHorizontal, Edit2 } from "lucide-react";
+import { Heart, MessageCircle, Paperclip, Pin, Send, ChevronDown, ChevronUp, MoreHorizontal, Edit2, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PostSkeleton } from "@/components/community/PostSkeleton";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), { ssr: false });
 
 const ACCEPTED_TYPES = new Set(["application/pdf"]);
-const FEED_DELAY_MS = Math.max(0, Number(process.env.NEXT_PUBLIC_COMMUNITY_FEED_DELAY_MS ?? 4000) || 0);
+const FEED_DELAY_MS = Math.max(0, Number(process.env.NEXT_PUBLIC_COMMUNITY_FEED_DELAY_MS ?? 2000) || 0);
 
 function isAllowedContentType(contentType: string) {
   return contentType.startsWith("image/") || ACCEPTED_TYPES.has(contentType);
@@ -49,6 +51,8 @@ export default function DashboardCommunitySpacePage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const observerRef = useRef<HTMLDivElement | null>(null);
 
   const togglePostExpansion = (postId: string) => {
@@ -65,10 +69,16 @@ export default function DashboardCommunitySpacePage() {
 
   const selectedSpace = useMemo(() => spaces.find((s) => s.id === spaceId) || null, [spaces, spaceId]);
 
+  const description = selectedSpace?.description || "Converse com a comunidade neste espaço.";
+  const isLongDescription = description.length > 280;
+  const displayedDescription = isLongDescription && !isDescriptionExpanded 
+    ? description.substring(0, 280) + "..." 
+    : description;
+
   const loadFeed = async (options?: { reset?: boolean; cursor?: string | null; searchTerm?: string }) => {
     if (!spaceId) return;
     const response = await api.getCommunitySpaceFeed(spaceId, {
-      limit: 2,
+      limit: Number(process.env.NEXT_PUBLIC_COMMUNITY_FEED_LIMIT_POSTS ?? 10),
       cursor: options?.cursor || undefined,
       search: options?.searchTerm?.trim() ? options.searchTerm.trim() : undefined,
     });
@@ -132,10 +142,13 @@ export default function DashboardCommunitySpacePage() {
 
   useEffect(() => {
     if (!spaceId) return;
-    setLoading(true);
+    setIsFeedLoading(true);
     loadFeed({ reset: true, searchTerm: search })
       .catch(() => toast.error("Não foi possível carregar o feed."))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setIsFeedLoading(false);
+      });
   }, [spaceId, search]);
 
   useEffect(() => {
@@ -290,28 +303,76 @@ export default function DashboardCommunitySpacePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="space-y-8 max-w-4xl mx-auto py-6">
+        <div className="pb-4 border-b">
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-5 w-96 mb-6" />
+          <div className="mt-4">
+            <Skeleton className="h-10 max-w-md rounded-md" />
+          </div>
+        </div>
+
+        <Card className="border-muted/50 shadow-sm bg-card">
+          <CardContent className="p-4 sm:p-6 flex gap-4">
+            <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+            <div className="flex-1 space-y-4">
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-24 w-full rounded-md" />
+              <div className="flex justify-between pt-2">
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-24 rounded-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <PostSkeleton />
+          <PostSkeleton />
+          <PostSkeleton />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto py-6">
-      <div className="pb-4 border-b">
-        <h1 className="text-3xl font-extrabold tracking-tight">{selectedSpace?.name || "Canal da comunidade"}</h1>
-        <p className="text-base text-muted-foreground mt-2">{selectedSpace?.description || "Converse com a comunidade neste espaço."}</p>
-        <div className="mt-4">
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Buscar por título ou conteúdo"
-            className="max-w-md"
-          />
+    <div className="max-w-4xl mx-auto py-6">
+      <div className="pb-4 border-b mb-8">
+        <div className="flex flex-col items-center text-center space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+              {selectedSpace?.name || "Canal da comunidade"}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed transition-all duration-300">
+              {displayedDescription}
+              {isLongDescription && (
+                <Button 
+                  variant="link"
+                  size="sm"
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="ml-2 h-auto p-0 text-primary hover:underline font-medium focus:outline-none"
+                >
+                  {isDescriptionExpanded ? "Mostrar menos" : "Mostrar mais"}
+                </Button>
+              )}
+            </p>
+          </div>
+          <div className="w-full max-w-xl relative group">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Buscar discussões, dúvidas e conteúdos..."
+                className="pl-12 h-14 rounded-full border-2 border-muted hover:border-primary/50 focus-visible:border-primary focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm hover:shadow-md transition-all duration-300 text-lg bg-background"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      <Card className="border-muted/50 shadow-sm bg-card">
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${searchInput.length > 0 ? "max-h-0 opacity-0 mb-0" : "max-h-[800px] opacity-100 mb-8"}`}>
+        <Card className="border-muted/50 shadow-sm bg-card">
         <CardContent className="p-4 sm:p-6 flex gap-4">
           <Avatar className="h-10 w-10 border border-muted hidden sm:block shrink-0">
             <AvatarImage src={profile?.avatarUrl || undefined} alt={profile?.name || "Meu Perfil"} />
@@ -365,10 +426,19 @@ export default function DashboardCommunitySpacePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <div className="space-y-6">
-        {posts.map((post) => {
-          const isExpanded = expandedPosts.has(post.id);
+        {isFeedLoading ? (
+          <div className="space-y-6">
+            <PostSkeleton />
+            <PostSkeleton />
+            <PostSkeleton />
+          </div>
+        ) : (
+          <>
+            {posts.map((post) => {
+              const isExpanded = expandedPosts.has(post.id);
           const authorName = post.author?.name || "Membro";
           const authorInitials = authorName.substring(0, 2).toUpperCase();
 
@@ -503,10 +573,17 @@ export default function DashboardCommunitySpacePage() {
         )}
 
         {posts.length > 0 && (
-          <div ref={observerRef} className="py-6 flex justify-center">
-            {loadingMore ? <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /> : null}
+          <div ref={observerRef} className="py-2">
+            {loadingMore && (
+              <div className="space-y-6">
+                <PostSkeleton />
+                <PostSkeleton />
+              </div>
+            )}
           </div>
         )}
+        </>
+      )}
       </div>
     </div>
   );

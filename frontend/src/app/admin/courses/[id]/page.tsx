@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { api, AdminCourseDetail, LessonAttachment } from "@/services/api";
+import { api, AdminCourseDetail, LessonAttachment, Plan } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -520,6 +520,8 @@ function LessonContentDialog({
 export default function AdminCourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [course, setCourse] = useState<AdminCourseDetail | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [planIds, setPlanIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -553,8 +555,13 @@ export default function AdminCourseDetailPage() {
   const loadCourse = useCallback(async () => {
     if (!id) return;
     try {
-      const data = await api.adminGetCourse(id);
+      const [data, plansData] = await Promise.all([
+        api.adminGetCourse(id),
+        api.adminGetPlans(),
+      ]);
       setCourse(data);
+      setPlans(plansData);
+      setPlanIds((data.planAccess || []).map((item) => item.planId));
       setTitulo(data.titulo);
       setDescricao(data.descricao || "");
       setStatus(data.status);
@@ -578,11 +585,22 @@ export default function AdminCourseDetailPage() {
     if (!id) return;
     setSaving(true);
     try {
-      await api.adminUpdateCourse(id, { titulo, descricao, status });
+      await Promise.all([
+        api.adminUpdateCourse(id, { titulo, descricao, status }),
+        api.adminUpdateCoursePlanAccess(id, planIds),
+      ]);
       await loadCourse();
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleFormPlan = (planId: string) => {
+    setPlanIds((current) =>
+      current.includes(planId)
+        ? current.filter((id) => id !== planId)
+        : [...current, planId],
+    );
   };
 
   // ── Module drag end ──
@@ -796,6 +814,21 @@ export default function AdminCourseDetailPage() {
                 <SelectItem value="publicado">Publicado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Acesso por plano</Label>
+            <div className="grid gap-2 max-h-28 overflow-auto border rounded-md p-2">
+              {plans.map((plan) => (
+                <label key={plan.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={planIds.includes(plan.id)}
+                    onChange={() => toggleFormPlan(plan.id)}
+                  />
+                  <span>{plan.name}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <Button onClick={handleSaveCourse} disabled={saving}>
             <Save className="mr-2 h-4 w-4" />

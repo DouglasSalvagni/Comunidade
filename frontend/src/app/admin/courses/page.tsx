@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, AdminCourse } from "@/services/api";
+import { api, AdminCourse, Plan } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,17 +29,23 @@ import {
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [status, setStatus] = useState<"rascunho" | "publicado">("rascunho");
+  const [planIds, setPlanIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const loadCourses = async () => {
     try {
-      const data = await api.adminGetCourses();
-      setCourses(data);
+      const [coursesData, plansData] = await Promise.all([
+        api.adminGetCourses(),
+        api.adminGetPlans(),
+      ]);
+      setCourses(coursesData);
+      setPlans(plansData);
     } catch (err) {
       console.error("Erro ao carregar cursos:", err);
     } finally {
@@ -55,11 +61,15 @@ export default function AdminCoursesPage() {
     if (!titulo.trim()) return;
     setSaving(true);
     try {
-      await api.adminCreateCourse({ titulo, descricao, status });
+      const created = await api.adminCreateCourse({ titulo, descricao, status });
+      if (planIds.length > 0) {
+        await api.adminUpdateCoursePlanAccess(created.id, planIds);
+      }
       setDialogOpen(false);
       setTitulo("");
       setDescricao("");
       setStatus("rascunho");
+      setPlanIds([]);
       await loadCourses();
     } catch (err) {
       console.error("Erro ao criar curso:", err);
@@ -135,6 +145,27 @@ export default function AdminCoursesPage() {
                     <SelectItem value="publicado">Publicado</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Acesso por plano</Label>
+                <div className="grid gap-2 max-h-28 overflow-auto border rounded-md p-2">
+                  {plans.map((plan) => (
+                    <label key={plan.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={planIds.includes(plan.id)}
+                        onChange={() =>
+                          setPlanIds((current) =>
+                            current.includes(plan.id)
+                              ? current.filter((id) => id !== plan.id)
+                              : [...current, plan.id],
+                          )
+                        }
+                      />
+                      <span>{plan.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <DialogFooter>

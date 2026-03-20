@@ -145,8 +145,8 @@ export default function AdminCommunityInboxPage() {
                   <button
                     key={post.id}
                     onClick={() => handleSelectPost(post)}
-                    className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all hover:bg-accent ${
-                      selectedPost?.id === post.id ? "bg-accent border-primary" : "bg-card"
+                    className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all hover:bg-muted/50 ${
+                      selectedPost?.id === post.id ? "bg-muted/80 border-border" : "bg-card"
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-2">

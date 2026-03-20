@@ -3,15 +3,15 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Course } from '@/modules/courses/entities/course.entity';
-import { Lesson } from '@/modules/courses/entities/lesson.entity';
 
-@Entity('chat_messages')
-export class ChatMessage {
+@Entity('course_chat_summaries')
+export class CourseChatSummary {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -25,22 +25,19 @@ export class ChatMessage {
   @Column({ name: 'course_id', nullable: true })
   courseId: string;
 
-  @ManyToOne(() => Course, { onDelete: 'SET NULL' })
+  @ManyToOne(() => Course, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'course_id' })
   course: Course;
 
   @Column({ name: 'lesson_id', nullable: true })
   lessonId: string;
 
-  @Column({ type: 'varchar', length: 50 })
-  role: 'user' | 'assistant' | 'system';
-
   @Column({ type: 'text' })
-  content: string;
-
-  @Column({ type: 'vector' as any, length: 1536, nullable: true })
-  embedding: any;
+  summaryText: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

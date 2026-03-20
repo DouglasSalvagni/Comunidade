@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
-import { ChatMessage } from '../entities/chat-message.entity';
-import { ChatSummary } from '../entities/chat-summary.entity';
+import { CourseChatMessage } from '../entities/course-chat-message.entity';
+import { CourseChatSummary } from '../entities/course-chat-summary.entity';
 import { LessonKnowledge } from '../entities/lesson-knowledge.entity';
 import { OpenAiService } from './openai.service';
 import { OpenAI } from 'openai';
@@ -12,10 +12,10 @@ export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
   constructor(
-    @InjectRepository(ChatMessage)
-    private readonly chatMessageRepo: Repository<ChatMessage>,
-    @InjectRepository(ChatSummary)
-    private readonly chatSummaryRepo: Repository<ChatSummary>,
+    @InjectRepository(CourseChatMessage)
+    private readonly chatMessageRepo: Repository<CourseChatMessage>,
+    @InjectRepository(CourseChatSummary)
+    private readonly chatSummaryRepo: Repository<CourseChatSummary>,
     @InjectRepository(LessonKnowledge)
     private readonly knowledgeRepo: Repository<LessonKnowledge>,
     private readonly openAiService: OpenAiService,

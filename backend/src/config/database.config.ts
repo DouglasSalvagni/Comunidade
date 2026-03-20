@@ -28,8 +28,8 @@ import { CommunityPostLike } from '@/modules/community/entities/community-post-l
 import { CommunityComment } from '@/modules/community/entities/community-comment.entity';
 import { Notification } from '@/modules/notifications/entities/notification.entity';
 import { LessonKnowledge } from '@/modules/ai/entities/lesson-knowledge.entity';
-import { ChatMessage } from '@/modules/ai/entities/chat-message.entity';
-import { ChatSummary } from '@/modules/ai/entities/chat-summary.entity';
+import { CourseChatMessage } from '@/modules/ai/entities/course-chat-message.entity';
+import { CourseChatSummary } from '@/modules/ai/entities/course-chat-summary.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -71,8 +71,8 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     CommunityComment,
     Notification,
     LessonKnowledge,
-    ChatMessage,
-    ChatSummary,
+    CourseChatMessage,
+    CourseChatSummary,
   ],
   autoLoadEntities: true,
   synchronize: false,

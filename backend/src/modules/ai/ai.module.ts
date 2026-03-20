@@ -11,6 +11,9 @@ import { StorageService } from '@/modules/courses/storage.service';
 
 import { LessonKnowledgeIngestionProcessor } from './processors/lesson-knowledge-ingestion.processor';
 
+import { ChatController } from './chat.controller';
+import { ChatService } from './services/chat.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,8 +27,8 @@ import { LessonKnowledgeIngestionProcessor } from './processors/lesson-knowledge
       name: 'lesson-knowledge-ingestion',
     }),
   ],
-  controllers: [],
-  providers: [OpenAiService, StorageService, LessonKnowledgeIngestionProcessor],
-  exports: [OpenAiService, BullModule],
+  controllers: [ChatController],
+  providers: [OpenAiService, StorageService, LessonKnowledgeIngestionProcessor, ChatService],
+  exports: [OpenAiService, ChatService, BullModule],
 })
 export class AiModule {}

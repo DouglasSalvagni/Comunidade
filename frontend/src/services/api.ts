@@ -1170,6 +1170,18 @@ class ApiService {
     const response = await this.client.post<ApiResponse<any>>(`/courses/lessons/${lessonId}/progress`, data);
     return response.data.data;
   }
+
+  // ===== AI CHAT =====
+
+  async aiChatSendMessage(message: string, courseId?: string): Promise<{ answer: string; contextUsed: boolean }> {
+    const response = await this.client.post<ApiResponse<{ answer: string; contextUsed: boolean }>>('/ai/chat', { message, courseId });
+    return response.data.data;
+  }
+
+  async aiChatGetHistory(courseId?: string, limit?: number): Promise<{ data: any[] }> {
+    const response = await this.client.get<ApiResponse<{ data: any[] }>>('/ai/chat/history', { params: { courseId, limit } });
+    return response.data.data;
+  }
 }
 
 export const api = new ApiService();

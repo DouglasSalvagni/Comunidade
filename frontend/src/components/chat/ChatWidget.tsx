@@ -12,6 +12,7 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  createdAt?: string;
 }
 
 interface ChatWidgetProps {
@@ -56,6 +57,25 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
     }
   };
 
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    const isToday = 
+      date.getDate() === now.getDate() && 
+      date.getMonth() === now.getMonth() && 
+      date.getFullYear() === now.getFullYear();
+                    
+    const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (isToday) {
+      return timeStr;
+    } else {
+      const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `${dateStr} às ${timeStr}`;
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -63,6 +83,7 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
       id: Date.now().toString(),
       role: "user",
       content: input.trim(),
+      createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -76,6 +97,7 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: res.answer,
+        createdAt: new Date().toISOString(),
       };
       
       setMessages((prev) => [...prev, aiMessage]);
@@ -85,6 +107,7 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: "Desculpe, ocorreu um erro ao processar sua dúvida. Tente novamente mais tarde.",
+        createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -162,13 +185,21 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
                     </div>
                     <div
                       className={cn(
-                        "rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap shadow-sm",
+                        "rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap shadow-sm flex flex-col",
                         msg.role === "user"
                           ? "bg-primary text-primary-foreground rounded-tr-sm"
                           : "bg-muted text-foreground rounded-tl-sm border"
                       )}
                     >
-                      {msg.content}
+                      <span>{msg.content}</span>
+                      {msg.createdAt && (
+                        <span className={cn(
+                          "text-[10px] mt-1 text-right",
+                          msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                        )}>
+                          {formatTime(msg.createdAt)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,37 +1,3 @@
-toolName: search_codebase
-            
-status: success
-          
-query: Prisma schema or TypeORM entities for lessons, videos, attachments, and courses.
-          
-
-        
-            
-toolName: view_files
-            
-status: success
-          
-            
-filePath: c:\Users\Douglas\Desktop\wizer\MVPs\comunidade\backend\src\modules\courses\storage.service.ts
-          
-
-        
-            
-toolName: search_codebase
-            
-status: success
-          
-query: Frontend chat or forum components, specifically where users ask questions.
-          
-
-        
-            
-toolName: search_codebase
-            
-status: success
-          
-query: Frontend lesson player, where users watch videos or read class content.
-          
 **Estudo de Viabilidade e Proposta de Arquitetura para Agentes de IA**
 
 Fiz um estudo aprofundado do seu repositório. O projeto possui uma estrutura muito sólida usando **NestJS + TypeORM (PostgreSQL)** no backend, **S3** para armazenamento de mídia e **Next.js** no frontend. 

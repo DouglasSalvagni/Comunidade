@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, ChevronUp, CheckCircle2, Circle, PlayCircle } from "lucide-react";
 import Link from "next/link";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -120,6 +121,7 @@ export default function CourseDetailPage() {
           </Card>
         ))}
       </div>
+      <ChatWidget courseId={id} />
     </div>
   );
 }

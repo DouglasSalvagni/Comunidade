@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Course } from '@/modules/courses/entities/course.entity';
+import { Lesson } from '@/modules/courses/entities/lesson.entity';
 
 @Entity('chat_messages')
 export class ChatMessage {
@@ -27,6 +28,9 @@ export class ChatMessage {
   @ManyToOne(() => Course, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'course_id' })
   course: Course;
+
+  @Column({ name: 'lesson_id', nullable: true })
+  lessonId: string;
 
   @Column({ type: 'varchar', length: 50 })
   role: 'user' | 'assistant' | 'system';

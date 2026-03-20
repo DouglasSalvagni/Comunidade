@@ -17,9 +17,10 @@ interface ChatMessage {
 
 interface ChatWidgetProps {
   courseId?: string;
+  lessonId?: string;
 }
 
-export function ChatWidget({ courseId }: ChatWidgetProps) {
+export function ChatWidget({ courseId, lessonId }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -48,7 +49,7 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
   const loadHistory = async () => {
     try {
       setLoadingHistory(true);
-      const res = await api.aiChatGetHistory(courseId, 20);
+      const res = await api.aiChatGetHistory(courseId, lessonId, 20);
       setMessages(res || []);
     } catch (err) {
       console.error("Erro ao carregar histórico do chat:", err);
@@ -91,7 +92,7 @@ export function ChatWidget({ courseId }: ChatWidgetProps) {
     setLoading(true);
 
     try {
-      const res = await api.aiChatSendMessage(userMessage.content, courseId);
+      const res = await api.aiChatSendMessage(userMessage.content, courseId, lessonId);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

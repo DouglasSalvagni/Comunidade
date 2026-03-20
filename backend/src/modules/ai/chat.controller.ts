@@ -14,12 +14,12 @@ export class ChatController {
   @ApiOperation({ summary: 'Send a message to the AI agent' })
   async sendMessage(
     @Request() req,
-    @Body() body: { message: string; courseId?: string },
+    @Body() body: { message: string; courseId?: string; lessonId?: string },
   ) {
     const userId = req.user.userId;
-    const { message, courseId } = body;
+    const { message, courseId, lessonId } = body;
     
-    const result = await this.chatService.processChat(userId, message, courseId);
+    const result = await this.chatService.processChat(userId, message, courseId, lessonId);
     return result;
   }
 
@@ -28,11 +28,12 @@ export class ChatController {
   async getHistory(
     @Request() req,
     @Query('courseId') courseId?: string,
+    @Query('lessonId') lessonId?: string,
     @Query('limit') limit?: string,
   ) {
     const userId = req.user.userId;
     const l = limit ? parseInt(limit, 10) : 20;
     
-    return this.chatService.getHistory(userId, courseId, l);
+    return this.chatService.getHistory(userId, courseId, lessonId, l);
   }
 }

@@ -6,13 +6,11 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Unique,
 } from 'typeorm';
 import { User } from '@/modules/users/entities/user.entity';
 import { Course } from '@/modules/courses/entities/course.entity';
 
 @Entity('chat_summaries')
-@Unique(['userId', 'courseId'])
 export class ChatSummary {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -30,6 +28,9 @@ export class ChatSummary {
   @ManyToOne(() => Course, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'course_id' })
   course: Course;
+
+  @Column({ name: 'lesson_id', nullable: true })
+  lessonId: string;
 
   @Column({ type: 'text' })
   summaryText: string;

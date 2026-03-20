@@ -278,7 +278,7 @@ export default function LessonPage() {
         </Card>
       )}
       {/* Chat Widget para tirar dúvidas sobre o curso/aula */}
-      <ChatWidget courseId={lesson.cursoId} />
+      <ChatWidget courseId={lesson.cursoId} lessonId={lesson.id} />
     </div>
   );
 }

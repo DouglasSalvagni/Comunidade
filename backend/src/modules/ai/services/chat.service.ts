@@ -21,8 +21,8 @@ export class ChatService {
     private readonly openAiService: OpenAiService,
   ) {}
 
-  async processChat(userId: string, text: string, courseId?: string) {
-    this.logger.log(`Processing chat for user ${userId}, course ${courseId}`);
+  async processChat(userId: string, text: string, courseId?: string, lessonId?: string) {
+    this.logger.log(`Processing chat for user ${userId}, course ${courseId}, lesson ${lessonId}`);
 
     // 1. Gerar Embedding da dúvida do usuário
     const embedding = await this.openAiService.generateEmbedding(text);
@@ -30,7 +30,17 @@ export class ChatService {
     // 2. Busca RAG na base de conhecimento (lesson_knowledge)
     // Procuramos os trechos mais similares usando a distância de cosseno (<=>)
     let knowledgeContext = [];
-    if (courseId) {
+    if (lessonId) {
+      const results = await this.knowledgeRepo.query(
+        `SELECT content, 1 - (embedding <=> $1) as similarity 
+         FROM lesson_knowledge 
+         WHERE lesson_id = $2 
+         ORDER BY embedding <=> $1 
+         LIMIT 5`,
+        [`[${embedding.join(',')}]`, lessonId],
+      );
+      knowledgeContext = results.map((r: any) => r.content);
+    } else if (courseId) {
       const results = await this.knowledgeRepo.query(
         `SELECT content, 1 - (embedding <=> $1) as similarity 
          FROM lesson_knowledge 
@@ -52,9 +62,20 @@ export class ChatService {
     }
 
     // 3. Buscar Histórico Recente de Chat do Usuário (últimas 10 mensagens)
+    let whereCondition: any = { userId };
+    if (lessonId) {
+      whereCondition.lessonId = lessonId;
+    } else if (courseId) {
+      whereCondition.courseId = courseId;
+      whereCondition.lessonId = IsNull();
+    } else {
+      whereCondition.courseId = IsNull();
+      whereCondition.lessonId = IsNull();
+    }
+
     const recentHistory = await this.chatMessageRepo.find({
-      where: courseId ? { userId, courseId } : { userId, courseId: IsNull() },
-      order: { createdAt: 'DESC' },
+      where: whereCondition,
+      order: { createdAt: 'DESC', role: 'ASC' }, // role: 'ASC' desempata colocando 'assistant' antes de 'user'
       take: 10,
     });
     recentHistory.reverse(); // Ordenar da mais antiga para a mais nova (cronológico)
@@ -86,21 +107,26 @@ Seja sempre cordial, didático e claro.`;
     const answer = aiResponse.content || 'Desculpe, não consegui processar uma resposta no momento.';
 
     // 5. Salvar a pergunta e a resposta no histórico (assincronamente ou aguardando)
-    await this.chatMessageRepo.save([
-      this.chatMessageRepo.create({
-        userId,
-        courseId: courseId || null,
-        role: 'user',
-        content: text,
-        embedding: `[${embedding.join(',')}]`,
-      }),
-      this.chatMessageRepo.create({
-        userId,
-        courseId: courseId || null,
-        role: 'assistant',
-        content: answer,
-      }),
-    ]);
+    // Separamos em dois saves para garantir que o 'user' receba um timestamp (createdAt) ligeiramente
+    // mais antigo que o 'assistant' caso a resolução do banco não distingua os microsegundos.
+    const userMsg = this.chatMessageRepo.create({
+      userId,
+      courseId: courseId || null,
+      lessonId: lessonId || null,
+      role: 'user',
+      content: text,
+      embedding: `[${embedding.join(',')}]`,
+    });
+    await this.chatMessageRepo.save(userMsg);
+
+    const asstMsg = this.chatMessageRepo.create({
+      userId,
+      courseId: courseId || null,
+      lessonId: lessonId || null,
+      role: 'assistant',
+      content: answer,
+    });
+    await this.chatMessageRepo.save(asstMsg);
 
     return {
       answer,
@@ -108,10 +134,21 @@ Seja sempre cordial, didático e claro.`;
     };
   }
 
-  async getHistory(userId: string, courseId?: string, limit = 20) {
+  async getHistory(userId: string, courseId?: string, lessonId?: string, limit = 20) {
+    let whereCondition: any = { userId };
+    if (lessonId) {
+      whereCondition.lessonId = lessonId;
+    } else if (courseId) {
+      whereCondition.courseId = courseId;
+      whereCondition.lessonId = IsNull();
+    } else {
+      whereCondition.courseId = IsNull();
+      whereCondition.lessonId = IsNull();
+    }
+
     const history = await this.chatMessageRepo.find({
-      where: courseId ? { userId, courseId } : { userId, courseId: IsNull() },
-      order: { createdAt: 'DESC' }, // Pegamos as últimas
+      where: whereCondition,
+      order: { createdAt: 'DESC', role: 'ASC' }, // Pegamos as últimas (role ASC desempata colocando assistant antes de user)
       take: limit,
     });
     return history.reverse(); // Retornamos em ordem cronológica (mais antigas primeiro)

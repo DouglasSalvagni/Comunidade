@@ -151,11 +151,11 @@ export class LessonKnowledgeIngestionProcessor extends WorkerHost {
         return;
       }
 
-      // Remove existing attachment knowledge
+      // Remove existing attachment knowledge (only for THIS attachment, now that we have attachmentId)
       await this.knowledgeRepo.delete({
         lessonId: data.lessonId,
+        attachmentId: data.attachmentId,
         type: 'attachment',
-        // In a real scenario you might want to track attachmentId in LessonKnowledge to update specific ones
       });
 
       const chunks = this.openAiService.chunkText(cleanText);
@@ -169,6 +169,7 @@ export class LessonKnowledgeIngestionProcessor extends WorkerHost {
         const knowledge = this.knowledgeRepo.create({
           courseId: data.courseId,
           lessonId: data.lessonId,
+          attachmentId: data.attachmentId,
           type: 'attachment',
           content: `File: ${attachment.fileName}\n\n${chunk}`,
           embedding: `[${embedding.join(',')}]`, // pgvector format

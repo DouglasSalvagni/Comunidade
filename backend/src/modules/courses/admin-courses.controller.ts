@@ -220,7 +220,7 @@ export class AdminCoursesController {
     @Body() dto: Partial<{
       titulo: string;
       conteudoTexto: string;
-      videoKey: string;
+      videoKey: string | null;
       duracaoSegundos: number;
       ordem: number;
       status: string;

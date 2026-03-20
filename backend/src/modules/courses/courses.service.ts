@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
+import { LessonKnowledge } from '@/modules/ai/entities/lesson-knowledge.entity';
 
 @Injectable()
 export class CoursesService {
@@ -43,6 +44,8 @@ export class CoursesService {
     private readonly coursePlanRepo: Repository<CoursePlanAccess>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
+    @InjectRepository(LessonKnowledge)
+    private readonly knowledgeRepo: Repository<LessonKnowledge>,
     private readonly storageService: StorageService,
     private readonly notificationsService: NotificationsService,
     @InjectQueue('lesson-knowledge-ingestion')
@@ -314,7 +317,7 @@ export class CoursesService {
 
   async adminUpdateLesson(
     lessonId: string,
-    dto: Partial<{ titulo: string; conteudoTexto: string; videoKey: string; duracaoSegundos: number; ordem: number; status: string }>,
+    dto: Partial<{ titulo: string; conteudoTexto: string; videoKey: string | null; duracaoSegundos: number; ordem: number; status: string }>,
   ): Promise<Lesson> {
     const lesson = await this.lessonRepo.findOne({ 
       where: { id: lessonId },
@@ -324,8 +327,14 @@ export class CoursesService {
 
     // Se estiver atualizando videoKey e a nova for diferente da antiga, remove a antiga do S3
     if (dto.videoKey !== undefined && lesson.videoKey && lesson.videoKey !== dto.videoKey) {
-      // Deleta o vídeo antigo
+      // Deleta o vídeo antigo do S3
       await this.storageService.deleteFile(lesson.videoKey);
+      
+      // Deleta o knowledge antigo relacionado ao vídeo
+      await this.knowledgeRepo.delete({
+        lessonId: lesson.id,
+        type: 'video',
+      });
     }
 
     const previousVideoKey = lesson.videoKey;

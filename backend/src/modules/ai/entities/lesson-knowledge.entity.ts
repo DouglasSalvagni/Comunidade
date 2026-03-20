@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Lesson } from '@/modules/courses/entities/lesson.entity';
 import { Course } from '@/modules/courses/entities/course.entity';
+import { LessonAttachment } from '@/modules/courses/entities/lesson-attachment.entity';
 
 @Entity('lesson_knowledge')
 export class LessonKnowledge {
@@ -27,6 +28,13 @@ export class LessonKnowledge {
   @ManyToOne(() => Lesson, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'lesson_id' })
   lesson: Lesson;
+
+  @Column({ name: 'attachment_id', nullable: true })
+  attachmentId: string;
+
+  @ManyToOne(() => LessonAttachment, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'attachment_id' })
+  attachment: LessonAttachment;
 
   @Column({ type: 'varchar', length: 50 })
   type: 'video' | 'text' | 'attachment';

@@ -58,14 +58,18 @@ function SortableLessonRow({
   courseId,
   onDelete,
   onUpload,
+  onRemoveVideo,
   onEditContent,
+  uploadProgress,
 }: {
   aula: AdminCourseDetail["modulos"][0]["aulas"][0];
   moduleId: string;
   courseId: string;
   onDelete: (moduleId: string, lessonId: string) => void;
   onUpload: (moduleId: string, lessonId: string) => void;
+  onRemoveVideo: (moduleId: string, lessonId: string) => void;
   onEditContent: (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => void;
+  uploadProgress?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: aula.id,
@@ -91,10 +95,32 @@ function SortableLessonRow({
         <GripVertical className="h-4 w-4" />
       </button>
       <span className="flex-1 text-sm">{aula.titulo}</span>
-      {aula.videoKey ? (
-        <Badge variant="outline" className="text-xs shrink-0">
-          <Video className="mr-1 h-3 w-3" /> Vídeo
-        </Badge>
+      
+      {uploadProgress !== undefined ? (
+        <div className="flex items-center gap-2 w-32 shrink-0">
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-300" 
+              style={{ width: `${uploadProgress}%` }} 
+            />
+          </div>
+          <span className="text-xs text-muted-foreground w-8">{Math.round(uploadProgress)}%</span>
+        </div>
+      ) : aula.videoKey ? (
+        <div className="flex items-center gap-1 shrink-0">
+          <Badge variant="outline" className="text-xs">
+            <Video className="mr-1 h-3 w-3" /> Vídeo
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            title="Remover vídeo"
+            onClick={() => onRemoveVideo(moduleId, aula.id)}
+          >
+            <X className="h-3 w-3 text-destructive" />
+          </Button>
+        </div>
       ) : (
         <Button
           variant="ghost"
@@ -105,6 +131,7 @@ function SortableLessonRow({
           <Upload className="mr-1 h-3 w-3" /> Upload
         </Button>
       )}
+
       <Button
         variant="ghost"
         size="sm"
@@ -136,9 +163,11 @@ function SortableModuleCard({
   onDeleteModule,
   onDeleteLesson,
   onUploadVideo,
+  onRemoveVideo,
   onLessonDragEnd,
   onEditLessonContent,
   onRenameModule,
+  uploadProgressMap,
 }: {
   modulo: AdminCourseDetail["modulos"][0];
   courseId: string;
@@ -147,9 +176,11 @@ function SortableModuleCard({
   onDeleteModule: (moduleId: string) => void;
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
   onUploadVideo: (moduleId: string, lessonId: string) => void;
+  onRemoveVideo: (moduleId: string, lessonId: string) => void;
   onLessonDragEnd: (moduleId: string, activeId: string, overId: string) => void;
   onEditLessonContent: (moduleId: string, lessonId: string, titulo: string, conteudoTexto: string) => void;
   onRenameModule: (moduleId: string, newTitulo: string) => Promise<void>;
+  uploadProgressMap: Record<string, number>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: modulo.id,
@@ -305,7 +336,9 @@ function SortableModuleCard({
                         courseId={courseId}
                         onDelete={onDeleteLesson}
                         onUpload={onUploadVideo}
+                        onRemoveVideo={onRemoveVideo}
                         onEditContent={onEditLessonContent}
+                        uploadProgress={uploadProgressMap[aula.id]}
                       />
                     ))}
                   </div>
@@ -541,6 +574,8 @@ export default function AdminCourseDetailPage() {
   const [lessonModuleId, setLessonModuleId] = useState("");
   const [newLessonTitulo, setNewLessonTitulo] = useState("");
 
+  const [uploadProgressMap, setUploadProgressMap] = useState<Record<string, number>>({});
+
   // Content editor dialog state
   const [contentDialogOpen, setContentDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<{
@@ -712,19 +747,60 @@ export default function AdminCourseDetailPage() {
       if (!file) return;
       try {
         const { uploadUrl, key } = await api.adminGetUploadUrl(id, file.name);
-        await fetch(uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
+        
+        setUploadProgressMap((prev) => ({ ...prev, [lessonId]: 0 }));
+
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", uploadUrl, true);
+          xhr.setRequestHeader("Content-Type", file.type);
+          
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const progress = (event.loaded / event.total) * 100;
+              setUploadProgressMap((prev) => ({ ...prev, [lessonId]: progress }));
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error("Network error during upload"));
+          xhr.send(file);
         });
+
         await api.adminUpdateLesson(id, moduleId, lessonId, { videoKey: key });
         await loadCourse();
       } catch (err) {
         console.error("Erro no upload:", err);
         alert("Erro ao fazer upload do vídeo.");
+      } finally {
+        setUploadProgressMap((prev) => {
+          const newMap = { ...prev };
+          delete newMap[lessonId];
+          return newMap;
+        });
       }
     };
     input.click();
+  };
+
+  // ── Remove video ──
+  const handleRemoveVideo = async (moduleId: string, lessonId: string) => {
+    if (!id) return;
+    if (!confirm("Tem certeza que deseja remover o vídeo desta aula? Ele será deletado permanentemente.")) return;
+    try {
+      await api.adminUpdateLesson(id, moduleId, lessonId, { videoKey: null });
+      await loadCourse();
+    } catch (err) {
+      console.error("Erro ao remover vídeo:", err);
+      alert("Erro ao remover o vídeo.");
+    }
   };
 
   // ── Module rename ──
@@ -963,9 +1039,11 @@ export default function AdminCourseDetailPage() {
                     onDeleteModule={handleDeleteModule}
                     onDeleteLesson={handleDeleteLesson}
                     onUploadVideo={handleUploadVideo}
+                    onRemoveVideo={handleRemoveVideo}
                     onLessonDragEnd={handleLessonDragEnd}
                     onEditLessonContent={handleEditLessonContent}
                     onRenameModule={handleRenameModule}
+                    uploadProgressMap={uploadProgressMap}
                   />
                 );
               })}

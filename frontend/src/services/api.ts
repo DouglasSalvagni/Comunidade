@@ -1051,7 +1051,7 @@ class ApiService {
     return response.data.data;
   }
 
-  async adminUpdateLesson(courseId: string, moduleId: string, lessonId: string, data: Partial<{ titulo: string; conteudoTexto: string; videoKey: string; duracaoSegundos: number; status: string }>): Promise<any> {
+  async adminUpdateLesson(courseId: string, moduleId: string, lessonId: string, data: Partial<{ titulo: string; conteudoTexto: string; videoKey: string | null; duracaoSegundos: number; status: string }>): Promise<any> {
     const response = await this.client.patch<ApiResponse<any>>(`/admin/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}`, data);
     return response.data.data;
   }

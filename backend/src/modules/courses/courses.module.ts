@@ -13,6 +13,7 @@ import { CoursesController } from './courses.controller';
 import { AdminCoursesController } from './admin-courses.controller';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
 import { AiModule } from '@/modules/ai/ai.module';
+import { LessonKnowledge } from '@/modules/ai/entities/lesson-knowledge.entity';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AiModule } from '@/modules/ai/ai.module';
       LessonProgress,
       CoursePlanAccess,
       Subscription,
+      LessonKnowledge,
     ]),
   ],
   controllers: [CoursesController, AdminCoursesController],

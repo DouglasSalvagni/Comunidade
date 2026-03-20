@@ -254,12 +254,10 @@ export default function LessonPage() {
           <CardContent>
             <div className="space-y-2">
               {lesson.anexos.map((att) => (
-                <a
+                <button
                   key={att.id}
-                  href={att.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-md border hover:bg-muted/40 transition-colors group"
+                  onClick={() => window.open(att.downloadUrl, "_blank")}
+                  className="w-full flex items-center gap-3 p-3 rounded-md border hover:bg-muted/40 transition-colors group text-left"
                 >
                   <FileText className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
                   <div className="flex-1 min-w-0">
@@ -271,7 +269,7 @@ export default function LessonPage() {
                     </p>
                   </div>
                   <Download className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
-                </a>
+                </button>
               ))}
             </div>
           </CardContent>

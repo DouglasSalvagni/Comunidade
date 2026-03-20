@@ -33,7 +33,6 @@ export class ChatController {
     const userId = req.user.userId;
     const l = limit ? parseInt(limit, 10) : 20;
     
-    const history = await this.chatService.getHistory(userId, courseId, l);
-    return { data: history };
+    return this.chatService.getHistory(userId, courseId, l);
   }
 }

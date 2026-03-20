@@ -1178,8 +1178,8 @@ class ApiService {
     return response.data.data;
   }
 
-  async aiChatGetHistory(courseId?: string, limit?: number): Promise<{ data: any[] }> {
-    const response = await this.client.get<ApiResponse<{ data: any[] }>>('/ai/chat/history', { params: { courseId, limit } });
+  async aiChatGetHistory(courseId?: string, limit?: number): Promise<any[]> {
+    const response = await this.client.get<ApiResponse<any[]>>('/ai/chat/history', { params: { courseId, limit } });
     return response.data.data;
   }
 }

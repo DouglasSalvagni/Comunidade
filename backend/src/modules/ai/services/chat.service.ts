@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSummary } from '../entities/chat-summary.entity';
 import { LessonKnowledge } from '../entities/lesson-knowledge.entity';
@@ -53,7 +53,7 @@ export class ChatService {
 
     // 3. Buscar Histórico Recente de Chat do Usuário (últimas 10 mensagens)
     const recentHistory = await this.chatMessageRepo.find({
-      where: { userId, courseId: courseId || null },
+      where: courseId ? { userId, courseId } : { userId, courseId: IsNull() },
       order: { createdAt: 'DESC' },
       take: 10,
     });
@@ -110,10 +110,10 @@ Seja sempre cordial, didático e claro.`;
 
   async getHistory(userId: string, courseId?: string, limit = 20) {
     const history = await this.chatMessageRepo.find({
-      where: { userId, courseId: courseId || null },
-      order: { createdAt: 'ASC' }, // chronological
+      where: courseId ? { userId, courseId } : { userId, courseId: IsNull() },
+      order: { createdAt: 'DESC' }, // Pegamos as últimas
       take: limit,
     });
-    return history;
+    return history.reverse(); // Retornamos em ordem cronológica (mais antigas primeiro)
   }
 }

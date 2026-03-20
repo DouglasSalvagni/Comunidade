@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle2, Download, FileText } from "lucide-react";
 import Hls from "hls.js";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 export default function LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -276,6 +277,8 @@ export default function LessonPage() {
           </CardContent>
         </Card>
       )}
+      {/* Chat Widget para tirar dúvidas sobre o curso/aula */}
+      <ChatWidget courseId={lesson.cursoId} />
     </div>
   );
 }

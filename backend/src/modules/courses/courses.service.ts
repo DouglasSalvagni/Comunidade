@@ -326,12 +326,9 @@ export class CoursesService {
     if (dto.videoKey !== undefined && lesson.videoKey && lesson.videoKey !== dto.videoKey) {
       // Deleta o vídeo antigo
       await this.storageService.deleteFile(lesson.videoKey);
-      // Se houver processamento HLS (pasta output/...), também deveria ser removido, 
-      // mas como o sistema atual parece usar upload direto de MP4 sem processamento complexo registrado no banco,
-      // vamos focar no arquivo principal. Se houver HLS, o storage service poderia ter um deleteFolder.
-      // Assumindo vídeo único por enquanto.
     }
 
+    const previousVideoKey = lesson.videoKey;
     const previousText = lesson.conteudoTexto;
 
     if (dto.titulo !== undefined) lesson.titulo = dto.titulo;
@@ -342,6 +339,20 @@ export class CoursesService {
     if (dto.status !== undefined) lesson.status = dto.status as any;
 
     const updatedLesson = await this.lessonRepo.save(lesson);
+
+    // If video key has changed and is not empty, trigger video transcription/embedding
+    if (dto.videoKey !== undefined && dto.videoKey !== previousVideoKey && dto.videoKey) {
+      try {
+        this.logger.log(`Enqueuing extract-video job for lesson ${lesson.id}`);
+        await this.knowledgeQueue.add('extract-video', {
+          type: 'video',
+          courseId: lesson.modulo?.cursoId,
+          lessonId: lesson.id,
+        });
+      } catch (queueErr) {
+        this.logger.error(`Failed to enqueue extract-video job: ${queueErr.message}`, queueErr.stack);
+      }
+    }
 
     // If content text has changed and is not empty, trigger embedding generation
     if (dto.conteudoTexto !== undefined && dto.conteudoTexto !== previousText) {

@@ -20,9 +20,14 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class CoursesService {
+  private readonly logger = new Logger(CoursesService.name);
+
   constructor(
     @InjectRepository(Course)
     private readonly courseRepo: Repository<Course>,
@@ -40,6 +45,8 @@ export class CoursesService {
     private readonly subscriptionRepo: Repository<Subscription>,
     private readonly storageService: StorageService,
     private readonly notificationsService: NotificationsService,
+    @InjectQueue('lesson-knowledge-ingestion')
+    private readonly knowledgeQueue: Queue,
   ) {}
 
   // =====================
@@ -309,7 +316,10 @@ export class CoursesService {
     lessonId: string,
     dto: Partial<{ titulo: string; conteudoTexto: string; videoKey: string; duracaoSegundos: number; ordem: number; status: string }>,
   ): Promise<Lesson> {
-    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    const lesson = await this.lessonRepo.findOne({ 
+      where: { id: lessonId },
+      relations: ['modulo']
+    });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
 
     // Se estiver atualizando videoKey e a nova for diferente da antiga, remove a antiga do S3
@@ -322,6 +332,8 @@ export class CoursesService {
       // Assumindo vídeo único por enquanto.
     }
 
+    const previousText = lesson.conteudoTexto;
+
     if (dto.titulo !== undefined) lesson.titulo = dto.titulo;
     if (dto.conteudoTexto !== undefined) lesson.conteudoTexto = dto.conteudoTexto;
     if (dto.videoKey !== undefined) lesson.videoKey = dto.videoKey;
@@ -329,7 +341,25 @@ export class CoursesService {
     if (dto.ordem !== undefined) lesson.ordem = dto.ordem;
     if (dto.status !== undefined) lesson.status = dto.status as any;
 
-    return this.lessonRepo.save(lesson);
+    const updatedLesson = await this.lessonRepo.save(lesson);
+
+    // If content text has changed and is not empty, trigger embedding generation
+    if (dto.conteudoTexto !== undefined && dto.conteudoTexto !== previousText) {
+      if (dto.conteudoTexto && dto.conteudoTexto.trim().length > 0) {
+        try {
+          this.logger.log(`Enqueuing extract-text job for lesson ${lesson.id}`);
+          await this.knowledgeQueue.add('extract-text', {
+            type: 'lesson_text',
+            courseId: lesson.modulo?.cursoId,
+            lessonId: lesson.id,
+          });
+        } catch (queueErr) {
+          this.logger.error(`Failed to enqueue extract-text job: ${queueErr.message}`, queueErr.stack);
+        }
+      }
+    }
+
+    return updatedLesson;
   }
 
   async adminDeleteLesson(lessonId: string): Promise<void> {
@@ -381,7 +411,10 @@ export class CoursesService {
     lessonId: string,
     dto: { nome: string; fileKey: string; fileName: string; contentType: string; tamanhoBytes: number },
   ) {
-    const lesson = await this.lessonRepo.findOne({ where: { id: lessonId } });
+    const lesson = await this.lessonRepo.findOne({ 
+      where: { id: lessonId },
+      relations: ['modulo']
+    });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
     const attachment = this.attachmentRepo.create({
       aulaId: lessonId,
@@ -392,6 +425,21 @@ export class CoursesService {
       tamanhoBytes: dto.tamanhoBytes,
     });
     const saved = await this.attachmentRepo.save(attachment);
+
+    if (dto.contentType === 'application/pdf') {
+      try {
+        this.logger.log(`Enqueuing extract-pdf job for attachment ${saved.id}`);
+        await this.knowledgeQueue.add('extract-pdf', {
+          type: 'attachment',
+          courseId: lesson.modulo?.cursoId,
+          lessonId: lesson.id,
+          attachmentId: saved.id,
+        });
+      } catch (queueErr) {
+        this.logger.error(`Failed to enqueue extract-pdf job: ${queueErr.message}`, queueErr.stack);
+      }
+    }
+
     const downloadUrl = await this.storageService.generateAttachmentDownloadUrl(saved.fileKey, saved.fileName);
     return { ...saved, downloadUrl };
   }

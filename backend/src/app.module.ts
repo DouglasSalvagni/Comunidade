@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 // import { RedisModule } from '@nestjs-modules/ioredis';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { BullModule } from '@nestjs/bullmq';
+
 import { AuthModule } from './modules/auth/auth.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -15,6 +17,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { CommunityModule } from './modules/community/community.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AiModule } from './modules/ai/ai.module';
 
 import databaseConfig from './config/database.config';
 // import redisConfig from './config/redis.config';
@@ -32,6 +35,23 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: databaseConfig,
+      inject: [ConfigService],
+    }),
+
+    // Redis / BullMQ
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST', 'localhost');
+        const port = configService.get<number>('REDIS_PORT', 6380);
+        console.log(`[BullMQ] Connecting to Redis at ${host}:${port}`);
+        return {
+          connection: {
+            host,
+            port,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -74,6 +94,7 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     CoursesModule,
     CommunityModule,
     NotificationsModule,
+    AiModule,
   ],
   providers: [
     {

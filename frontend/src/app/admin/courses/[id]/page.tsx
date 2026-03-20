@@ -325,6 +325,7 @@ function SortableModuleCard({
 function LessonContentDialog({
   open,
   onClose,
+  onSaved,
   courseId,
   moduleId,
   lessonId,
@@ -333,6 +334,7 @@ function LessonContentDialog({
 }: {
   open: boolean;
   onClose: () => void;
+  onSaved: () => Promise<void> | void;
   courseId: string;
   moduleId: string;
   lessonId: string;
@@ -367,6 +369,7 @@ function LessonContentDialog({
     setSaving(true);
     try {
       await api.adminUpdateLesson(courseId, moduleId, lessonId, { conteudoTexto: content });
+      await onSaved();
       onClose();
     } catch (err) {
       console.error("Erro ao salvar conteúdo:", err);
@@ -980,6 +983,7 @@ export default function AdminCourseDetailPage() {
             setContentDialogOpen(false);
             setEditingLesson(null);
           }}
+          onSaved={loadCourse}
           courseId={id!}
           moduleId={editingLesson.moduleId}
           lessonId={editingLesson.lessonId}

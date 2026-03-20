@@ -28,6 +28,9 @@ import { CommunityPostAttachment } from '@/modules/community/entities/community-
 import { CommunityPostLike } from '@/modules/community/entities/community-post-like.entity'
 import { CommunityComment } from '@/modules/community/entities/community-comment.entity'
 import { Notification } from '@/modules/notifications/entities/notification.entity'
+import { LessonKnowledge } from '@/modules/ai/entities/lesson-knowledge.entity'
+import { ChatMessage } from '@/modules/ai/entities/chat-message.entity'
+import { ChatSummary } from '@/modules/ai/entities/chat-summary.entity'
 
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
 const isProd = process.env.NODE_ENV === 'production'
@@ -72,6 +75,9 @@ const AppDataSource = new DataSource({
     CommunityPostLike,
     CommunityComment,
     Notification,
+    LessonKnowledge,
+    ChatMessage,
+    ChatSummary,
   ],
   migrations: [migrationsPath],
 })

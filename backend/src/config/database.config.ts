@@ -27,6 +27,9 @@ import { CommunityPostAttachment } from '@/modules/community/entities/community-
 import { CommunityPostLike } from '@/modules/community/entities/community-post-like.entity';
 import { CommunityComment } from '@/modules/community/entities/community-comment.entity';
 import { Notification } from '@/modules/notifications/entities/notification.entity';
+import { LessonKnowledge } from '@/modules/ai/entities/lesson-knowledge.entity';
+import { ChatMessage } from '@/modules/ai/entities/chat-message.entity';
+import { ChatSummary } from '@/modules/ai/entities/chat-summary.entity';
 
 export default (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -67,6 +70,9 @@ export default (configService: ConfigService): TypeOrmModuleOptions => ({
     CommunityPostLike,
     CommunityComment,
     Notification,
+    LessonKnowledge,
+    ChatMessage,
+    ChatSummary,
   ],
   autoLoadEntities: true,
   synchronize: false,

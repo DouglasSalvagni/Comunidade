@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+import 'dotenv/config'
 import { DataSource } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 import { User } from '@/modules/users/entities/user.entity'
@@ -6,7 +7,7 @@ import { Subscription } from '@/modules/subscriptions/entities/subscription.enti
 import { Plan } from '@/modules/subscriptions/entities/plan.entity'
 import { SystemSetting } from '@/modules/settings/entities/system-setting.entity'
 
-const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/little_tales'
+const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/comunidade'
 const isProd = process.env.NODE_ENV === 'production'
 const rawSsl = process.env.DB_SSL || process.env.DATABASE_SSL
 const useSsl = rawSsl !== undefined

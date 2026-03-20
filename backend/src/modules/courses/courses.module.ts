@@ -12,10 +12,12 @@ import { StorageService } from './storage.service';
 import { CoursesController } from './courses.controller';
 import { AdminCoursesController } from './admin-courses.controller';
 import { NotificationsModule } from '@/modules/notifications/notifications.module';
+import { AiModule } from '@/modules/ai/ai.module';
 
 @Module({
   imports: [
     NotificationsModule,
+    AiModule,
     TypeOrmModule.forFeature([
       Course,
       CourseModuleEntity,

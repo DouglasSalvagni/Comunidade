@@ -65,9 +65,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     });
   };
 
-  const linkClass = (href: string) => {
-    const active = href === '/admin' 
-      ? pathname === '/admin' || pathname === '/admin/'
+  const linkClass = (href: string, exact = false) => {
+    const active = exact
+      ? pathname === href || pathname === `${href}/`
       : pathname === href || pathname.startsWith(`${href}/`);
       
     return `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
@@ -86,33 +86,38 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-4 text-sm font-medium">
-              <Link href="/admin" className={linkClass('/admin')}>
+              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Visão Geral
+              </div>
+              <Link href="/admin" className={linkClass('/admin', true)}>
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link href="/admin/plans" className={linkClass('/admin/plans')}>
-                <CreditCard className="h-4 w-4" />
-                Planos
+
+              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Comunidade & Conteúdo
+              </div>
+              <Link href="/admin/community/inbox" className={linkClass('/admin/community/inbox', true)}>
+                <div className="relative">
+                  <MessagesSquare className="h-4 w-4" />
+                </div>
+                Moderação
+              </Link>
+              <Link href="/admin/community" className={linkClass('/admin/community', true)}>
+                <MessagesSquare className="h-4 w-4" />
+                Espaços
               </Link>
               <Link href="/admin/courses" className={linkClass('/admin/courses')}>
                 <BookOpen className="h-4 w-4" />
                 Cursos
               </Link>
-              <Link href="/admin/community" className={linkClass('/admin/community')}>
-                <MessagesSquare className="h-4 w-4" />
-                Comunidade
-              </Link>
-              <Link href="/admin/legal" className={linkClass('/admin/legal')}>
-                <FileText className="h-4 w-4" />
-                Termos & Privacidade
-              </Link>
-              <Link href="/admin/anti-abuse" className={linkClass('/admin/anti-abuse')}>
-                <Shield className="h-4 w-4" />
-                Anti-Abuse
-              </Link>
-              <Link href="/admin/users" className={linkClass('/admin/users')}>
-                <Users className="h-4 w-4" />
-                Usuários
+
+              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Vendas & Assinaturas
+              </div>
+              <Link href="/admin/plans" className={linkClass('/admin/plans')}>
+                <CreditCard className="h-4 w-4" />
+                Planos
               </Link>
               <Link href="/admin/partnerships" className={linkClass('/admin/partnerships')}>
                 <Tag className="h-4 w-4" />
@@ -121,6 +126,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link href="/admin/affiliates" className={linkClass('/admin/affiliates')}>
                 <Users className="h-4 w-4" />
                 Afiliados
+              </Link>
+
+              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Administração
+              </div>
+              <Link href="/admin/users" className={linkClass('/admin/users')}>
+                <Users className="h-4 w-4" />
+                Usuários
+              </Link>
+              <Link href="/admin/anti-abuse" className={linkClass('/admin/anti-abuse')}>
+                <Shield className="h-4 w-4" />
+                Anti-Abuse
+              </Link>
+              <Link href="/admin/legal" className={linkClass('/admin/legal')}>
+                <FileText className="h-4 w-4" />
+                Termos & Privacidade
+              </Link>
+              <Link href="/admin/settings" className={linkClass('/admin/settings')}>
+                <Shield className="h-4 w-4" />
+                Configurações
               </Link>
             </nav>
           </div>

@@ -915,6 +915,15 @@ class ApiService {
     return response.data.data;
   }
 
+  async adminListPendingPosts(): Promise<CommunityPost[]> {
+    const response = await this.client.get<ApiResponse<CommunityPost[]>>('/admin/community/posts/pending');
+    return response.data.data;
+  }
+
+  async adminResolveCommunityPost(postId: string): Promise<void> {
+    await this.client.post(`/admin/community/posts/${postId}/resolve`, {});
+  }
+
   // Exportar inst├óncia ├║nica da API
   // ===== CUPONS E PARCERIAS =====
   async activateCoupon(code: string): Promise<ActiveCoupon> {

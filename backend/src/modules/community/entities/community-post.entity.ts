@@ -59,6 +59,9 @@ export class CommunityPost {
   @Column({ name: 'likes_count', type: 'int', default: 0 })
   likesCount: number;
 
+  @Column({ name: 'needs_admin_attention', default: true })
+  needsAdminAttention: boolean;
+
   @Column({ name: 'edited_at', type: 'timestamp', nullable: true })
   editedAt: Date | null;
 

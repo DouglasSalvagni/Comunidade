@@ -293,6 +293,7 @@ export class CommunityService {
       contentHtml: dto.contentHtml,
       contentText: this.toSearchableText(dto.contentHtml),
       status: 'published',
+      needsAdminAttention: userRole !== 'admin',
     });
 
     const saved = await this.postRepo.save(post);
@@ -318,6 +319,21 @@ export class CommunityService {
     post.pinnedAt = null;
     await this.postRepo.save(post);
     return this.getPostDetail(post.id);
+  }
+
+  async adminListPendingPosts(): Promise<CommunityPost[]> {
+    const posts = await this.postRepo.find({
+      where: { needsAdminAttention: true, status: 'published' },
+      relations: ['author', 'space'],
+      order: { createdAt: 'ASC' },
+    });
+    return this.attachDownloadUrlsToPosts(posts);
+  }
+
+  async adminResolvePost(postId: string): Promise<void> {
+    const post = await this.getPostOrFail(postId);
+    post.needsAdminAttention = false;
+    await this.postRepo.save(post);
   }
 
   async generatePostAttachmentUploadUrl(
@@ -480,6 +496,12 @@ export class CommunityService {
     });
     const saved = await this.commentRepo.save(comment);
     await this.postRepo.increment({ id: postId }, 'commentsCount', 1);
+
+    if (userRole === 'admin') {
+      await this.postRepo.update({ id: postId }, { needsAdminAttention: false });
+    } else {
+      await this.postRepo.update({ id: postId }, { needsAdminAttention: true });
+    }
 
     const fetched = await this.commentRepo.findOneOrFail({
       where: { id: saved.id },

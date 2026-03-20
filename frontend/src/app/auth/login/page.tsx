@@ -11,6 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/services/api";
 import { signIn } from "next-auth/react";
 import { useSession } from "next-auth/react";
+import { getAuthProvidersStatus } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -61,12 +62,19 @@ const LoginPageContent = () => {
   const [error, setError] = useState<string | null>(null);
   const { data: session } = useSession();
   const [showPassword, setShowPassword] = useState(false);
+  const [hasGoogle, setHasGoogle] = useState(false);
+  const [hasApple, setHasApple] = useState(false);
   const params = useSearchParams();
   const nextParam = params.get('next');
   const safeNext = nextParam && nextParam.startsWith('/dashboard') ? nextParam : null;
   const accountDeleted = params.get('accountDeleted') === '1';
 
-  
+  useEffect(() => {
+    getAuthProvidersStatus().then((status) => {
+      setHasGoogle(status.hasGoogle);
+      setHasApple(status.hasApple);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const ensureNotLogged = async () => {
@@ -179,23 +187,27 @@ const LoginPageContent = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Entrando..." : "Login"}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full flex items-center justify-center" 
-              onClick={() => signIn('google', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}
-            >
-              <GoogleIcon />
-              Login com Google
-            </Button>
-            <Button 
-              type="button" 
-              className="w-full flex items-center justify-center bg-black text-white hover:bg-black/90" 
-              onClick={() => signIn('apple', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}
-            >
-              <AppleIcon />
-              Login com Apple
-            </Button>
+            {hasGoogle && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full flex items-center justify-center" 
+                onClick={() => signIn('google', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}
+              >
+                <GoogleIcon />
+                Login com Google
+              </Button>
+            )}
+            {hasApple && (
+              <Button 
+                type="button" 
+                className="w-full flex items-center justify-center bg-black text-white hover:bg-black/90" 
+                onClick={() => signIn('apple', { callbackUrl: safeNext ? `/auth/callback?next=${encodeURIComponent(safeNext)}` : '/auth/callback' })}
+              >
+                <AppleIcon />
+                Login com Apple
+              </Button>
+            )}
           </form>
           <div className="mt-4 text-center text-sm">
             Não tem uma conta?{" "}

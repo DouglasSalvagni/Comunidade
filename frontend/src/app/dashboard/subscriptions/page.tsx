@@ -206,12 +206,12 @@ const SubscriptionPageContent = () => {
                 </div>
                 <CardTitle className="text-3xl font-bold">{subscription.plan.name}</CardTitle>
               </CardHeader>
-              
+
               <CardContent className="space-y-6 relative z-10 flex-grow">
                 {(() => {
                   const isCourtesyPlan = subscription.plan.slug === 'plano-cortesia';
                   return (
-                    <div className="bg-secondary/40 rounded-xl p-5 space-y-4 border border-secondary">
+                    <div className="">
                       {subscription.status === 'expiring' ? (
                         <div className="flex gap-3 items-start">
                           <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
@@ -233,35 +233,37 @@ const SubscriptionPageContent = () => {
                         </div>
                       ) : (
                         subscription.periodEnd && (
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="w-5 h-5 text-muted-foreground" />
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium leading-none">Próxima cobrança</p>
-                                <p className="text-sm text-muted-foreground">{formatDate(subscription.periodEnd)}</p>
+                          <div className="bg-primary/20 rounded-xl p-5 space-y-4 border border-primary">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <Calendar className="w-5 h-5 text-primary" />
+                                <div className="space-y-1">
+                                  <p className="text-sm text-primary font-medium leading-none">Próxima cobrança</p>
+                                  <p className="text-sm text-primary text-muted-foreground">{formatDate(subscription.periodEnd)}</p>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">
-                                {(() => {
-                                  const relevant = invoices
-                                    .filter((inv) =>
-                                      inv.subscriptionId === subscription.id &&
-                                      (inv.status === 'CONFIRMED' || inv.status === 'PENDING' || inv.status === 'OVERDUE'),
-                                    )
-                                    .sort((a, b) => {
-                                      const aDate = (a.dueDate || a.createdAt || '').localeCompare(b.dueDate || b.createdAt || '');
-                                      return aDate;
-                                    });
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-primary">
+                                  {(() => {
+                                    const relevant = invoices
+                                      .filter((inv) =>
+                                        inv.subscriptionId === subscription.id &&
+                                        (inv.status === 'CONFIRMED' || inv.status === 'PENDING' || inv.status === 'OVERDUE'),
+                                      )
+                                      .sort((a, b) => {
+                                        const aDate = (a.dueDate || a.createdAt || '').localeCompare(b.dueDate || b.createdAt || '');
+                                        return aDate;
+                                      });
 
-                                  const last = relevant.length ? relevant[relevant.length - 1] : null;
-                                  if (!last) return formatPrice(subscription.plan.priceCents);
+                                    const last = relevant.length ? relevant[relevant.length - 1] : null;
+                                    if (!last) return formatPrice(subscription.plan.priceCents);
 
-                                  const value = parseFloat(String(last.amount || '0'));
-                                  if (!Number.isFinite(value) || value <= 0) return formatPrice(subscription.plan.priceCents);
-                                  return `R$ ${value.toFixed(2).replace(".", ",")}`;
-                                })()}
-                              </p>
+                                    const value = parseFloat(String(last.amount || '0'));
+                                    if (!Number.isFinite(value) || value <= 0) return formatPrice(subscription.plan.priceCents);
+                                    return `R$ ${value.toFixed(2).replace(".", ",")}`;
+                                  })()}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         )
@@ -304,8 +306,8 @@ const SubscriptionPageContent = () => {
                 Cupom de Desconto
               </CardTitle>
               <CardDescription className="text-base mt-2">
-                {activeCoupon 
-                  ? "Você possui um cupom ativo para sua próxima assinatura ou renovação." 
+                {activeCoupon
+                  ? "Você possui um cupom ativo para sua próxima assinatura ou renovação."
                   : "Tem um código promocional? Insira abaixo para ganhar descontos."}
               </CardDescription>
             </CardHeader>
@@ -336,9 +338,9 @@ const SubscriptionPageContent = () => {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Input 
-                    placeholder="Ex: PROMO20" 
-                    value={couponCode} 
+                  <Input
+                    placeholder="Ex: PROMO20"
+                    value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     className="flex-grow font-mono uppercase text-lg h-11"
                   />
@@ -405,13 +407,12 @@ const SubscriptionPageContent = () => {
                                   invoice.status === 'PENDING' ? 'secondary' :
                                     'outline'
                             }
-                            className={`px-2.5 py-0.5 shadow-sm font-medium ${
-                              invoice.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-200 border-emerald-200' :
+                            className={`px-2.5 py-0.5 shadow-sm font-medium ${invoice.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 hover:bg-emerald-200 border-emerald-200' :
                                 invoice.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 border-amber-200' :
                                   invoice.status === 'OVERDUE' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200 border-red-200' :
                                     invoice.status === 'REFUNDED' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200 border-purple-200' :
                                       'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 border-slate-200'
-                            }`}
+                              }`}
                           >
                             {invoice.status === 'CONFIRMED' ? 'Pago' :
                               invoice.status === 'PENDING' ? 'Aberta' :
@@ -423,10 +424,10 @@ const SubscriptionPageContent = () => {
                         <td className="py-4 px-6 text-right font-medium">R$ {parseFloat(invoice.amount).toFixed(2).replace('.', ',')}</td>
                         <td className="py-4 px-6 text-right">
                           {invoice.invoiceUrl ? (
-                            <a 
-                              href={invoice.invoiceUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href={invoice.invoiceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center text-primary hover:text-primary/80 hover:underline font-medium transition-colors"
                             >
                               Ver Fatura

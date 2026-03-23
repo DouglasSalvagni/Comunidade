@@ -75,6 +75,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }`;
   };
 
+  const isCoursesEnabled = process.env.NEXT_PUBLIC_ENABLE_COURSES_FEATURE !== 'false';
+  const isCommunityEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURE !== 'false';
+  const isSubscriptionsEnabled = process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTIONS_FEATURE !== 'false';
+
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 lg:block lg:sticky lg:top-0 h-screen">
@@ -94,39 +98,51 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 Dashboard
               </Link>
 
-              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Comunidade & Conteúdo
-              </div>
-              <Link href="/admin/community/inbox" className={linkClass('/admin/community/inbox', true)}>
-                <div className="relative">
-                  <MessagesSquare className="h-4 w-4" />
+              {(isCommunityEnabled || isCoursesEnabled) && (
+                <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Comunidade & Conteúdo
                 </div>
-                Moderação
-              </Link>
-              <Link href="/admin/community" className={linkClass('/admin/community', true)}>
-                <MessagesSquare className="h-4 w-4" />
-                Espaços
-              </Link>
-              <Link href="/admin/courses" className={linkClass('/admin/courses')}>
-                <BookOpen className="h-4 w-4" />
-                Cursos
-              </Link>
+              )}
+              {isCommunityEnabled && (
+                <>
+                  <Link href="/admin/community/inbox" className={linkClass('/admin/community/inbox', true)}>
+                    <div className="relative">
+                      <MessagesSquare className="h-4 w-4" />
+                    </div>
+                    Moderação
+                  </Link>
+                  <Link href="/admin/community" className={linkClass('/admin/community', true)}>
+                    <MessagesSquare className="h-4 w-4" />
+                    Espaços
+                  </Link>
+                </>
+              )}
+              {isCoursesEnabled && (
+                <Link href="/admin/courses" className={linkClass('/admin/courses')}>
+                  <BookOpen className="h-4 w-4" />
+                  Cursos
+                </Link>
+              )}
 
-              <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Vendas & Assinaturas
-              </div>
-              <Link href="/admin/plans" className={linkClass('/admin/plans')}>
-                <CreditCard className="h-4 w-4" />
-                Planos
-              </Link>
-              <Link href="/admin/partnerships" className={linkClass('/admin/partnerships')}>
-                <Tag className="h-4 w-4" />
-                Parcerias & Cupons
-              </Link>
-              <Link href="/admin/affiliates" className={linkClass('/admin/affiliates')}>
-                <Users className="h-4 w-4" />
-                Afiliados
-              </Link>
+              {isSubscriptionsEnabled && (
+                <>
+                  <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Vendas & Assinaturas
+                  </div>
+                  <Link href="/admin/plans" className={linkClass('/admin/plans')}>
+                    <CreditCard className="h-4 w-4" />
+                    Planos
+                  </Link>
+                  <Link href="/admin/partnerships" className={linkClass('/admin/partnerships')}>
+                    <Tag className="h-4 w-4" />
+                    Parcerias & Cupons
+                  </Link>
+                  <Link href="/admin/affiliates" className={linkClass('/admin/affiliates')}>
+                    <Users className="h-4 w-4" />
+                    Afiliados
+                  </Link>
+                </>
+              )}
 
               <div className="mb-2 mt-4 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Administração

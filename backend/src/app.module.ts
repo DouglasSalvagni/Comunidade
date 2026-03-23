@@ -86,15 +86,15 @@ import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor
     // Módulos da aplicação
     AuthModule,
     UsersModule,
-    SubscriptionsModule,
+    ...(process.env.ENABLE_SUBSCRIPTIONS_FEATURE === 'false' ? [] : [SubscriptionsModule]),
     AdminModule,
     LegalModule,
     AuditModule,
     SettingsModule,
-    CoursesModule,
-    CommunityModule,
     NotificationsModule,
     AiModule,
+    ...(process.env.ENABLE_COURSES_FEATURE === 'false' ? [] : [CoursesModule]),
+    ...(process.env.ENABLE_COMMUNITY_FEATURE === 'false' ? [] : [CommunityModule]),
   ],
   providers: [
     {

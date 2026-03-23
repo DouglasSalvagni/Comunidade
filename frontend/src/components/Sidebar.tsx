@@ -25,10 +25,23 @@ const Sidebar = ({ className }: { className?: string }) => {
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [user, setUser] = useState<User | null>(null);
 
+  const isCoursesEnabled = process.env.NEXT_PUBLIC_ENABLE_COURSES_FEATURE !== 'false';
+  const isCommunityEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURE !== 'false';
+  const isSubscriptionsEnabled = process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTIONS_FEATURE !== 'false';
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.href === "/dashboard/courses" && !isCoursesEnabled) return false;
+    if (item.href === "/dashboard/community" && !isCommunityEnabled) return false;
+    if (item.href === "/dashboard/subscriptions" && !isSubscriptionsEnabled) return false;
+    return true;
+  });
+
   useEffect(() => {
-    api.getCommunitySpaces().then(setSpaces).catch(() => setSpaces([]));
+    if (isCommunityEnabled) {
+      api.getCommunitySpaces().then(setSpaces).catch(() => setSpaces([]));
+    }
     api.getProfile().then(setUser).catch(() => setUser(null));
-  }, []);
+  }, [isCommunityEnabled]);
 
   const displayUser = {
     name: user?.name || session?.user?.name || "Usuário",
@@ -88,7 +101,7 @@ const Sidebar = ({ className }: { className?: string }) => {
             Menu Principal
           </p>
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isRoot = item.href === "/dashboard";
               const isActive = isRoot ? pathname === item.href : pathname.startsWith(item.href);
@@ -116,7 +129,7 @@ const Sidebar = ({ className }: { className?: string }) => {
         </div>
 
         {/* Spaces Section */}
-        {spaces.length > 0 && (
+        {isCommunityEnabled && spaces.length > 0 && (
           <div>
             <div className="flex items-center justify-between px-4 mb-3">
               <p className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">

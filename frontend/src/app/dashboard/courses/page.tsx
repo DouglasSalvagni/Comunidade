@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, CourseListItem } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,16 +11,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardCoursesPage() {
+  const router = useRouter();
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isCoursesEnabled = process.env.NEXT_PUBLIC_ENABLE_COURSES_FEATURE !== 'false';
+    if (!isCoursesEnabled) {
+      router.push('/dashboard');
+      return;
+    }
+
     api
       .getCourses()
       .then(setCourses)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto py-4">

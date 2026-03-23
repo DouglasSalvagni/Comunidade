@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import PlanSelector from "@/components/PlanSelector";
 import { api, Subscription, Invoice, ActiveCoupon } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 import { CreditCard, Calendar, CheckCircle2, Ticket, Receipt, AlertCircle, Loader2, ArrowRight, XCircle, Clock } from "lucide-react";
 
 const SubscriptionPageContent = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const checkout = searchParams.get('checkout');
 
@@ -33,6 +34,12 @@ const SubscriptionPageContent = () => {
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
   useEffect(() => {
+    const isSubscriptionsEnabled = process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTIONS_FEATURE !== 'false';
+    if (!isSubscriptionsEnabled) {
+      router.push('/dashboard');
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -58,7 +65,7 @@ const SubscriptionPageContent = () => {
     };
 
     fetchData();
-  }, []);
+  }, [router, checkout]);
 
   const handleCancelSubscription = async () => {
     try {

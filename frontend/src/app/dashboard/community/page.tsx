@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, CommunitySpace } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -8,16 +9,23 @@ import { Button } from "@/components/ui/button";
 import { MessagesSquare, ArrowRight, Hash } from "lucide-react";
 
 export default function DashboardCommunityPage() {
+  const router = useRouter();
   const [spaces, setSpaces] = useState<CommunitySpace[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isCommunityEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURE !== 'false';
+    if (!isCommunityEnabled) {
+      router.push('/dashboard');
+      return;
+    }
+
     api
       .getCommunitySpaces()
       .then(setSpaces)
       .catch(() => setSpaces([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

@@ -15,13 +15,15 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const { settings } = useSettings();
 
+  const isSubscriptionsEnabled = process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTIONS_FEATURE !== 'false';
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
         const [me, sub] = await Promise.all([
           api.getProfile(),
-          api.getCurrentSubscription().catch(() => null),
+          isSubscriptionsEnabled ? api.getCurrentSubscription().catch(() => null) : Promise.resolve(null),
         ]);
         setUser(me);
         setSubscription(sub);
@@ -30,7 +32,7 @@ const DashboardPage = () => {
       }
     };
     load();
-  }, []);
+  }, [isSubscriptionsEnabled]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -46,6 +48,9 @@ const DashboardPage = () => {
   };
 
   const supportEmail = settings.support_email;
+
+  const isCoursesEnabled = process.env.NEXT_PUBLIC_ENABLE_COURSES_FEATURE !== 'false';
+  const isCommunityEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURE !== 'false';
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto py-4">
@@ -162,43 +167,47 @@ const DashboardPage = () => {
           </h2>
           
           <div className="grid gap-4 sm:grid-cols-2">
-            <Link href="/dashboard/courses" className="block group">
-              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/50 group-hover:-translate-y-1">
-                <CardContent className="p-6 flex flex-col h-full justify-between">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                      <PlayCircle className="w-6 h-6" />
+            {isCoursesEnabled && (
+              <Link href="/dashboard/courses" className="block group">
+                <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/50 group-hover:-translate-y-1">
+                  <CardContent className="p-6 flex flex-col h-full justify-between">
+                    <div className="space-y-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <PlayCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">Meus Cursos</h3>
+                        <p className="text-sm text-muted-foreground">Continue assistindo suas aulas de onde parou</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">Meus Cursos</h3>
-                      <p className="text-sm text-muted-foreground">Continue assistindo suas aulas de onde parou</p>
+                    <div className="mt-4 flex items-center text-sm font-medium text-blue-600 dark:text-blue-400">
+                      Acessar Cursos <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </div>
-                  </div>
-                  <div className="mt-4 flex items-center text-sm font-medium text-blue-600 dark:text-blue-400">
-                    Acessar Cursos <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
-            <Link href="/dashboard/community" className="block group">
-              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/50 group-hover:-translate-y-1">
-                <CardContent className="p-6 flex flex-col h-full justify-between">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
-                      <MessagesSquare className="w-6 h-6" />
+            {isCommunityEnabled && (
+              <Link href="/dashboard/community" className="block group">
+                <Card className="h-full hover:shadow-lg transition-all duration-300 hover:border-primary/50 group-hover:-translate-y-1">
+                  <CardContent className="p-6 flex flex-col h-full justify-between">
+                    <div className="space-y-4">
+                      <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                        <MessagesSquare className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">Comunidade</h3>
+                        <p className="text-sm text-muted-foreground">Interaja com outros membros e participe das discussões</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">Comunidade</h3>
-                      <p className="text-sm text-muted-foreground">Interaja com outros membros e participe das discussões</p>
+                    <div className="mt-4 flex items-center text-sm font-medium text-green-600 dark:text-green-400">
+                      Ir para Comunidade <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </div>
-                  </div>
-                  <div className="mt-4 flex items-center text-sm font-medium text-green-600 dark:text-green-400">
-                    Ir para Comunidade <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
             <Link href="/dashboard/account" className="block group">
               <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/50 hover:border-primary/30 transition-all">
@@ -213,18 +222,20 @@ const DashboardPage = () => {
               </div>
             </Link>
 
-            <Link href="/dashboard/subscriptions" className="block group">
-              <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/50 hover:border-primary/30 transition-all">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                  <CreditCard className="w-5 h-5" />
+            {isSubscriptionsEnabled && (
+              <Link href="/dashboard/subscriptions" className="block group">
+                <div className="flex items-center gap-4 p-4 border rounded-xl hover:bg-muted/50 hover:border-primary/30 transition-all">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium group-hover:text-primary transition-colors">Assinatura</p>
+                    <p className="text-xs text-muted-foreground">Planos e faturas</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium group-hover:text-primary transition-colors">Assinatura</p>
-                  <p className="text-xs text-muted-foreground">Planos e faturas</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -260,14 +271,18 @@ const DashboardPage = () => {
                 <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                 Mantenha seu perfil atualizado para receber novidades.
               </li>
-              <li className="flex gap-2 items-start">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                Verifique os novos cursos adicionados mensalmente.
-              </li>
-              <li className="flex gap-2 items-start">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                Participe das discussões na comunidade para tirar dúvidas.
-              </li>
+              {isCoursesEnabled && (
+                <li className="flex gap-2 items-start">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  Verifique os novos cursos adicionados mensalmente.
+                </li>
+              )}
+              {isCommunityEnabled && (
+                <li className="flex gap-2 items-start">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  Participe das discussões na comunidade para tirar dúvidas.
+                </li>
+              )}
             </ul>
           </div>
         </div>

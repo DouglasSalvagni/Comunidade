@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export default function middleware(req: NextRequest) {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  const isCoursesEnabled = process.env.NEXT_PUBLIC_ENABLE_COURSES_FEATURE !== 'false';
+  const isCommunityEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_FEATURE !== 'false';
+  const isSubscriptionsEnabled = process.env.NEXT_PUBLIC_ENABLE_SUBSCRIPTIONS_FEATURE !== 'false';
+
+  // Protect disabled feature routes
+  if (!isCoursesEnabled && (pathname.startsWith('/dashboard/courses') || pathname.startsWith('/admin/courses'))) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.startsWith('/admin') ? '/admin' : '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  if (!isCommunityEnabled && (pathname.startsWith('/dashboard/community') || pathname.startsWith('/admin/community'))) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.startsWith('/admin') ? '/admin' : '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  if (!isSubscriptionsEnabled && (
+    pathname.startsWith('/dashboard/subscriptions') || 
+    pathname.startsWith('/admin/plans') ||
+    pathname.startsWith('/admin/partnerships') ||
+    pathname.startsWith('/admin/affiliates')
+  )) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.startsWith('/admin') ? '/admin' : '/dashboard';
+    return NextResponse.redirect(url);
+  }
 
   if (pathname.startsWith('/admin/login')) {
     return NextResponse.next()

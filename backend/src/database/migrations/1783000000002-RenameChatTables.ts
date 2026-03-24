@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class RenameChatTables1774031086673 implements MigrationInterface {
+export class RenameChatTables1783000000002 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.renameTable('chat_messages', 'course_chat_messages');
